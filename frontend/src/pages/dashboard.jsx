@@ -327,43 +327,27 @@ export default function Dashboard() {
             </CardContent>
           </Card>
 
-          {/* Risk-Score Distribution Pillar Bar Chart */}
-          <Card className="liquid-glass border-white/10 rounded-3xl p-5 shadow-xl">
+          {/* 3D Risk-Score Distribution Isometric Pillars */}
+          <Card className="liquid-glass border-emerald-500/25 rounded-3xl p-5 shadow-[0_15px_35px_rgba(0,0,0,0.5)] relative overflow-hidden">
             <CardHeader className="p-0 pb-4 border-b border-white/5 mb-4 flex flex-row items-center justify-between">
               <div>
-                <CardTitle className="text-sm font-bold text-slate-100 uppercase font-mono tracking-wider">
-                  Risk-Score Distribution
-                </CardTitle>
+                <div className="flex items-center gap-2 mb-1">
+                  <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                  <CardTitle className="text-sm font-bold text-slate-100 uppercase font-mono tracking-wider">
+                    Risk-Score Distribution
+                  </CardTitle>
+                </div>
                 <CardDescription className="text-xs text-slate-400">
-                  Target URLs categorized by heuristic risk range
+                  Interactive 3D isometric projection by heuristic risk range
                 </CardDescription>
               </div>
-              <span className="text-[10px] font-mono text-slate-400">0 - 100 Scale</span>
+              <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/25 text-emerald-300">
+                3D Volumetric
+              </span>
             </CardHeader>
 
-            <CardContent className="p-0">
-              <div className="h-64 w-full">
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={CHART_DATA.riskDistribution} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" vertical={false} />
-                    <XAxis dataKey="range" tickLine={false} axisLine={false} tick={{ fill: "#64748b", fontSize: 10 }} />
-                    <YAxis tickLine={false} axisLine={false} tick={{ fill: "#64748b", fontSize: 11 }} />
-                    <Tooltip
-                      contentStyle={{
-                        backgroundColor: "#070c18",
-                        border: "1px solid rgba(255,255,255,0.1)",
-                        borderRadius: "12px",
-                      }}
-                      itemStyle={{ color: "#e2e8f0", fontSize: "12px", fontFamily: "monospace" }}
-                    />
-                    <Bar dataKey="count" radius={[6, 6, 0, 0]}>
-                      {CHART_DATA.riskDistribution.map((entry, index) => (
-                        <Cell key={`bar-${index}`} fill={riskBarColors[index % riskBarColors.length]} />
-                      ))}
-                    </Bar>
-                  </BarChart>
-                </ResponsiveContainer>
-              </div>
+            <CardContent className="p-0 flex flex-col items-center">
+              <ThreeDBarChart data={CHART_DATA.riskDistribution} height={260} />
             </CardContent>
           </Card>
 
