@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import {
@@ -34,16 +34,64 @@ import { Table } from "@/components/ui/table";
 import { ThreeDDonut } from "@/components/ui/three-d-donut";
 import { ThreeDBarChart } from "@/components/ui/three-d-bar-chart";
 import { useAuth } from "@/hooks/useAuth";
+import { scanApi } from "@/utils/api";
 import { DASHBOARD_STATS, RECENT_SCANS, CHART_DATA } from "@/data/mockData";
 
 export default function Dashboard() {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [recentScans, setRecentScans] = useState(RECENT_SCANS);
 
-  const handleRefresh = () => {
+  useEffect(() => {
+    async function loadScans() {
+      try {
+        const data = await scanApi.getRecentScans(10);
+        if (data && data.items && data.items.length > 0) {
+          const mapped = data.items.map((s) => ({
+            id: s.id,
+            url: s.normalized_url || s.input_url,
+            verdict: s.verdict || "safe",
+            score: s.risk_score ?? 0,
+            threat:
+              s.verdict === "dangerous"
+                ? "Credential Stealer / Phishing"
+                : s.verdict === "suspicious"
+                ? "Suspicious Configuration"
+                : "Clean Telemetry",
+            date: new Date(s.created_at).toLocaleDateString(),
+          }));
+          setRecentScans([...mapped, ...RECENT_SCANS.slice(mapped.length)]);
+        }
+      } catch (err) {
+        console.warn("Could not fetch recent scans from backend:", err);
+      }
+    }
+    loadScans();
+  }, []);
+
+  const handleRefresh = async () => {
     setIsRefreshing(true);
-    setTimeout(() => setIsRefreshing(false), 800);
+    try {
+      const data = await scanApi.getRecentScans(10);
+      if (data && data.items && data.items.length > 0) {
+        const mapped = data.items.map((s) => ({
+          id: s.id,
+          url: s.normalized_url || s.input_url,
+          verdict: s.verdict || "safe",
+          score: s.risk_score ?? 0,
+          threat:
+            s.verdict === "dangerous"
+              ? "Credential Stealer / Phishing"
+              : s.verdict === "suspicious"
+              ? "Suspicious Configuration"
+              : "Clean Telemetry",
+          date: new Date(s.created_at).toLocaleDateString(),
+        }));
+        setRecentScans([...mapped, ...RECENT_SCANS.slice(mapped.length)]);
+      }
+    } catch (_) {}
+    setTimeout(() => setIsRefreshing(false), 600);
   };
 
   const statCards = [
@@ -441,7 +489,7 @@ export default function Dashboard() {
                   ),
                 },
               ]}
-              data={RECENT_SCANS}
+              data={recentScans}
             />
           </CardContent>
         </Card>
