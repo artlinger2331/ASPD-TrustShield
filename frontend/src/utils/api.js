@@ -172,5 +172,16 @@ export const authApi = {
     apiFetch("/api/v1/auth/logout", {
       method: "POST",
     }),
+
+  getOAuthStatus: () =>
+    apiFetch("/api/v1/auth/oauth/status", {
+      method: "GET",
+    }),
+
+  configureOAuth: (payload) =>
+    apiFetch("/api/v1/auth/oauth/configure", {
+      method: "POST",
+      body: JSON.stringify(payload),
+    }),
 };
 
