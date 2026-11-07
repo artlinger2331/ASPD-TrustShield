@@ -1,3 +1,4 @@
+import uuid
 from datetime import timedelta
 from typing import Optional
 from fastapi import APIRouter, Depends, Request, Response, status
@@ -201,7 +202,12 @@ async def refresh_token(
     if not user_id_str:
         raise UnauthorizedException("Invalid token subject")
 
-    query = select(User).where(User.id == user_id_str)
+    try:
+        user_uuid = uuid.UUID(user_id_str)
+    except ValueError:
+        raise UnauthorizedException("Invalid user ID format in token")
+
+    query = select(User).where(User.id == user_uuid)
     result = await db.execute(query)
     user = result.scalar_one_or_none()
 
