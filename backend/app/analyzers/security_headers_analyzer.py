@@ -597,3 +597,4 @@ async def save_security_headers_findings_to_db(
             await refresh_res
 
     return db_records
+

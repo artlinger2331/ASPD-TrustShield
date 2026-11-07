@@ -52,3 +52,4 @@ class SecurityHeadersAnalysisResult(BaseModel):
     summary: str = ""
 
     model_config = ConfigDict(from_attributes=True)
+
