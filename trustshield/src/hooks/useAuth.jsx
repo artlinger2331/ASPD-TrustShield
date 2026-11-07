@@ -115,18 +115,28 @@ export function useToast() {
 const AuthContext = createContext(null);
 
 export function AuthProvider({ children }) {
-  const [user, setUser] = useState(null);
-  const [token, setToken] = useState(localStorage.getItem("ts_token"));
+  const [token, setToken] = useState(() => {
+    if (typeof window === "undefined") return null;
+    if (localStorage.getItem("ts_logged_out") === "true") return null;
+    return localStorage.getItem("ts_token") || "mock_token_demo";
+  });
+
+  const [user, setUser] = useState(() => {
+    if (typeof window === "undefined") return null;
+    if (localStorage.getItem("ts_logged_out") === "true") return null;
+    return { name: "Alex Rivera", email: "alex@trustshield.local", role: "security-analyst", avatar: null };
+  });
 
   useEffect(() => {
     if (token) {
-      setUser({ name: "Alex Rivera", email: "alex@trustshield.local", role: "security-analyst", avatar: null });
+      setUser((prev) => prev || { name: "Alex Rivera", email: "alex@trustshield.local", role: "security-analyst", avatar: null });
     }
   }, [token]);
 
   const login = useCallback((email) => {
     const newToken = "mock_token_" + Date.now();
     setToken(newToken);
+    localStorage.removeItem("ts_logged_out");
     localStorage.setItem("ts_token", newToken);
     setUser({ name: "Alex Rivera", email: email || "alex@trustshield.local", role: "security-analyst", avatar: null });
     return true;
@@ -135,6 +145,7 @@ export function AuthProvider({ children }) {
   const register = useCallback((name, email) => {
     const newToken = "mock_token_" + Date.now();
     setToken(newToken);
+    localStorage.removeItem("ts_logged_out");
     localStorage.setItem("ts_token", newToken);
     setUser({ name: name || "Alex Rivera", email: email || "alex@trustshield.local", role: "security-analyst", avatar: null });
     return true;
@@ -144,6 +155,7 @@ export function AuthProvider({ children }) {
     setToken(null);
     setUser(null);
     localStorage.removeItem("ts_token");
+    localStorage.setItem("ts_logged_out", "true");
   }, []);
 
   return (
