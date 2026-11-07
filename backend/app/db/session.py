@@ -62,6 +62,7 @@ local_sync_engine = create_engine(
     echo=False,
     connect_args={"check_same_thread": False},
 )
+sync_engine = local_sync_engine
 local_session_factory = sessionmaker(
     bind=local_sync_engine,
     class_=Session,
