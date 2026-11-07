@@ -32,3 +32,4 @@ class ContentAnalysisResult(BaseModel):
     summary: str = ""
     findings: List[ContentFindingSchema] = Field(default_factory=list)
     error_message: Optional[str] = None
+

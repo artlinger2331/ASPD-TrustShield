@@ -13,3 +13,4 @@ __all__ = [
     "is_safe_url",
     "save_findings_to_db",
 ]
+
