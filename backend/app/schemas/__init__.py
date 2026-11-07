@@ -6,6 +6,14 @@ from app.schemas.auth import (
     TokenResponse,
     MessageResponse,
 )
+from app.schemas.scan import (
+    ScanCreate,
+    ScanResponse,
+    ScanStatusResponse,
+    ScanFindingResponse,
+    ScanReportResponse,
+    ScanListItem,
+)
 
 __all__ = [
     "UserBase",
@@ -16,5 +24,11 @@ __all__ = [
     "RefreshTokenRequest",
     "TokenResponse",
     "MessageResponse",
+    "ScanCreate",
+    "ScanResponse",
+    "ScanStatusResponse",
+    "ScanFindingResponse",
+    "ScanReportResponse",
+    "ScanListItem",
 ]
 
