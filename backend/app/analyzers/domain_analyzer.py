@@ -587,3 +587,4 @@ async def save_domain_findings_to_db(
             await refresh_res
 
     return db_records
+

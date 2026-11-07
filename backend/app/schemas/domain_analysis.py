@@ -71,3 +71,4 @@ class DomainAnalysisResult(BaseModel):
     findings: List[ContentFindingSchema] = Field(default_factory=list)
 
     model_config = ConfigDict(from_attributes=True)
+

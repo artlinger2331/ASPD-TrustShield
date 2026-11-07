@@ -198,3 +198,4 @@ def test_domain_analysis_synthesis_and_db_persistence():
             assert f.severity in ("critical", "high", "medium", "low")
     finally:
         session.close()
+
