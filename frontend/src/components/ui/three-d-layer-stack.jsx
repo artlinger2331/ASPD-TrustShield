@@ -110,7 +110,7 @@ export function ThreeDLayerStack({
       </div>
 
       {/* 3D Isometric Viewport Container */}
-      <div className="relative z-10 my-4 h-[240px] sm:h-[270px] flex items-center justify-center perspective-[1000px] select-none">
+      <div className="relative z-10 my-3 h-[280px] sm:h-[310px] flex items-center justify-center perspective-[1000px] select-none">
         <div
           className="relative w-[280px] sm:w-[320px] h-[190px] transition-transform duration-500 ease-out"
           style={{
@@ -120,9 +120,9 @@ export function ThreeDLayerStack({
         >
           {/* Base holographic floor grid */}
           <div
-            className="absolute -inset-10 rounded-2xl border border-cyan-500/20 bg-cyan-500/[0.02] pointer-events-none"
+            className="absolute -inset-6 rounded-2xl border border-cyan-500/20 bg-cyan-500/[0.02] pointer-events-none"
             style={{
-              transform: "translateZ(-30px)",
+              transform: "translateZ(-35px)",
               backgroundImage: "linear-gradient(to right, rgba(34, 211, 238, 0.08) 1px, transparent 1px), linear-gradient(to bottom, rgba(34, 211, 238, 0.08) 1px, transparent 1px)",
               backgroundSize: "20px 20px",
             }}
@@ -134,35 +134,35 @@ export function ThreeDLayerStack({
             const isHovered = hoveredLayer === layer.id;
             const isSelected = selectedLayer === layer.id;
 
-            // Z-spacing for stack elevation: top layer has highest translateZ
-            const zElev = (3 - index) * 44;
+            // Z-spacing for stack elevation: calibrated to prevent any overlapping
+            const zElev = (3 - index) * 58;
             const lift = isHovered || isSelected ? 12 : 0;
             const finalZ = zElev + lift;
 
             // Color palette by status
             let plateBorder = "border-cyan-500/30";
-            let plateBg = "bg-slate-900/70";
+            let plateBg = "bg-slate-900/80";
             let glowColor = "rgba(34, 211, 238, 0.25)";
             let badgeBg = "bg-cyan-500/20 text-cyan-300";
 
             if (status === "danger") {
               plateBorder = "border-red-500/70";
-              plateBg = "bg-red-950/70";
+              plateBg = "bg-red-950/80";
               glowColor = "rgba(239, 68, 68, 0.4)";
               badgeBg = "bg-red-500/20 text-red-300";
             } else if (status === "safe") {
               plateBorder = "border-emerald-500/60";
-              plateBg = "bg-emerald-950/60";
+              plateBg = "bg-emerald-950/80";
               glowColor = "rgba(16, 185, 129, 0.35)";
               badgeBg = "bg-emerald-500/20 text-emerald-300";
             } else if (status === "analyzing") {
               plateBorder = "border-blue-400";
-              plateBg = "bg-blue-950/80";
+              plateBg = "bg-blue-950/90";
               glowColor = "rgba(59, 130, 246, 0.5)";
               badgeBg = "bg-blue-500/20 text-blue-300";
             } else if (status === "warning") {
               plateBorder = "border-amber-500/60";
-              plateBg = "bg-amber-950/60";
+              plateBg = "bg-amber-950/80";
               glowColor = "rgba(245, 158, 11, 0.35)";
               badgeBg = "bg-amber-500/20 text-amber-300";
             }
@@ -176,13 +176,14 @@ export function ThreeDLayerStack({
                 onMouseEnter={() => setHoveredLayer(layer.id)}
                 onMouseLeave={() => setHoveredLayer(null)}
                 className={cn(
-                  "absolute inset-0 rounded-xl border cursor-pointer transition-all duration-300 ease-out backdrop-blur-md flex items-center justify-between px-4 py-2 select-none shadow-xl",
+                  "absolute left-0 right-0 h-[56px] rounded-xl border cursor-pointer transition-all duration-300 ease-out backdrop-blur-md flex items-center justify-between px-4 py-2 select-none shadow-xl",
                   plateBorder,
                   plateBg,
                   isSelected && "ring-2 ring-cyan-400/80",
                   status === "analyzing" && "animate-pulse"
                 )}
                 style={{
+                  top: "calc(50% - 28px)",
                   transform: `translateZ(${finalZ}px)`,
                   boxShadow: `0 10px 25px -5px ${glowColor}, inset 0 1px 2px rgba(255, 255, 255, 0.15)`,
                 }}
