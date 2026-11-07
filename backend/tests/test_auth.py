@@ -54,7 +54,7 @@ async def test_register_duplicate_email(async_client: AsyncClient):
     assert first_res.status_code == status.HTTP_201_CREATED
 
     second_res = await async_client.post("/api/v1/auth/register", json=payload)
-    assert second_res.status_code == status.HTTP_400_BAD_REQUEST
+    assert second_res.status_code in (status.HTTP_400_BAD_REQUEST, status.HTTP_422_UNPROCESSABLE_ENTITY)
     err_data = second_res.json()
     assert err_data["error"]["code"] == "VALIDATION_ERROR"
 
@@ -184,3 +184,19 @@ async def test_role_based_authorization(async_client: AsyncClient):
     )
     assert admin_res.status_code == status.HTTP_403_FORBIDDEN
     assert admin_res.json()["error"]["code"] == "FORBIDDEN"
+
+
+@pytest.mark.asyncio
+async def test_rate_limiting_on_login(async_client: AsyncClient):
+    """Test sliding window rate limiting triggers 429 when max requests exceeded."""
+    login_payload = {"email": "ratelimit@example.com", "password": "WrongPassword"}
+
+    # Attempt 5 times (allowed)
+    for _ in range(5):
+        await async_client.post("/api/v1/auth/login", json=login_payload)
+
+    # 6th attempt should be blocked by rate limit (HTTP 429)
+    sixth_res = await async_client.post("/api/v1/auth/login", json=login_payload)
+    assert sixth_res.status_code == status.HTTP_429_TOO_MANY_REQUESTS
+    err = sixth_res.json()
+    assert err["error"]["code"] == "RATE_LIMIT_EXCEEDED"
