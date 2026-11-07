@@ -30,6 +30,7 @@ import {
 import { RiskGauge } from "@/components/ui/gauge";
 import { CertificateChain } from "@/components/ui/certificate-chain";
 import { RedirectFlow } from "@/components/ui/redirect-flow";
+import { ThreatIntelGraph } from "@/components/ui/threat-intel-graph";
 import { Modal } from "@/components/ui/modal";
 import { useToast } from "@/hooks/useAuth";
 import {
@@ -465,6 +466,9 @@ export default function ScanReport() {
             </div>
           </CardContent>
         </Card>
+
+        {/* Threat Intelligence Topology Graph */}
+        <ThreatIntelGraph scanData={scan} className="mb-6" />
 
         {/* F. Evidence */}
         <Card className="mb-6">
