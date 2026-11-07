@@ -7,12 +7,23 @@ import { WATCHLIST_DOMAINS } from "@/data/mockData";
 import { Plus, Bell, RefreshCw, ChevronRight } from "lucide-react";
 
 export default function Watchlist() {
+  const [domains, setDomains] = useState(WATCHLIST_DOMAINS);
   const [newDomain, setNewDomain] = useState("");
-  const [editing, setEditing] = useState(null);
 
   const addDomain = () => {
     if (!newDomain.trim()) return;
-    setEditing(null);
+    setDomains((prev) => [
+      {
+        domain: newDomain.trim(),
+        score: Math.floor(Math.random() * 30) + 10,
+        certExpiry: "89 days",
+        lastScan: "Just now",
+        status: "safe",
+        alerts: true,
+      },
+      ...prev,
+    ]);
+    setNewDomain("");
   };
 
   return (
