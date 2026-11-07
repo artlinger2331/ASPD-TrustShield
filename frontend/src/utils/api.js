@@ -4,7 +4,7 @@
  * and seamless 401 token refreshing.
  */
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:8000";
+const API_BASE_URL = import.meta.env.VITE_API_URL || "";
 
 let isRefreshing = false;
 let failedQueue = [];
@@ -43,7 +43,17 @@ export async function apiFetch(endpoint, options = {}) {
   try {
     response = await fetch(url, config);
   } catch (netErr) {
-    throw new Error(netErr.message || "Network error. Please check backend connection.");
+    // If proxy failed, attempt direct connection to backend port 8000
+    if (!url.startsWith("http://127.0.0.1:8000") && !url.startsWith("http://localhost:8000")) {
+      try {
+        const directUrl = `http://127.0.0.1:8000${endpoint.startsWith("/") ? endpoint : `/${endpoint}`}`;
+        response = await fetch(directUrl, config);
+      } catch (directErr) {
+        throw new Error(directErr.message || "Network error. Please check backend connection.");
+      }
+    } else {
+      throw new Error(netErr.message || "Network error. Please check backend connection.");
+    }
   }
 
   // Handle 401 Unauthorized for token refresh (except for login/register itself)
