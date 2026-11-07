@@ -1,4 +1,5 @@
 import { createContext, useContext, useState, useCallback, useEffect } from "react";
+import { authApi } from "@/utils/api";
 
 const ToastContext = createContext(null);
 
@@ -118,48 +119,104 @@ export function AuthProvider({ children }) {
   const [token, setToken] = useState(() => {
     if (typeof window === "undefined") return null;
     if (localStorage.getItem("ts_logged_out") === "true") return null;
-    return localStorage.getItem("ts_token") || "mock_token_demo";
+    return localStorage.getItem("ts_token") || null;
   });
 
-  const [user, setUser] = useState(() => {
-    if (typeof window === "undefined") return null;
-    if (localStorage.getItem("ts_logged_out") === "true") return null;
-    return { name: "Alex Rivera", email: "alex@trustshield.local", role: "security-analyst", avatar: null };
-  });
+  const [user, setUser] = useState(null);
+  const [loading, setLoading] = useState(true);
 
+  // Synchronize authenticated user profile from backend
   useEffect(() => {
-    if (token) {
-      setUser((prev) => prev || { name: "Alex Rivera", email: "alex@trustshield.local", role: "security-analyst", avatar: null });
+    let isMounted = true;
+
+    async function loadUser() {
+      const currentToken = localStorage.getItem("ts_token");
+      if (!currentToken || localStorage.getItem("ts_logged_out") === "true") {
+        if (isMounted) {
+          setUser(null);
+          setLoading(false);
+        }
+        return;
+      }
+
+      try {
+        const userData = await authApi.getMe();
+        if (isMounted) {
+          setUser(userData);
+          setLoading(false);
+        }
+      } catch (err) {
+        if (isMounted) {
+          setUser(null);
+          setToken(null);
+          localStorage.removeItem("ts_token");
+          localStorage.removeItem("ts_refresh_token");
+          setLoading(false);
+        }
+      }
     }
+
+    loadUser();
+
+    // Listen for global logout events from api interceptor
+    const handleGlobalLogout = () => {
+      setToken(null);
+      setUser(null);
+    };
+    window.addEventListener("ts_auth_logout", handleGlobalLogout);
+
+    return () => {
+      isMounted = false;
+      window.removeEventListener("ts_auth_logout", handleGlobalLogout);
+    };
   }, [token]);
 
-  const login = useCallback((email) => {
-    const newToken = "mock_token_" + Date.now();
-    setToken(newToken);
+  const login = useCallback(async (email, password) => {
+    const data = await authApi.login({ email, password });
     localStorage.removeItem("ts_logged_out");
-    localStorage.setItem("ts_token", newToken);
-    setUser({ name: "Alex Rivera", email: email || "alex@trustshield.local", role: "security-analyst", avatar: null });
-    return true;
+    localStorage.setItem("ts_token", data.access_token);
+    localStorage.setItem("ts_refresh_token", data.refresh_token);
+    setToken(data.access_token);
+    setUser(data.user);
+    return data.user;
   }, []);
 
-  const register = useCallback((name, email) => {
-    const newToken = "mock_token_" + Date.now();
-    setToken(newToken);
+  const register = useCallback(async (name, email, password) => {
+    const data = await authApi.register({ email, password, full_name: name });
     localStorage.removeItem("ts_logged_out");
-    localStorage.setItem("ts_token", newToken);
-    setUser({ name: name || "Alex Rivera", email: email || "alex@trustshield.local", role: "security-analyst", avatar: null });
-    return true;
+    localStorage.setItem("ts_token", data.access_token);
+    localStorage.setItem("ts_refresh_token", data.refresh_token);
+    setToken(data.access_token);
+    setUser(data.user);
+    return data.user;
   }, []);
 
-  const logout = useCallback(() => {
-    setToken(null);
-    setUser(null);
-    localStorage.removeItem("ts_token");
-    localStorage.setItem("ts_logged_out", "true");
+  const logout = useCallback(async () => {
+    try {
+      await authApi.logout();
+    } catch (_) {
+      // Best effort server logout
+    } finally {
+      setToken(null);
+      setUser(null);
+      localStorage.removeItem("ts_token");
+      localStorage.removeItem("ts_refresh_token");
+      localStorage.setItem("ts_logged_out", "true");
+    }
   }, []);
 
   return (
-    <AuthContext.Provider value={{ user, token, login, register, logout, isAuthenticated: !!token }}>
+    <AuthContext.Provider
+      value={{
+        user,
+        token,
+        loading,
+        login,
+        register,
+        logout,
+        isAuthenticated: !!token && !!user,
+      }}
+    >
       {children}
     </AuthContext.Provider>
   );
