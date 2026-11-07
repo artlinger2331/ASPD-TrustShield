@@ -52,6 +52,44 @@ services:
       redis:
         condition: service_healthy
 
+  celery-worker:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: trustshield-celery-worker
+    restart: unless-stopped
+    command: celery -A app.core.celery_app worker --loglevel=info -c 4
+    env_file:
+      - .env
+    environment:
+      - DATABASE_URL=postgresql://trustshield:trustshield@db:5432/trustshield
+      - REDIS_URL=redis://redis:6379/0
+    volumes:
+      - ./backend:/app
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  celery-beat:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: trustshield-celery-beat
+    restart: unless-stopped
+    command: celery -A app.core.celery_app beat --loglevel=info
+    env_file:
+      - .env
+    environment:
+      - DATABASE_URL=postgresql://trustshield:trustshield@db:5432/trustshield
+      - REDIS_URL=redis://redis:6379/0
+    volumes:
+      - ./backend:/app
+    depends_on:
+      redis:
+        condition: service_healthy
+
 volumes:
   postgres_data:
   redis_data:
