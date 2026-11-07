@@ -14,6 +14,13 @@ from app.analyzers.domain_analyzer import (
     parse_spf,
     parse_dmarc,
 )
+from app.analyzers.cert_analyzer import (
+    analyze_certificate,
+    parse_x509_certificate,
+    fetch_server_certificate,
+    save_certificate_to_db,
+    save_certificate_to_db_sync,
+)
 from app.analyzers.content_analyzer import (
     analyze_content,
     analyze_html,
@@ -35,6 +42,11 @@ __all__ = [
     "query_dmarc_record",
     "parse_spf",
     "parse_dmarc",
+    "analyze_certificate",
+    "parse_x509_certificate",
+    "fetch_server_certificate",
+    "save_certificate_to_db",
+    "save_certificate_to_db_sync",
     "analyze_content",
     "analyze_html",
     "safe_fetch_html",
