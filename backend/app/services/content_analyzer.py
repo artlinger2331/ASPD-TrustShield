@@ -741,13 +741,13 @@ def analyze_html(html: str, target_url: str) -> ContentAnalysisResult:
 # DATABASE PERSISTENCE
 # ---------------------------------------------------------------------------
 
-async def save_findings_to_db(
+def save_findings_to_db_sync(
     scan_id: uuid.UUID,
     findings: List[ContentFindingSchema],
-    db: AsyncSession,
+    db: Session,
 ) -> List[ScanFinding]:
     """
-    Persists structured content findings into the PostgreSQL/SQLite `scan_findings` table.
+    Synchronously persists structured content findings into the `scan_findings` table.
     """
     db_records: List[ScanFinding] = []
 
@@ -767,9 +767,48 @@ async def save_findings_to_db(
         db.add(record)
         db_records.append(record)
 
-    await db.commit()
+    db.commit()
     for record in db_records:
-        await db.refresh(record)
+        db.refresh(record)
+
+    return db_records
+
+
+async def save_findings_to_db(
+    scan_id: uuid.UUID,
+    findings: List[ContentFindingSchema],
+    db: Any,
+) -> List[ScanFinding]:
+    """
+    Persists structured content findings into the PostgreSQL/SQLite `scan_findings` table.
+    Supports both AsyncSession and synchronous Session wrappers.
+    """
+    db_records: List[ScanFinding] = []
+
+    for f in findings:
+        record = ScanFinding(
+            scan_id=scan_id,
+            category=f.category,
+            title=f.title,
+            severity=f.severity,
+            confidence=f.confidence,
+            description=f.description,
+            evidence=f.evidence,
+            recommendation=f.recommendation,
+            risk_points=f.risk_points,
+            raw_data=f.raw_data or {},
+        )
+        db.add(record)
+        db_records.append(record)
+
+    commit_res = db.commit()
+    if inspect.isawaitable(commit_res):
+        await commit_res
+
+    for record in db_records:
+        refresh_res = db.refresh(record)
+        if inspect.isawaitable(refresh_res):
+            await refresh_res
 
     return db_records
 
@@ -778,11 +817,26 @@ async def save_findings_to_db(
 # MAIN END-TO-END ANALYZER ENTRY POINT
 # ---------------------------------------------------------------------------
 
+def analyze_content_sync(
+    url: str,
+    scan_id: Optional[uuid.UUID] = None,
+    html: Optional[str] = None,
+    db: Optional[Session] = None,
+) -> ContentAnalysisResult:
+    """
+    Synchronous execution of content analysis using pre-provided HTML fixture.
+    """
+    result = analyze_html(html or "", url)
+    if scan_id and db and result.findings:
+        save_findings_to_db_sync(scan_id=scan_id, findings=result.findings, db=db)
+    return result
+
+
 async def analyze_content(
     url: str,
     scan_id: Optional[uuid.UUID] = None,
     html: Optional[str] = None,
-    db: Optional[AsyncSession] = None,
+    db: Optional[Any] = None,
 ) -> ContentAnalysisResult:
     """
     End-to-end execution of Phishing Content Analysis:
