@@ -150,15 +150,16 @@ HTML_BENIGN_BLOG = """
 
 def test_ssrf_protection():
     """Verify SSRF validation blocks private IPs, loopback, and metadata endpoints."""
-    assert is_safe_url("http://127.0.0.1/admin") is False
-    assert is_safe_url("http://localhost:8000") is False
-    assert is_safe_url("http://10.0.0.15/secret") is False
-    assert is_safe_url("http://192.168.1.1/router") is False
-    assert is_safe_url("http://172.16.0.5/api") is False
-    assert is_safe_url("http://169.254.169.254/latest/meta-data/") is False
-    assert is_safe_url("ftp://example.com/file") is False
-    assert is_safe_url("file:///etc/passwd") is False
-    assert is_safe_url("https://example.com/articles") is True
+    assert is_safe_url("http://127.0.0.1/admin", resolve_dns=False) is False
+    assert is_safe_url("http://localhost:8000", resolve_dns=False) is False
+    assert is_safe_url("http://10.0.0.15/secret", resolve_dns=False) is False
+    assert is_safe_url("http://192.168.1.1/router", resolve_dns=False) is False
+    assert is_safe_url("http://172.16.0.5/api", resolve_dns=False) is False
+    assert is_safe_url("http://169.254.169.254/latest/meta-data/", resolve_dns=False) is False
+    assert is_safe_url("http://router.home.lan/config", resolve_dns=False) is False
+    assert is_safe_url("ftp://example.com/file", resolve_dns=False) is False
+    assert is_safe_url("file:///etc/passwd", resolve_dns=False) is False
+    assert is_safe_url("https://example.com/articles", resolve_dns=False) is True
 
 
 def test_get_base_domain():
