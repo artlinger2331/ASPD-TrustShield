@@ -48,17 +48,28 @@ async def test_api_v1_health_readiness(async_client: AsyncClient):
 
 
 @pytest.mark.asyncio
-async def test_postgresql_connection_via_database_url(db_session: AsyncSession):
+async def test_postgresql_connection_via_database_url():
     """
     Unit test verifying that PostgreSQL is directly queryable via DATABASE_URL.
     """
+    from sqlalchemy.ext.asyncio import create_async_engine
+    from app.core.config import settings
+
+    pg_engine = create_async_engine(
+        settings.async_database_url,
+        pool_pre_ping=True,
+        connect_args={"timeout": 2.0},
+    )
     try:
-        result = await db_session.execute(text("SELECT 1 AS alive, current_database() AS dbname"))
-        row = result.mappings().one()
-        assert row["alive"] == 1
-        assert isinstance(row["dbname"], str)
+        async with pg_engine.connect() as conn:
+            result = await conn.execute(text("SELECT 1 AS alive, current_database() AS dbname"))
+            row = result.mappings().one()
+            assert row["alive"] == 1
+            assert isinstance(row["dbname"], str)
     except Exception as exc:
         pytest.skip(f"PostgreSQL server not currently reachable via DATABASE_URL ({exc})")
+    finally:
+        await pg_engine.dispose()
 
 
 @pytest.mark.asyncio
