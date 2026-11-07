@@ -21,6 +21,13 @@ export default function UrlScan() {
   const [result, setResult] = useState(null);
   const [completed, setCompleted] = useState(false);
 
+  useEffect(() => {
+    const paramUrl = searchParams.get("url");
+    if (paramUrl) {
+      setUrl(paramUrl);
+    }
+  }, [searchParams]);
+
   const STEPS = 7;
 
   const handleScan = () => {
