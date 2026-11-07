@@ -31,16 +31,17 @@ export default function Landing() {
       </div>
 
       <nav className="relative z-10 flex items-center justify-between px-6 py-4 md:px-8 lg:px-12">
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 cursor-pointer" onClick={() => navigate("/")}>
           <div className="w-8 h-8 rounded-lg bg-blue-600 flex items-center justify-center text-white font-bold">TS</div>
           <span className="text-xl font-bold text-slate-100 tracking-tight">TrustShield</span>
         </div>
         <div className="hidden md:flex items-center gap-6 text-sm text-slate-400">
-          <a href="#" className="hover:text-white transition-colors">Features</a>
-          <a href="#" className="hover:text-white transition-colors">Report a Site</a>
-          <a href="#" className="hover:text-white transition-colors">API</a>
+          <Link to="/dashboard" className="hover:text-white transition-colors">Dashboard</Link>
+          <Link to="/scan" className="hover:text-white transition-colors">Scan</Link>
+          <Link to="/community" className="hover:text-white transition-colors">Community</Link>
+          <Link to="/report" className="hover:text-white transition-colors">Report a Site</Link>
         </div>
-        <Button className="bg-white text-navy-900 hover:bg-slate-200 text-sm font-semibold px-5 py-2.5">
+        <Button onClick={() => navigate("/login")} className="bg-white text-navy-900 hover:bg-slate-200 text-sm font-semibold px-5 py-2.5">
           Log in
         </Button>
       </nav>
