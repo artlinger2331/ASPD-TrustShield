@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
+import { cn } from "@/utils/cn";
 import {
   FileText,
   ShieldAlert,
