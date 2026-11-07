@@ -77,43 +77,47 @@ async def get_dashboard_stats(
         header_vulnerabilities=cat_counts.get("security_headers", 0),
     )
 
-    # 6. 7-Day Chart Trends Telemetry
+    # 6. 7-Day Chart Trends Telemetry (Single batch query aggregated in memory)
     now = datetime.now(timezone.utc)
-    trends: List[DailyTrendPoint] = []
+    seven_days_ago = (now - timedelta(days=6)).replace(hour=0, minute=0, second=0, microsecond=0)
+
+    recent_q = select(Scan.created_at, Scan.verdict, Scan.risk_score).where(
+        Scan.created_at >= seven_days_ago
+    )
+    recent_res = await db.execute(recent_q)
+    recent_records = recent_res.all()
+
+    # Bucket records by date string
+    buckets: Dict[str, Dict[str, Any]] = {}
     for i in range(6, -1, -1):
-        day_start = (now - timedelta(days=i)).replace(hour=0, minute=0, second=0, microsecond=0)
-        day_end = day_start + timedelta(days=1)
-        day_label = day_start.strftime("%b %d")
+        d_str = (now - timedelta(days=i)).strftime("%b %d")
+        buckets[d_str] = {"scans": 0, "threats": 0, "scores": []}
 
-        day_scans_q = select(func.count(Scan.id)).where(
-            Scan.created_at >= day_start,
-            Scan.created_at < day_end,
+    for rec in recent_records:
+        rec_time = rec[0]
+        if rec_time:
+            # Ensure timezone-aware comparison if needed
+            rec_date_str = rec_time.strftime("%b %d")
+            if rec_date_str in buckets:
+                buckets[rec_date_str]["scans"] += 1
+                if rec[1] in ("dangerous", "suspicious"):
+                    buckets[rec_date_str]["threats"] += 1
+                if rec[2] is not None:
+                    buckets[rec_date_str]["scores"].append(rec[2])
+
+    trends: List[DailyTrendPoint] = []
+    for d_str, b_data in buckets.items():
+        avg_score_day = (
+            round(sum(b_data["scores"]) / len(b_data["scores"]), 1)
+            if b_data["scores"]
+            else 0.0
         )
-        day_scans_res = await db.execute(day_scans_q)
-        day_scans = day_scans_res.scalar() or 0
-
-        day_threats_q = select(func.count(Scan.id)).where(
-            Scan.created_at >= day_start,
-            Scan.created_at < day_end,
-            Scan.verdict.in_(["dangerous", "suspicious"]),
-        )
-        day_threats_res = await db.execute(day_threats_q)
-        day_threats = day_threats_res.scalar() or 0
-
-        day_avg_q = select(func.avg(Scan.risk_score)).where(
-            Scan.created_at >= day_start,
-            Scan.created_at < day_end,
-        )
-        day_avg_res = await db.execute(day_avg_q)
-        day_avg_val = day_avg_res.scalar()
-        day_avg = round(float(day_avg_val), 1) if day_avg_val is not None else 0.0
-
         trends.append(
             DailyTrendPoint(
-                date=day_label,
-                scans=day_scans,
-                threats=day_threats,
-                avg_score=day_avg,
+                date=d_str,
+                scans=b_data["scans"],
+                threats=b_data["threats"],
+                avg_score=avg_score_day,
             )
         )
 
