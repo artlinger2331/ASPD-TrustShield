@@ -1,10 +1,11 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { ShieldAlert, Search, Filter, Plus, Eye, Copy, Users, Link as LinkIcon } from "lucide-react";
+import { ShieldAlert, Search, Filter, Plus, Eye, Copy, Users, Link as LinkIcon, ThumbsUp } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { StatusBadge, SeverityBadge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
+import { communityApi } from "@/utils/api";
 import { COMMUNITY_REPORTS } from "@/data/mockData";
 
 const FILTERS = [
@@ -21,10 +22,45 @@ export default function CommunityReports() {
   const navigate = useNavigate();
   const [filter, setFilter] = useState("All");
   const [search, setSearch] = useState("");
+  const [reports, setReports] = useState(COMMUNITY_REPORTS);
 
-  const filtered = COMMUNITY_REPORTS.filter(
+  useEffect(() => {
+    async function loadReports() {
+      try {
+        const data = await communityApi.getReports(filter);
+        if (data && data.items && data.items.length > 0) {
+          const mapped = data.items.map((r) => ({
+            id: r.id,
+            url: r.url,
+            type: r.threat_type.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase()),
+            risk: r.status === "verified" ? "Critical" : "High",
+            description: r.description,
+            status: r.status,
+            confirmations: r.confirmations,
+            reporter: "Security Researcher",
+            screenshot: r.screenshot_url || "https://images.unsplash.com/photo-1563986768609-322da13575f3?w=300&q=80",
+          }));
+          setReports([...mapped, ...COMMUNITY_REPORTS.slice(mapped.length)]);
+        }
+      } catch (err) {
+        console.warn("Could not fetch reports from backend, using mock data:", err);
+      }
+    }
+    loadReports();
+  }, [filter]);
+
+  const handleVote = async (reportId) => {
+    try {
+      await communityApi.voteReport(reportId, "confirm");
+      setReports((prev) =>
+        prev.map((r) => (r.id === reportId ? { ...r, confirmations: r.confirmations + 1 } : r))
+      );
+    } catch (_) {}
+  };
+
+  const filtered = reports.filter(
     (r) =>
-      (filter === "All" || r.type === filter) &&
+      (filter === "All" || r.type.toLowerCase().includes(filter.toLowerCase())) &&
       r.url.toLowerCase().includes(search.toLowerCase())
   );
 
@@ -100,10 +136,16 @@ export default function CommunityReports() {
                       {report.description}
                     </p>
                     <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-1">
-                        <Users className="w-3 h-3 text-slate-500" />
-                        <span className="text-[10px] text-slate-500">{report.confirmations} confirmations</span>
-                      </div>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleVote(report.id);
+                        }}
+                        className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-blue-500/10 hover:bg-blue-500/20 text-blue-400 text-[11px] transition-colors"
+                      >
+                        <ThumbsUp className="w-3 h-3" />
+                        <span>Confirm ({report.confirmations})</span>
+                      </button>
                       <span className="text-[10px] text-slate-600">by {report.reporter}</span>
                     </div>
                   </div>
