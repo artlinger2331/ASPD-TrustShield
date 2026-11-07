@@ -739,6 +739,39 @@ def analyze_html(html: str, target_url: str) -> ContentAnalysisResult:
 # DATABASE PERSISTENCE
 # ---------------------------------------------------------------------------
 
+def save_findings_to_db_sync(
+    scan_id: uuid.UUID,
+    findings: List[ContentFindingSchema],
+    db: Any,
+) -> List[ScanFinding]:
+    """
+    Synchronously persists structured content findings into the `scan_findings` table.
+    """
+    db_records: List[ScanFinding] = []
+
+    for f in findings:
+        record = ScanFinding(
+            scan_id=scan_id,
+            category=f.category,
+            title=f.title,
+            severity=f.severity,
+            confidence=f.confidence,
+            description=f.description,
+            evidence=f.evidence,
+            recommendation=f.recommendation,
+            risk_points=f.risk_points,
+            raw_data=f.raw_data or {},
+        )
+        db.add(record)
+        db_records.append(record)
+
+    db.commit()
+    for record in db_records:
+        db.refresh(record)
+
+    return db_records
+
+
 async def save_findings_to_db(
     scan_id: uuid.UUID,
     findings: List[ContentFindingSchema],
@@ -775,6 +808,20 @@ async def save_findings_to_db(
 # ---------------------------------------------------------------------------
 # MAIN END-TO-END ANALYZER ENTRY POINT
 # ---------------------------------------------------------------------------
+
+def analyze_content_sync(
+    url: str,
+    scan_id: Optional[uuid.UUID] = None,
+    html: Optional[str] = None,
+    db: Optional[Any] = None,
+) -> ContentAnalysisResult:
+    """
+    Synchronous content analysis using a pre-provided HTML fixture.
+    """
+    result = analyze_html(html or "", url)
+    if scan_id and db and result.findings:
+        save_findings_to_db_sync(scan_id=scan_id, findings=result.findings, db=db)
+    return result
 
 async def analyze_content(
     url: str,
