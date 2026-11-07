@@ -8,6 +8,11 @@ export default function Profile() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
 
+  const handleLogout = async () => {
+    await logout();
+    navigate("/login");
+  };
+
   return (
     <div className="min-h-screen flex flex-col">
       <div className="flex-1 overflow-y-auto py-6 px-4 sm:px-6 lg:px-8 max-w-2xl mx-auto">
@@ -24,11 +29,18 @@ export default function Profile() {
               <User className="w-10 h-10" />
             </div>
             <div className="flex-1">
-              <h2 className="text-lg font-bold text-slate-100">{user?.name}</h2>
-              <p className="text-sm text-slate-400">{user?.email}</p>
-              <p className="text-xs text-slate-500 mt-2">
-                Role: {user?.role?.charAt(0).toUpperCase() + user?.role.slice(1)}
-              </p>
+              <h2 className="text-lg font-bold text-slate-100">{user?.full_name || user?.name || "Security Analyst"}</h2>
+              <p className="text-sm text-slate-400">{user?.email || "No email"}</p>
+              <div className="flex items-center gap-2 mt-2">
+                <span className="px-2 py-0.5 rounded-full text-[10px] font-mono font-semibold bg-cyan-500/10 text-cyan-400 border border-cyan-500/20 uppercase">
+                  {user?.role || "user"}
+                </span>
+                {user?.is_active && (
+                  <span className="px-2 py-0.5 rounded-full text-[10px] font-mono font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                    ACTIVE
+                  </span>
+                )}
+              </div>
             </div>
           </CardContent>
         </Card>
@@ -62,7 +74,7 @@ export default function Profile() {
               </label>
             </div>
             <div className="pt-4">
-              <Button variant="danger" onClick={logout} className="w-full">
+              <Button variant="danger" onClick={handleLogout} className="w-full">
                 <LogOut className="w-4 h-4 mr-2" /> Sign out
               </Button>
             </div>
