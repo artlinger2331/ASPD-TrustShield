@@ -191,6 +191,22 @@ export function AuthProvider({ children }) {
     return data.user;
   }, []);
 
+  const handleOAuthSuccess = useCallback(async (accessToken, refreshToken) => {
+    localStorage.removeItem("ts_logged_out");
+    localStorage.setItem("ts_token", accessToken);
+    if (refreshToken) {
+      localStorage.setItem("ts_refresh_token", refreshToken);
+    }
+    setToken(accessToken);
+    try {
+      const userData = await authApi.getMe();
+      setUser(userData);
+      return userData;
+    } catch (e) {
+      return null;
+    }
+  }, []);
+
   const logout = useCallback(async () => {
     try {
       await authApi.logout();
@@ -213,6 +229,7 @@ export function AuthProvider({ children }) {
         loading,
         login,
         register,
+        handleOAuthSuccess,
         logout,
         isAuthenticated: !!token && !!user,
       }}
