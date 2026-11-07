@@ -25,19 +25,18 @@ app.include_router(rbac_router)
 async def test_register_success(async_client: AsyncClient):
     """Test successful user registration returns tokens and user object."""
     payload = {
-        "email": "test_register@trustshield.local",
+        "email": "test_register@example.com",
         "password": "Password123!",
         "full_name": "Test User",
     }
     response = await async_client.post("/api/v1/auth/register", json=payload)
-    print("\nREGISTER RESPONSE:", response.status_code, response.json())
     assert response.status_code == status.HTTP_201_CREATED
 
     data = response.json()
     assert "access_token" in data
     assert "refresh_token" in data
     assert data["token_type"] == "bearer"
-    assert data["user"]["email"] == "test_register@trustshield.local"
+    assert data["user"]["email"] == "test_register@example.com"
     assert data["user"]["role"] == "user"
     assert data["user"]["full_name"] == "Test User"
     assert "set-cookie" in response.headers
@@ -47,7 +46,7 @@ async def test_register_success(async_client: AsyncClient):
 async def test_register_duplicate_email(async_client: AsyncClient):
     """Test registering with an existing email returns 400 validation error."""
     payload = {
-        "email": "duplicate@trustshield.local",
+        "email": "duplicate@example.com",
         "password": "Password123!",
         "full_name": "Original User",
     }
@@ -63,7 +62,7 @@ async def test_register_duplicate_email(async_client: AsyncClient):
 @pytest.mark.asyncio
 async def test_login_success(async_client: AsyncClient):
     """Test login with valid credentials."""
-    email = "login_success@trustshield.local"
+    email = "login_success@example.com"
     password = "CorrectPassword123!"
 
     # 1. Register
@@ -86,7 +85,7 @@ async def test_login_success(async_client: AsyncClient):
 @pytest.mark.asyncio
 async def test_login_invalid_password(async_client: AsyncClient):
     """Test login with incorrect password returns 401 Unauthorized."""
-    email = "wrong_pwd@trustshield.local"
+    email = "wrong_pwd@example.com"
     password = "CorrectPassword123!"
 
     await async_client.post(
@@ -106,7 +105,7 @@ async def test_login_invalid_password(async_client: AsyncClient):
 @pytest.mark.asyncio
 async def test_get_current_user_me(async_client: AsyncClient):
     """Test GET /api/v1/auth/me with valid Bearer token."""
-    email = "get_me@trustshield.local"
+    email = "get_me@example.com"
     password = "Password123!"
 
     reg_res = await async_client.post(
@@ -134,7 +133,7 @@ async def test_get_current_user_unauthorized(async_client: AsyncClient):
 @pytest.mark.asyncio
 async def test_refresh_token_rotation(async_client: AsyncClient):
     """Test refreshing an access token with a valid refresh token."""
-    email = "refresher@trustshield.local"
+    email = "refresher@example.com"
     password = "Password123!"
 
     reg_res = await async_client.post(
@@ -168,10 +167,10 @@ async def test_logout(async_client: AsyncClient):
 
 
 @pytest.mark.asyncio
-async def test_role_based_authorization(async_client: AsyncClient, db_session: AsyncSession):
+async def test_role_based_authorization(async_client: AsyncClient):
     """Test RBAC enforcement: standard user gets 403 on admin routes."""
     # 1. Register a normal user (role='user')
-    email = "normal_user@trustshield.local"
+    email = "normal_user@example.com"
     reg_res = await async_client.post(
         "/api/v1/auth/register",
         json={"email": email, "password": "Password123!"},
