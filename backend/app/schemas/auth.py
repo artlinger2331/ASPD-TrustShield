@@ -29,3 +29,4 @@ class TokenResponse(BaseModel):
 
 class MessageResponse(BaseModel):
     message: str
+

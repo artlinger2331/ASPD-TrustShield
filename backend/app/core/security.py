@@ -108,3 +108,4 @@ def decode_token(token: str) -> Dict[str, Any]:
         raise UnauthorizedException("Authentication token has expired")
     except jwt.InvalidTokenError:
         raise UnauthorizedException("Invalid authentication token")
+
