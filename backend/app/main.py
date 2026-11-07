@@ -23,7 +23,8 @@ async def lifespan(app: FastAPI):
     # Startup actions
     yield
     # Shutdown actions
-    await async_engine.dispose()
+    if async_engine is not None:
+        await async_engine.dispose()
 
 
 app = FastAPI(
