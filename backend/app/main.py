@@ -14,6 +14,11 @@ from app.api.v1.health import router as health_v1_router
 from app.api.v1.auth import router as auth_v1_router
 from app.api.v1.oauth import router as oauth_v1_router
 from app.api.v1.scans import router as scans_v1_router
+from app.api.v1.community_reports import router as community_reports_v1_router
+from app.api.v1.watchlist import router as watchlist_v1_router
+from app.api.v1.alerts import router as alerts_v1_router
+from app.api.v1.ai_assistant import router as ai_assistant_v1_router
+
 
 
 @asynccontextmanager
@@ -109,4 +114,9 @@ app.include_router(health_v1_router, prefix=settings.API_V1_STR)
 app.include_router(auth_v1_router, prefix=settings.API_V1_STR)
 app.include_router(oauth_v1_router, prefix=settings.API_V1_STR)
 app.include_router(scans_v1_router, prefix=settings.API_V1_STR)
+app.include_router(community_reports_v1_router, prefix=settings.API_V1_STR)
+app.include_router(watchlist_v1_router, prefix=settings.API_V1_STR)
+app.include_router(alerts_v1_router, prefix=settings.API_V1_STR)
+app.include_router(ai_assistant_v1_router, prefix=settings.API_V1_STR)
+
 
