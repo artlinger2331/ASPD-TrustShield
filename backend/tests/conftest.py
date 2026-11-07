@@ -1,6 +1,6 @@
-import os
 import sys
 from pathlib import Path
+from typing import AsyncGenerator
 
 # Ensure 'backend' directory is in Python path for testing
 backend_dir = Path(__file__).resolve().parent.parent
@@ -9,23 +9,22 @@ if str(backend_dir) not in sys.path:
 
 import pytest
 import pytest_asyncio
-from typing import AsyncGenerator
 from httpx import AsyncClient, ASGITransport
 from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker, AsyncSession
-from sqlalchemy import text
+from sqlalchemy.pool import StaticPool
 
 from app.main import app
-from app.core.config import settings
+from app.models import Base
 from app.db.session import get_db
 
-# Use DATABASE_URL from settings / environment
-TEST_DATABASE_URL = settings.async_database_url
+# High-speed in-memory SQLite async test database
+TEST_SQLITE_URL = "sqlite+aiosqlite:///:memory:"
 
 test_async_engine = create_async_engine(
-    TEST_DATABASE_URL,
+    TEST_SQLITE_URL,
+    connect_args={"check_same_thread": False},
+    poolclass=StaticPool,
     echo=False,
-    pool_pre_ping=True,
-    connect_args={"timeout": 2.0},
 )
 
 test_async_session_factory = async_sessionmaker(
@@ -35,6 +34,18 @@ test_async_session_factory = async_sessionmaker(
     autoflush=False,
     expire_on_commit=False,
 )
+
+
+@pytest_asyncio.fixture(scope="session", autouse=True)
+async def init_test_database():
+    """
+    Initialize schema tables once per test session.
+    """
+    async with test_async_engine.begin() as conn:
+        await conn.run_sync(Base.metadata.create_all)
+    yield
+    async with test_async_engine.begin() as conn:
+        await conn.run_sync(Base.metadata.drop_all)
 
 
 async def override_get_db() -> AsyncGenerator[AsyncSession, None]:
@@ -64,7 +75,7 @@ async def async_client() -> AsyncGenerator[AsyncClient, None]:
 @pytest_asyncio.fixture
 async def db_session() -> AsyncGenerator[AsyncSession, None]:
     """
-    Direct async PostgreSQL database session for unit testing database operations.
+    Direct async database session for unit testing database operations.
     """
     async with test_async_session_factory() as session:
         yield session
