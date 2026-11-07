@@ -10,6 +10,13 @@ from app.core.exceptions import RateLimitException
 _MEMORY_RATE_LIMIT_STORE: Dict[str, List[float]] = {}
 
 
+def clear_rate_limit() -> None:
+    """
+    Clear in-memory rate limiting store (useful for tests).
+    """
+    _MEMORY_RATE_LIMIT_STORE.clear()
+
+
 async def check_rate_limit(
     request: Request,
     key_prefix: str = "auth",
@@ -55,11 +62,7 @@ async def check_rate_limit(
         # 2. Redis offline / error -> Fallback to in-memory sliding window
         pass
 
-    def clear_rate_limit() -> None:
-    """
-    Clear in-memory rate limiting store (useful for tests).
-    """
-    _MEMORY_RATE_LIMIT_STORE.clear()
+    # In-memory sliding window fallback
     timestamps = _MEMORY_RATE_LIMIT_STORE.get(rate_key, [])
     # Prune old timestamps
     cutoff = now - window_seconds
