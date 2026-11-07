@@ -20,7 +20,7 @@ export default function ReportWebsite() {
   const navigate = useNavigate();
   const [submitted, setSubmitted] = useState(false);
   const [reportId] = useState("TS-" + Math.floor(10000 + Math.random() * 90000));
-  const [form] = useState({
+  const [form, setForm] = useState({
     url: "",
     type: "Phishing",
     description: "",
@@ -84,13 +84,13 @@ export default function ReportWebsite() {
                 type="url"
                 placeholder="https://example.com"
                 value={form.url}
-                onChange={(e) => { form.url = e.target.value; }}
+                onChange={(e) => setForm((prev) => ({ ...prev, url: e.target.value }))}
               />
             </div>
 
             <div>
               <Label>Threat type</Label>
-              <Select value={form.type} onChange={(e) => { form.type = e.target.value; }}>
+              <Select value={form.type} onChange={(e) => setForm((prev) => ({ ...prev, type: e.target.value }))}>
                 {THREAT_TYPES.map((t) => (
                   <option key={t} value={t}>{t}</option>
                 ))}
@@ -103,7 +103,7 @@ export default function ReportWebsite() {
                 rows={4}
                 placeholder="How did you encounter this link? What happened?"
                 value={form.description}
-                onChange={(e) => { form.description = e.target.value; }}
+                onChange={(e) => setForm((prev) => ({ ...prev, description: e.target.value }))}
               />
             </div>
 
@@ -118,7 +118,7 @@ export default function ReportWebsite() {
 
             <div>
               <Label>Source of link</Label>
-              <Select value={form.source} onChange={(e) => { form.source = e.target.value; }}>
+              <Select value={form.source} onChange={(e) => setForm((prev) => ({ ...prev, source: e.target.value }))}>
                 {SOURCES.map((s) => (
                   <option key={s} value={s}>{s}</option>
                 ))}
@@ -127,7 +127,12 @@ export default function ReportWebsite() {
 
             <div>
               <Label>Optional contact email</Label>
-              <Input type="email" placeholder="you@example.com" value={form.contact} onChange={(e) => { form.contact = e.target.value; }} />
+              <Input
+                type="email"
+                placeholder="you@example.com"
+                value={form.contact}
+                onChange={(e) => setForm((prev) => ({ ...prev, contact: e.target.value }))}
+              />
             </div>
 
             <div className="flex items-start gap-3">
@@ -135,7 +140,7 @@ export default function ReportWebsite() {
                 id="consent"
                 type="checkbox"
                 checked={form.consent}
-                onChange={(e) => { form.consent = e.target.checked; }}
+                onChange={(e) => setForm((prev) => ({ ...prev, consent: e.target.checked }))}
                 className="w-4 h-4 rounded border-white/10 bg-white/5 text-blue-600 focus:ring-blue-500"
               />
               <Label htmlFor="consent" className="text-sm leading-6">
