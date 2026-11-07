@@ -4,21 +4,13 @@ import {
   ShieldCheck,
   ShieldAlert,
   Lock,
-  Zap,
-  Search,
   ArrowRight,
-  ExternalLink,
   Activity,
   Terminal,
-  AlertTriangle,
   CheckCircle2,
-  Copy,
   Sparkles,
-  Globe,
   Cpu,
-  Layers,
   Radio,
-  FileText,
   Users,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -83,7 +75,6 @@ const TELEMETRY_STATS = [
 export default function Landing() {
   const navigate = useNavigate();
   const [url, setUrl] = useState("https://secure-chase-update.bank-verify.xyz/login");
-  const [copied, setCopied] = useState(false);
 
   const handleScanSubmit = (e) => {
     e.preventDefault();
@@ -93,8 +84,6 @@ export default function Landing() {
 
   const handleCopyTarget = (sampleUrl) => {
     setUrl(sampleUrl);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 1500);
   };
 
   return (
