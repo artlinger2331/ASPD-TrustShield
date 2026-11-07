@@ -258,37 +258,37 @@ def test_benign_website_analysis():
     assert "No significant phishing" in result.summary
 
 
-def test_database_persistence_of_findings(db_session):
+def test_database_persistence_of_findings():
     """
     Test end-to-end integration: analyze HTML and save findings directly to database.
     """
-    import anyio
+    from app.db.session import local_session_factory
+    from app.services.content_analyzer import analyze_content_sync
 
-    async def _run():
+    session = local_session_factory()
+    try:
         # 1. Create a Scan record
         scan = Scan(
             input_url="http://fake-paypal-verify.xyz/login",
             normalized_url="http://fake-paypal-verify.xyz/login",
             status="running",
         )
-        db_session.add(scan)
-        await db_session.commit()
-        await db_session.refresh(scan)
+        session.add(scan)
+        session.commit()
+        session.refresh(scan)
 
         # 2. Run content analyzer with scan_id and db
-        result = await analyze_content(
+        result = analyze_content_sync(
             url=scan.normalized_url,
             scan_id=scan.id,
             html=HTML_PAYPAL_PHISHING,
-            db=db_session,
+            db=session,
         )
 
         assert len(result.findings) >= 2
 
         # 3. Query scan_findings from database
-        query = select(ScanFinding).where(ScanFinding.scan_id == scan.id)
-        exec_res = await db_session.execute(query)
-        saved_findings = exec_res.scalars().all()
+        saved_findings = session.query(ScanFinding).filter(ScanFinding.scan_id == scan.id).all()
 
         assert len(saved_findings) == len(result.findings)
 
@@ -300,5 +300,5 @@ def test_database_persistence_of_findings(db_session):
             assert f.risk_points > 0
             assert isinstance(f.evidence, dict)
             assert f.description != ""
-
-    anyio.run(_run)
+    finally:
+        session.close()
