@@ -8,17 +8,17 @@ from app.api.deps import require_roles, get_current_active_user
 from app.models.user import User
 
 # Test RBAC protected endpoint
-test_rbac_router = APIRouter(prefix="/api/v1/test-rbac", tags=["Test"])
+rbac_router = APIRouter(prefix="/api/v1/test-rbac", tags=["Test"])
 
-@test_rbac_router.get("/admin-only")
+@rbac_router.get("/admin-only")
 async def admin_only_route(current_user: User = Depends(require_roles(["admin"]))):
     return {"message": f"Welcome Admin {current_user.email}"}
 
-@test_rbac_router.get("/moderator-or-admin")
+@rbac_router.get("/moderator-or-admin")
 async def mod_route(current_user: User = Depends(require_roles(["moderator", "admin"]))):
     return {"message": f"Welcome Staff {current_user.email}"}
 
-app.include_router(test_rbac_router)
+app.include_router(rbac_router)
 
 
 @pytest.mark.asyncio
