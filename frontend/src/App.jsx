@@ -9,6 +9,7 @@ import {
 } from "react-router-dom";
 import { AuthProvider, ToastProvider, useAuth } from "@/hooks/useAuth";
 import { Sidebar, TopBar, BottomNav } from "@/components/layout/layout";
+import { AISecurityAssistant } from "@/components/ui/ai-security-assistant";
 import Landing from "@/pages/landing";
 import UrlScan from "@/pages/url-scan";
 import ScanReport from "@/pages/scan-report";
@@ -106,6 +107,8 @@ function AppLayout({ toggleTheme }) {
         <main className="flex-1 p-4 md:p-6 pb-20 md:pb-6 overflow-y-auto">
           <Outlet />
         </main>
+
+        <AISecurityAssistant />
 
         <div className="md:hidden">
           <BottomNav />
