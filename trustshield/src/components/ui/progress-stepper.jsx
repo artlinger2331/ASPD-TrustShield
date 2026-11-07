@@ -1,4 +1,4 @@
-import { ChevronRight, Play, Pause } from "lucide-react";
+import { cn } from "@/utils/cn";
 
 const STEPS = [
   "Checking domain reputation",

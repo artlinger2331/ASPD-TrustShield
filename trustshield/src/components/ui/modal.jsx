@@ -1,4 +1,5 @@
 import { X } from "lucide-react";
+import { cn } from "@/utils/cn";
 
 export function Modal({ open, onClose, children, className, title }) {
   if (!open) return null;
