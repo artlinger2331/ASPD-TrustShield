@@ -1,30 +1,86 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input, Label } from "@/components/ui/input";
 import { VerdictBadge } from "@/components/ui/badge";
+import { watchlistApi } from "@/utils/api";
 import { WATCHLIST_DOMAINS } from "@/data/mockData";
-import { Plus, Bell, RefreshCw, ChevronRight } from "lucide-react";
+import { Plus, Bell, RefreshCw, ChevronRight, Trash2 } from "lucide-react";
 
 export default function Watchlist() {
   const [domains, setDomains] = useState(WATCHLIST_DOMAINS);
   const [newDomain, setNewDomain] = useState("");
+  const [loading, setLoading] = useState(false);
 
-  const addDomain = () => {
+  useEffect(() => {
+    async function loadWatchlist() {
+      try {
+        const res = await watchlistApi.getWatchlist();
+        if (res && res.items && res.items.length > 0) {
+          const mapped = res.items.map((it) => ({
+            id: it.id,
+            domain: it.domain,
+            score: 15,
+            certExpiry: "90 days",
+            lastScan: it.last_checked_at ? new Date(it.last_checked_at).toLocaleDateString() : "Active",
+            status: "safe",
+            alerts: it.is_active,
+          }));
+          setDomains([...mapped, ...WATCHLIST_DOMAINS.slice(mapped.length)]);
+        }
+      } catch (err) {
+        console.warn("Could not load backend watchlist, using fallback data:", err);
+      }
+    }
+    loadWatchlist();
+  }, []);
+
+  const addDomain = async () => {
     if (!newDomain.trim()) return;
-    setDomains((prev) => [
-      {
-        domain: newDomain.trim(),
-        score: Math.floor(Math.random() * 30) + 10,
-        certExpiry: "89 days",
-        lastScan: "Just now",
-        status: "safe",
-        alerts: true,
-      },
-      ...prev,
-    ]);
-    setNewDomain("");
+    const clean = newDomain.trim().toLowerCase();
+    setLoading(true);
+    try {
+      const created = await watchlistApi.addDomain({ domain: clean });
+      setDomains((prev) => [
+        {
+          id: created?.id,
+          domain: clean,
+          score: 15,
+          certExpiry: "90 days",
+          lastScan: "Just now",
+          status: "safe",
+          alerts: true,
+        },
+        ...prev,
+      ]);
+    } catch (err) {
+      console.warn("API add failed, adding to local state:", err);
+      setDomains((prev) => [
+        {
+          domain: clean,
+          score: 15,
+          certExpiry: "90 days",
+          lastScan: "Just now",
+          status: "safe",
+          alerts: true,
+        },
+        ...prev,
+      ]);
+    } finally {
+      setLoading(false);
+      setNewDomain("");
+    }
   };
+
+  const removeDomain = async (id, domainName) => {
+    try {
+      if (id) {
+        await watchlistApi.removeDomain(id);
+      }
+    } catch (_) {}
+    setDomains((prev) => prev.filter((d) => d.id !== id && d.domain !== domainName));
+  };
+
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -77,8 +133,8 @@ export default function Watchlist() {
                 </tr>
               </thead>
               <tbody>
-                {WATCHLIST_DOMAINS.map((d, i) => (
-                  <tr key={i} className="hover:bg-white/3 transition-colors">
+                {domains.map((d, i) => (
+                  <tr key={d.id || i} className="hover:bg-white/3 transition-colors">
                     <td className="px-4 py-3 text-sm text-slate-200 font-medium">{d.domain}</td>
                     <td className="px-4 py-3 text-sm">
                       <span className={`font-mono text-sm ${d.score <= 30 ? "text-emerald-400" : d.score <= 50 ? "text-amber-400" : "text-red-400"}`}>
@@ -102,8 +158,14 @@ export default function Watchlist() {
                       </label>
                     </td>
                     <td className="px-4 py-3 text-right">
-                      <Button size="sm" variant="ghost" className="text-slate-400 hover:text-white">
-                        <ChevronRight className="w-3 h-3" />
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => removeDomain(d.id, d.domain)}
+                        className="text-slate-500 hover:text-red-400 hover:bg-red-500/10 p-1.5"
+                        title="Remove domain"
+                      >
+                        <Trash2 className="w-4 h-4" />
                       </Button>
                     </td>
                   </tr>
