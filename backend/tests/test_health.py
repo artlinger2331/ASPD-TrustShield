@@ -72,3 +72,4 @@ async def test_standardized_error_envelope(async_client: AsyncClient):
     data = response.json()
     # FastAPI default 404 returns {"detail": "Not Found"}
     assert "detail" in data or "error" in data
+

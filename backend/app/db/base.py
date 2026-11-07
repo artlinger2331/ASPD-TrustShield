@@ -19,3 +19,4 @@ class TimestampMixin:
         default=lambda: datetime.now(timezone.utc),
         nullable=False,
     )
+

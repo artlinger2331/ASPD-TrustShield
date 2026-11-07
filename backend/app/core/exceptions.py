@@ -127,3 +127,4 @@ def format_error_response(
             "timestamp": datetime.now(timezone.utc).isoformat(),
         }
     }
+
