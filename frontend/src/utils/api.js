@@ -185,6 +185,13 @@ export const authApi = {
     }),
 };
 
+export const dashboardApi = {
+  getStats: () =>
+    apiFetch("/api/v1/dashboard/stats", {
+      method: "GET",
+    }),
+};
+
 export const scanApi = {
   createScan: (url) =>
     apiFetch("/api/v1/scans", {
@@ -202,10 +209,15 @@ export const scanApi = {
       method: "GET",
     }),
 
-  getRecentScans: (limit = 10, offset = 0) =>
-    apiFetch(`/api/v1/scans?limit=${limit}&offset=${offset}`, {
+  getRecentScans: async (limit = 10, offset = 0) => {
+    const res = await apiFetch(`/api/v1/scans?limit=${limit}&offset=${offset}`, {
       method: "GET",
-    }),
+    });
+    if (Array.isArray(res)) {
+      return { total: res.length, items: res };
+    }
+    return res || { total: 0, items: [] };
+  },
 };
 
 export const communityApi = {
