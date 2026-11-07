@@ -12,3 +12,4 @@ chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
     // Optionally pre-check domain reputation in background
   }
 });
+

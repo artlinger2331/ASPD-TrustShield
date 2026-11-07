@@ -389,3 +389,4 @@ def save_brand_impersonation_findings_to_db_sync(
             db.refresh(f)
 
     return persisted
+

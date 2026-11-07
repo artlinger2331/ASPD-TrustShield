@@ -130,3 +130,4 @@ def test_ai_security_assistant_contextual_response():
     assert ctx_used is True
     assert "DANGEROUS" in resp_text
     assert "92/100" in resp_text
+

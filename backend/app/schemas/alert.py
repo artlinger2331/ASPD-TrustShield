@@ -24,3 +24,4 @@ class AlertListResponse(BaseModel):
     unread_count: int
     total: int
     items: List[AlertResponse]
+

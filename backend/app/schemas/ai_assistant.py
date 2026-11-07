@@ -25,3 +25,4 @@ class AssistantChatResponse(BaseModel):
     verdict: Optional[str] = None
     suggested_actions: List[str] = Field(default_factory=list)
     sources: List[str] = Field(default_factory=list)
+

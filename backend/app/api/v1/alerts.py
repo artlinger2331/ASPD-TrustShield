@@ -111,3 +111,4 @@ async def mark_all_alerts_read(
     await db.execute(stmt)
     await db.commit()
     return {"status": "success", "message": "All alerts marked as read."}
+

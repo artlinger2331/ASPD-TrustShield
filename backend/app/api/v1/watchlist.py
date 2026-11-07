@@ -187,3 +187,4 @@ async def delete_from_watchlist(
     item.is_active = False
     await db.commit()
     return None
+

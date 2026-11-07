@@ -283,3 +283,4 @@ export function ThreatIntelGraph({ scanData, className }) {
     </div>
   );
 }
+

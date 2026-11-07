@@ -23,3 +23,4 @@ class ThreatIntelAnalysisResult(BaseModel):
     clean_count: int = 0
     highest_confidence: float = 0.0
     summary: str = "No threat intelligence records matched."
+

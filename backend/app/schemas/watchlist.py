@@ -32,3 +32,4 @@ class WatchlistResponse(BaseModel):
 class WatchlistListResponse(BaseModel):
     total: int
     items: List[WatchlistResponse]
+

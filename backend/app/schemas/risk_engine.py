@@ -25,3 +25,4 @@ class RiskExplanation(BaseModel):
     subscores: Dict[str, TelemetrySubscore] = Field(default_factory=dict)
     positive_factors: List[str] = Field(default_factory=list)
     negative_factors: List[str] = Field(default_factory=list)
+

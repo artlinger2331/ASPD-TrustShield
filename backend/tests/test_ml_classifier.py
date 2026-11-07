@@ -87,3 +87,4 @@ def test_ml_classification_database_persistence():
         assert finding.evidence["phishing_probability"] > 0.5
     finally:
         session.close()
+

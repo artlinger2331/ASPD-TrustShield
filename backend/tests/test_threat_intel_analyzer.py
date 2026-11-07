@@ -110,3 +110,4 @@ def test_threat_intel_database_persistence():
         assert "urlhaus" in finding.title
     finally:
         session.close()
+

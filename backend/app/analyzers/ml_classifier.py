@@ -394,3 +394,4 @@ def save_ml_classification_to_db_sync(
     db.commit()
     db.refresh(finding)
     return finding
+

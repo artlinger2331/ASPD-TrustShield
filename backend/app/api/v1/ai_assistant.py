@@ -44,7 +44,11 @@ def generate_contextual_response(
         sources.append(f"Scan Report #{scan.id}")
 
     # 1. Incident Response intent
-    if any(k in q for k in ("entered password", "submitted", "typed password", "got scammed", "entered my credentials", "hacked")):
+    has_entered_creds = (
+        ("password" in q or "credentials" in q or "card" in q or "otp" in q)
+        and any(v in q for v in ("entered", "typed", "gave", "submit", "put", "shared", "leak", "stole", "lost"))
+    )
+    if has_entered_creds or any(k in q for k in ("got scammed", "i was scammed", "hacked", "compromised")):
         resp = (
             f"⚠️ **Immediate Incident Response Checklist**\n\n"
             f"If you submitted your credentials or personal information on {target_url or 'this website'}:\n\n"

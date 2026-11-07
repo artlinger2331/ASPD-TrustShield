@@ -154,3 +154,4 @@ async def vote_on_community_report(
     await db.commit()
     await db.refresh(report)
     return report
+

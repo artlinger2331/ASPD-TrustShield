@@ -299,3 +299,4 @@ async def list_recent_scans(
         )
         for s in scans
     ]
+

@@ -39,3 +39,4 @@ class CommunityReportResponse(BaseModel):
 class CommunityReportListResponse(BaseModel):
     total: int
     items: List[CommunityReportResponse]
+

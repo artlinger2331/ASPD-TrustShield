@@ -111,3 +111,4 @@ def test_risk_engine_subscore_breakdown():
     assert result.subscores["domain"].score == 25
     assert result.subscores["domain"].status == "safe"
     assert result.subscores["headers"].score == 10
+
