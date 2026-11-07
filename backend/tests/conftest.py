@@ -25,6 +25,7 @@ test_async_engine = create_async_engine(
     TEST_DATABASE_URL,
     echo=False,
     pool_pre_ping=True,
+    connect_args={"timeout": 2.0},
 )
 
 test_async_session_factory = async_sessionmaker(
