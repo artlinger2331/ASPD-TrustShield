@@ -70,8 +70,8 @@ async def google_login():
         target_url = f"https://accounts.google.com/o/oauth2/v2/auth?{urlencode(params)}"
         return RedirectResponse(url=target_url, status_code=status.HTTP_307_TEMPORARY_REDIRECT)
 
-    # Local development fallback if OAuth credentials not yet added in .env
-    fallback_url = f"{settings.BACKEND_URL}/api/v1/auth/oauth/google/callback?code=dev_google_mock_code&state={state}"
+    # If credentials not yet configured, redirect to provider simulation consent screen
+    fallback_url = f"{settings.FRONTEND_URL}/auth/provider-consent?provider=google&state={state}"
     return RedirectResponse(url=fallback_url, status_code=status.HTTP_307_TEMPORARY_REDIRECT)
 
 
@@ -79,14 +79,16 @@ async def google_login():
 async def google_callback(
     code: str,
     state: Optional[str] = None,
+    email: Optional[str] = None,
+    name: Optional[str] = None,
     db: AsyncSession = Depends(get_db),
 ):
     """
     Handles Google OAuth redirect, retrieves user profile, creates/logs in user,
     and redirects to frontend with session tokens.
     """
-    user_email = "google.analyst@example.com"
-    user_name = "Google Verified Analyst"
+    user_email = (email or "google.analyst@example.com").lower()
+    user_name = name or "Google Verified Analyst"
 
     if settings.GOOGLE_CLIENT_ID and settings.GOOGLE_CLIENT_SECRET and code != "dev_google_mock_code":
         async with httpx.AsyncClient(timeout=10.0) as client:
@@ -175,8 +177,8 @@ async def github_login():
         target_url = f"https://github.com/login/oauth/authorize?{urlencode(params)}"
         return RedirectResponse(url=target_url, status_code=status.HTTP_307_TEMPORARY_REDIRECT)
 
-    # Local development fallback if OAuth credentials not yet added in .env
-    fallback_url = f"{settings.BACKEND_URL}/api/v1/auth/oauth/github/callback?code=dev_github_mock_code&state={state}"
+    # If credentials not yet configured, redirect to provider simulation consent screen
+    fallback_url = f"{settings.FRONTEND_URL}/auth/provider-consent?provider=github&state={state}"
     return RedirectResponse(url=fallback_url, status_code=status.HTTP_307_TEMPORARY_REDIRECT)
 
 
@@ -184,14 +186,16 @@ async def github_login():
 async def github_callback(
     code: str,
     state: Optional[str] = None,
+    email: Optional[str] = None,
+    name: Optional[str] = None,
     db: AsyncSession = Depends(get_db),
 ):
     """
     Handles GitHub OAuth redirect, retrieves verified email and username,
     creates/logs in user, and redirects to frontend with session tokens.
     """
-    user_email = "github.developer@example.com"
-    user_name = "GitHub Developer"
+    user_email = (email or "github.developer@example.com").lower()
+    user_name = name or "GitHub Developer"
 
     if settings.GITHUB_CLIENT_ID and settings.GITHUB_CLIENT_SECRET and code != "dev_github_mock_code":
         async with httpx.AsyncClient(timeout=10.0) as client:
