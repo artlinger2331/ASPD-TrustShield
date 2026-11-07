@@ -125,31 +125,11 @@ const WORKFLOW_STEPS = [
   },
 ];
 
-const FAQS = [
-  {
-    q: "How does TrustShield detect zero-day phishing before traditional blocklists?",
-    a: "Traditional blocklists rely on reactive reports after users have already been victimized. TrustShield utilizes real-time neural heuristics to inspect visual brand impersonation, character homoglyphs (such as Cyrillic lookalikes), DOM credential forms, and newly minted SSL certificates on the fly.",
-  },
-  {
-    q: "Is it safe to scan malicious URLs? Does TrustShield execute malware locally?",
-    a: "Scanning is 100% safe. All inspections take place inside an isolated edge sandbox. No scripts, binaries, or malicious payloads are ever executed on your local machine or browser.",
-  },
-  {
-    q: "Why isn't a valid SSL certificate (green padlock) enough to verify security?",
-    a: "Over 82% of modern phishing websites now possess valid SSL certificates obtained through free, automated certificate authorities. The padlock only indicates encryption in transit, not the authenticity or trustworthiness of the party receiving your data.",
-  },
-  {
-    q: "Can I integrate TrustShield into my enterprise SOC or browser workflow?",
-    a: "Yes! TrustShield offers seamless API webhooks, automated SIEM data feeds, and community threat exports for enterprise incident response and proactive URL filtering.",
-  },
-];
-
 export default function Landing() {
   const navigate = useNavigate();
   const scannerInputRef = useRef(null);
   const [url, setUrl] = useState("https://secure-chase-update.bank-verify.xyz/login");
   const [activeConsoleTab, setActiveConsoleTab] = useState("homograph");
-  const [activeFaq, setActiveFaq] = useState(null);
   const [scrolled, setScrolled] = useState(false);
 
   // Framer Motion scroll progress indicator
