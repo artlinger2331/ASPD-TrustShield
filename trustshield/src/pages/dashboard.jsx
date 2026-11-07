@@ -1,3 +1,4 @@
+import { useNavigate } from "react-router-dom";
 import {
   ResponsiveContainer,
   LineChart,
@@ -36,6 +37,7 @@ const COLORS = ["#3b82f6", "#22d3ee", "#f59e0b", "#ef4444", "#10b981"];
 
 export default function Dashboard() {
   const { user } = useAuth();
+  const navigate = useNavigate();
 
   const statCards = [
     { label: "Total URLs scanned", value: DASHBOARD_STATS.totalScans, icon: ShieldAlert, color: "text-blue-400" },
@@ -193,19 +195,19 @@ export default function Dashboard() {
               <CardTitle className="text-sm">Recent scans</CardTitle>
               <CardDescription>Latest URL scan activity.</CardDescription>
             </div>
-            <Button size="sm" variant="outline">
+            <Button size="sm" variant="outline" onClick={() => navigate("/scan")}>
               View all scans
             </Button>
           </CardHeader>
           <CardContent>
             <Table
               columns={[
-                { key: "url", label: "URL", render: (r) => r.url },
+                { key: "url", label: "URL", render: (r) => <span className="font-mono text-xs text-slate-200">{r.url}</span> },
                 { key: "verdict", label: "Verdict", render: (r) => <VerdictBadge verdict={r.verdict} /> },
-                { key: "score", label: "Risk score", render: (r) => r.score + "/100" },
+                { key: "score", label: "Risk score", render: (r) => <span className="font-mono text-xs">{r.score}/100</span> },
                 { key: "date", label: "Date", render: (r) => r.date },
                 { key: "threat", label: "Threat type", render: (r) => r.threat },
-                { key: "action", label: "Action", render: () => <Button size="sm" variant="ghost">View</Button> },
+                { key: "action", label: "Action", render: (r) => <Button size="sm" variant="ghost" onClick={() => navigate(`/report/${r.id || "1"}`)}>View</Button> },
               ]}
               data={RECENT_SCANS}
             />
