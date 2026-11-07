@@ -21,6 +21,12 @@ from app.analyzers.cert_analyzer import (
     save_certificate_to_db,
     save_certificate_to_db_sync,
 )
+from app.analyzers.security_headers_analyzer import (
+    analyze_security_headers,
+    fetch_and_analyze_security_headers,
+    save_security_headers_findings_to_db,
+    save_security_headers_findings_to_db_sync,
+)
 from app.analyzers.content_analyzer import (
     analyze_content,
     analyze_html,
@@ -47,6 +53,10 @@ __all__ = [
     "fetch_server_certificate",
     "save_certificate_to_db",
     "save_certificate_to_db_sync",
+    "analyze_security_headers",
+    "fetch_and_analyze_security_headers",
+    "save_security_headers_findings_to_db",
+    "save_security_headers_findings_to_db_sync",
     "analyze_content",
     "analyze_html",
     "safe_fetch_html",
