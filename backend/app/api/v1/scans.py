@@ -29,6 +29,7 @@ from app.schemas.scan import (
     ThreatIntelReportResponse,
     ScanReportResponse,
     ScanListItem,
+    ScanListResponse,
 )
 from app.services.scan_orchestrator import (
     execute_scan_pipeline_sync,
@@ -268,7 +269,7 @@ async def get_scan_report(
 
 @router.get(
     "",
-    response_model=List[ScanListItem],
+    response_model=ScanListResponse,
     summary="List recent scan records for dashboard or user history",
 )
 async def list_recent_scans(
@@ -278,17 +279,22 @@ async def list_recent_scans(
     db: AsyncSession = Depends(get_db),
 ):
     """
-    Returns recent scans ordered by creation time descending.
+    Returns recent scans ordered by creation time descending with total count envelope.
     If authenticated, prioritizes the user's scan history; otherwise returns public recent scans.
     """
+    count_q = select(func.count(Scan.id))
     query = select(Scan).order_by(desc(Scan.created_at)).limit(limit).offset(offset)
     if current_user:
+        count_q = count_q.where(Scan.user_id == current_user.id)
         query = query.where(Scan.user_id == current_user.id)
+
+    count_res = await db.execute(count_q)
+    total_count = count_res.scalar() or 0
 
     result = await db.execute(query)
     scans = result.scalars().all()
 
-    return [
+    items = [
         ScanListItem(
             id=s.id,
             input_url=s.input_url,
@@ -300,4 +306,9 @@ async def list_recent_scans(
         )
         for s in scans
     ]
+
+    return ScanListResponse(
+        total=total_count,
+        items=items,
+    )
 
