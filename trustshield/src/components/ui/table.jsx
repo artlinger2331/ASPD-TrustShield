@@ -1,3 +1,5 @@
+import { cn } from "@/utils/cn";
+
 export function Table({ columns, data, className }) {
   return (
     <div className={cn("glass rounded-xl overflow-hidden border border-white/5", className)}>
