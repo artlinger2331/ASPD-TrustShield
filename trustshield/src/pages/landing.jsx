@@ -28,13 +28,6 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
-const SAMPLE_TARGETS = [
-  { label: "Phishing Bank Clone", url: "https://secure-chase-update.bank-verify.xyz/login", type: "threat" },
-  { label: "Fake PayPal Portal", url: "https://paypa1-account-resolution.top/auth", type: "threat" },
-  { label: "Crypto Seed Drainer", url: "https://metamask-claim-airdrop.online/connect", type: "threat" },
-  { label: "Official Google Auth", url: "https://accounts.google.com/signin", type: "safe" },
-];
-
 const LIVE_THREAT_FEED = [
   { domain: "chase-update-verify.xyz", threat: "Homograph Phishing", risk: 96, time: "Just now", status: "Quarantined" },
   { domain: "paypa1-account-alert.top", threat: "Credential Harvester", risk: 94, time: "1m ago", status: "Blocked" },
@@ -152,10 +145,6 @@ export default function Landing() {
     e.preventDefault();
     if (!url.trim()) return;
     navigate(`/scan?url=${encodeURIComponent(url.trim())}`);
-  };
-
-  const handleCopyTarget = (sampleUrl) => {
-    setUrl(sampleUrl);
   };
 
   const scrollToSection = (id) => {
