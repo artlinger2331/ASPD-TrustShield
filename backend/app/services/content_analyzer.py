@@ -617,22 +617,41 @@ def analyze_html(html: str, target_url: str) -> ContentAnalysisResult:
     # =========================================================================
     # 5. SUSPICIOUS SCRIPTS, IFRAMES & HIDDEN ELEMENTS
     # =========================================================================
-    # Script inspection
+    # Script inspection for obfuscation and eval
     scripts = soup.find_all("script")
     for s_idx, script in enumerate(scripts, start=1):
-        s_content = script.string or ""
+        s_content = script.string or script.text or ""
         for pattern, s_title, pts in SUSPICIOUS_SCRIPT_PATTERNS:
-            if re.search(pattern, s_content, re.IGNORECASE):
+            if "oncontextmenu" not in pattern and "onselectstart" not in pattern and "onkeydown" not in pattern:
+                if re.search(pattern, s_content, re.IGNORECASE):
+                    suspicious_scripts.append(s_title)
+                    findings.append(
+                        ContentFindingSchema(
+                            category="suspicious_script",
+                            title=s_title,
+                            severity="medium",
+                            confidence=0.85,
+                            description=f"Script #{s_idx} contains code associated with anti-analysis evasion or payload obfuscation.",
+                            evidence={"pattern": pattern, "snippet": s_content[:100].strip()},
+                            recommendation="The presence of obfuscated client-side code is a frequent indicator of hostile or evasion behavior.",
+                            risk_points=pts,
+                        )
+                    )
+
+    # Anti-analysis event handlers across entire HTML (tag attributes or inline scripts)
+    for pattern, s_title, pts in SUSPICIOUS_SCRIPT_PATTERNS:
+        if "oncontextmenu" in pattern or "onselectstart" in pattern or "onkeydown" in pattern:
+            if re.search(pattern, html_raw_lower):
                 suspicious_scripts.append(s_title)
                 findings.append(
                     ContentFindingSchema(
-                        category="suspicious_script",
+                        category="anti_analysis",
                         title=s_title,
                         severity="medium",
-                        confidence=0.85,
-                        description=f"Script #{s_idx} contains code associated with anti-analysis evasion or payload obfuscation.",
-                        evidence={"pattern": pattern, "snippet": s_content[:100].strip()},
-                        recommendation="The presence of obfuscated client-side code is a frequent indicator of hostile or evasion behavior.",
+                        confidence=0.90,
+                        description="Detected inline event handlers preventing user inspection, right-click, or DevTools shortcut keys.",
+                        evidence={"pattern": pattern},
+                        recommendation="Legitimate sites do not restrict browser inspect or text selection controls.",
                         risk_points=pts,
                     )
                 )
