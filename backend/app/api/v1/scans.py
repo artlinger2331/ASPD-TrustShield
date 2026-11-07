@@ -34,6 +34,7 @@ from app.services.scan_orchestrator import (
     execute_scan_pipeline_sync,
     calculate_verdict,
 )
+from app.tasks.scan_tasks import dispatch_scan
 
 router = APIRouter(prefix="/scans", tags=["Scans"])
 
@@ -79,8 +80,8 @@ async def create_scan(
     db.add(scan)
     await db.commit()
 
-    # 3. Enqueue background execution
-    background_tasks.add_task(execute_scan_pipeline_sync, scan_id=scan.id)
+    # 3. Enqueue background execution via Celery or in-process fallback
+    dispatch_scan(scan_id=scan.id, background_tasks=background_tasks)
 
     return ScanResponse(
         id=scan.id,
