@@ -29,5 +29,13 @@
   "tests/test_models.py::test_metadata_contains_all_tables",
   "tests/test_models.py::test_scan_with_findings_and_cascade",
   "tests/test_models.py::test_user_creation_and_defaults",
-  "tests/test_models.py::test_watchlist_and_alert_system"
+  "tests/test_models.py::test_watchlist_and_alert_system",
+  "tests/test_url_normalizer.py::test_defang_url",
+  "tests/test_url_normalizer.py::test_extract_domain_parts",
+  "tests/test_url_normalizer.py::test_punycode_and_homoglyph_detection",
+  "tests/test_url_normalizer.py::test_ssrf_prohibited_hostnames",
+  "tests/test_url_normalizer.py::test_ssrf_prohibited_ip_ranges",
+  "tests/test_url_normalizer.py::test_unsupported_protocols_blocked",
+  "tests/test_url_normalizer.py::test_url_normalization_canonicalization",
+  "tests/test_url_normalizer.py::test_valid_public_urls"
 ]
