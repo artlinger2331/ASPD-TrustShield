@@ -1,6 +1,3 @@
 {
-  "tests/test_auth.py::test_register_duplicate_email": true,
-  "tests/test_auth.py::test_get_current_user_me": true,
-  "tests/test_auth.py::test_refresh_token_rotation": true,
-  "tests/test_auth.py::test_role_based_authorization": true
+  "tests/test_auth.py::test_refresh_token_rotation": true
 }

@@ -4,6 +4,7 @@
   "tests/test_auth.py::test_login_invalid_password",
   "tests/test_auth.py::test_login_success",
   "tests/test_auth.py::test_logout",
+  "tests/test_auth.py::test_rate_limiting_on_login",
   "tests/test_auth.py::test_refresh_token_rotation",
   "tests/test_auth.py::test_register_duplicate_email",
   "tests/test_auth.py::test_register_success",
