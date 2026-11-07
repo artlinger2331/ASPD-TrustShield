@@ -1112,58 +1112,6 @@ export default function Landing() {
             </div>
           </motion.div>
         </section>
-
-        {/* ========================================================================= */}
-        {/* COMPACT FAQ SECTION                                                       */}
-        {/* ========================================================================= */}
-        <section className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-10 w-full">
-          <div className="text-center mb-8">
-            <span className="text-xs font-mono text-cyan-400 uppercase tracking-widest font-semibold">
-              Security Answers
-            </span>
-            <h2 className="text-2xl font-extrabold text-white tracking-tight mt-1">
-              Frequently Asked Questions
-            </h2>
-          </div>
-
-          <div className="space-y-2.5">
-            {FAQS.map((faq, idx) => {
-              const isOpen = activeFaq === idx;
-              return (
-                <div
-                  key={idx}
-                  className="liquid-glass rounded-2xl border border-white/10 overflow-hidden transition-all"
-                >
-                  <button
-                    onClick={() => setActiveFaq(isOpen ? null : idx)}
-                    className="w-full p-4 text-left flex items-center justify-between gap-4 cursor-pointer hover:bg-white/[0.02] transition-colors"
-                  >
-                    <span className="text-xs sm:text-sm font-bold text-slate-200">{faq.q}</span>
-                    {isOpen ? (
-                      <ChevronUp className="w-4 h-4 text-cyan-400 shrink-0" />
-                    ) : (
-                      <ChevronDown className="w-4 h-4 text-slate-400 shrink-0" />
-                    )}
-                  </button>
-
-                  <AnimatePresence>
-                    {isOpen && (
-                      <motion.div
-                        initial={{ height: 0, opacity: 0 }}
-                        animate={{ height: "auto", opacity: 1 }}
-                        exit={{ height: 0, opacity: 0 }}
-                        transition={{ duration: 0.25 }}
-                        className="px-4 pb-4 text-xs text-slate-300 leading-relaxed border-t border-white/5 pt-2.5"
-                      >
-                        {faq.a}
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
-                </div>
-              );
-            })}
-          </div>
-        </section>
       </main>
 
       {/* Floating Back to Top Button */}
