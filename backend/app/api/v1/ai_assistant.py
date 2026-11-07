@@ -96,7 +96,7 @@ def generate_contextual_response(
     # 3. Technical explanation intent
     if "hsts" in q:
         resp = (
-            "**HTTP Strict Transport Security (HSTS)** is an HTTP response header that instructs browsers "
+            "**HTTP Strict Transport Security (HSTS)** (`Strict-Transport-Security`) is an HTTP response header that instructs browsers "
             "to *only* communicate with a website over secure HTTPS, never plain HTTP. "
             "Without HSTS, attackers on public Wi-Fi can perform SSL-stripping attacks (downgrading your connection to plaintext)."
         )
