@@ -20,6 +20,8 @@ import Login from "@/pages/login";
 import Register from "@/pages/register";
 import ForgotPassword from "@/pages/forgot-password";
 import Profile from "@/pages/profile";
+import OAuthCallback from "@/pages/oauth-callback";
+import ProviderConsent from "@/pages/provider-consent";
 
 function ProtectedRoute() {
   const { isAuthenticated, loading } = useAuth();
@@ -140,6 +142,8 @@ export default function App() {
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
           <Route path="/forgot-password" element={<ForgotPassword />} />
+          <Route path="/auth/callback" element={<OAuthCallback />} />
+          <Route path="/auth/provider-consent" element={<ProviderConsent />} />
 
           {/* Authenticated / App layout pages */}
           <Route element={<AppLayout toggleTheme={toggleTheme} />}>
