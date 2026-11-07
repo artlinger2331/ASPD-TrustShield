@@ -23,8 +23,8 @@ from app.db.session import (
 from app.core.rate_limit import clear_rate_limit
 
 
-@pytest_asyncio.fixture(autouse=True)
-async def init_test_database():
+@pytest.fixture(autouse=True)
+def init_test_database():
     """
     Initialize schema tables and reset rate limits once per test.
     """
