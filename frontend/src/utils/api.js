@@ -185,3 +185,26 @@ export const authApi = {
     }),
 };
 
+export const scanApi = {
+  createScan: (url) =>
+    apiFetch("/api/v1/scans", {
+      method: "POST",
+      body: JSON.stringify({ url }),
+    }),
+
+  getScanStatus: (scanId) =>
+    apiFetch(`/api/v1/scans/${scanId}`, {
+      method: "GET",
+    }),
+
+  getScanReport: (scanId) =>
+    apiFetch(`/api/v1/scans/${scanId}/report`, {
+      method: "GET",
+    }),
+
+  getRecentScans: (limit = 10, offset = 0) =>
+    apiFetch(`/api/v1/scans?limit=${limit}&offset=${offset}`, {
+      method: "GET",
+    }),
+};
+
