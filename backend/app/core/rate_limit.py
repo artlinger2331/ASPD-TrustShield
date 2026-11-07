@@ -5,9 +5,21 @@ import redis.asyncio as aioredis
 
 from app.core.config import settings
 from app.core.exceptions import RateLimitException
+from app.core.celery_app import is_redis_available
 
 # Local memory sliding window store: ip -> list of timestamps
 _MEMORY_RATE_LIMIT_STORE: Dict[str, List[float]] = {}
+_REDIS_AVAILABLE: Optional[bool] = None
+_LAST_CHECK: float = 0.0
+
+
+def _get_is_redis_available() -> bool:
+    global _REDIS_AVAILABLE, _LAST_CHECK
+    now = time.time()
+    if _REDIS_AVAILABLE is None or (now - _LAST_CHECK) > 10.0:
+        _REDIS_AVAILABLE = is_redis_available()
+        _LAST_CHECK = now
+    return _REDIS_AVAILABLE
 
 
 def clear_rate_limit() -> None:
@@ -31,13 +43,14 @@ async def check_rate_limit(
     rate_key = f"ratelimit:{key_prefix}:{client_ip}"
     now = time.time()
 
-    # 1. Try Redis sliding window
-    try:
-        r = aioredis.from_url(
-            settings.REDIS_URL,
-            socket_timeout=1.0,
-            decode_responses=True,
-        )
+    # 1. Try Redis sliding window if Redis is actively reachable
+    if _get_is_redis_available():
+        try:
+            r = aioredis.from_url(
+                settings.REDIS_URL,
+                socket_timeout=1.0,
+                decode_responses=True,
+            )
         async with r:
             pipe = r.pipeline()
             # Remove timestamps older than window
