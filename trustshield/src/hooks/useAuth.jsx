@@ -124,17 +124,19 @@ export function AuthProvider({ children }) {
     }
   }, [token]);
 
-  const login = useCallback((email, password) => {
-    setToken("mock_token_" + Date.now());
-    localStorage.setItem("ts_token", token);
-    setUser({ name: "Alex Rivera", email, role: "security-analyst", avatar: null });
+  const login = useCallback((email) => {
+    const newToken = "mock_token_" + Date.now();
+    setToken(newToken);
+    localStorage.setItem("ts_token", newToken);
+    setUser({ name: "Alex Rivera", email: email || "alex@trustshield.local", role: "security-analyst", avatar: null });
     return true;
   }, []);
 
-  const register = useCallback((name, email, password) => {
-    setToken("mock_token_" + Date.now());
-    localStorage.setItem("ts_token", token);
-    setUser({ name, email, role: "security-analyst", avatar: null });
+  const register = useCallback((name, email) => {
+    const newToken = "mock_token_" + Date.now();
+    setToken(newToken);
+    localStorage.setItem("ts_token", newToken);
+    setUser({ name: name || "Alex Rivera", email: email || "alex@trustshield.local", role: "security-analyst", avatar: null });
     return true;
   }, []);
 
