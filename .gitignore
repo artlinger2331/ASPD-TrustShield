@@ -79,6 +79,8 @@ __pycache__/
 *.py[cod]
 *$py.class
 *.so
+*.db
+*.sqlite*
 .Python
 env/
 venv/
