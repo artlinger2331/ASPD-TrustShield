@@ -586,31 +586,6 @@ export default function Landing() {
                 <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
               </Button>
             </form>
-
-            {/* Sample Attack Payloads */}
-            <div className="pt-3.5 mt-3 border-t border-white/5 flex flex-wrap items-center justify-between gap-2 px-1 text-xs relative z-10">
-              <span className="text-slate-400 font-mono text-[11px] flex items-center gap-1.5">
-                <Sparkles className="w-3.5 h-3.5 text-cyan-400" />
-                <span>Quick attack samples:</span>
-              </span>
-              <div className="flex flex-wrap gap-1.5">
-                {SAMPLE_TARGETS.map((sample, idx) => (
-                  <button
-                    key={idx}
-                    type="button"
-                    onClick={() => handleCopyTarget(sample.url)}
-                    className={`text-[11px] font-mono px-2.5 py-1 rounded-lg border transition-all cursor-pointer ${
-                      sample.type === "threat"
-                        ? "bg-red-500/10 text-red-300 border-red-500/25 hover:bg-red-500/20 hover:border-red-500/50"
-                        : "bg-emerald-500/10 text-emerald-300 border-emerald-500/25 hover:bg-emerald-500/20 hover:border-emerald-500/50"
-                    }`}
-                    title={sample.url}
-                  >
-                    <span>{sample.label}</span>
-                  </button>
-                ))}
-              </div>
-            </div>
           </motion.div>
         </section>
 
