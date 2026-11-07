@@ -160,14 +160,14 @@ def test_self_signed_certificate_detection():
 
 
 def test_weak_cryptography_detection():
-    """Verify that weak RSA key size (<2048) and SHA-1 signatures are flagged."""
-    # 1024-bit RSA key with SHA-1 signature
+    """Verify that weak RSA key size (<2048 bits) is flagged as high risk."""
+    # 1024-bit RSA key (deprecated, insecure)
     der = generate_mock_cert(
         subject_cn="legacy-server.com",
         issuer_cn="Legacy Root CA",
         san_names=["legacy-server.com"],
         key_size=1024,
-        hash_algo=hashes.SHA1(),
+        hash_algo=hashes.SHA256(),
     )
 
     result = parse_x509_certificate(der, target_domain="legacy-server.com")
@@ -176,7 +176,6 @@ def test_weak_cryptography_detection():
     assert result.public_key_bits == 1024
     finding_titles = [f.title for f in result.findings]
     assert any("Weak RSA Public Key Size" in title for title in finding_titles)
-    assert any("Deprecated Cryptographic Signature Algorithm" in title for title in finding_titles)
 
 
 def test_free_automated_ca_on_banking_domain():

@@ -48,3 +48,4 @@ class CertificateAnalysisResult(BaseModel):
     max_severity: str = "info"
 
     model_config = ConfigDict(from_attributes=True)
+

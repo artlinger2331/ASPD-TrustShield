@@ -650,3 +650,4 @@ async def save_certificate_to_db(
         await refresh_res
 
     return cert_record
+
