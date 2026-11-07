@@ -69,3 +69,4 @@ def dispatch_scan(
         # Direct synchronous execution if background_tasks is omitted
         execute_scan_pipeline_sync(scan_id=scan_id)
         return "sync_direct"
+

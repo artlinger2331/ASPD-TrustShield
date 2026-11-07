@@ -63,7 +63,7 @@ def _check_postgres_reachable() -> bool:
         return False
 
 is_pg = _check_postgres_reachable()
-sqlite_file = backend_path.parent / "trustshield_dev.db"
+sqlite_file = backend_path / "trustshield_dev.db"
 
 if is_pg:
     target_url = settings.async_database_url

@@ -114,3 +114,4 @@ def test_reap_stale_scans_watchdog():
         refreshed = session.get(Scan, stale_id)
         assert refreshed.status == "timeout"
         assert "timed out" in refreshed.error_message
+

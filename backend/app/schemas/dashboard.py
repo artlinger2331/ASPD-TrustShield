@@ -33,3 +33,4 @@ class DashboardStatsResponse(BaseModel):
     chart_trends: List[DailyTrendPoint]
 
     model_config = ConfigDict(from_attributes=True)
+

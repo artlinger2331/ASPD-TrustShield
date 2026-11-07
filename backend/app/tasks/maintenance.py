@@ -52,3 +52,4 @@ def reap_stale_scans_task() -> dict:
     """
     reaped = reap_stale_scans(stale_minutes=5)
     return {"status": "ok", "reaped_count": reaped}
+
