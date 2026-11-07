@@ -32,6 +32,7 @@ import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/com
 import { VerdictBadge } from "@/components/ui/badge";
 import { Table } from "@/components/ui/table";
 import { ThreeDDonut } from "@/components/ui/three-d-donut";
+import { ThreeDBarChart } from "@/components/ui/three-d-bar-chart";
 import { useAuth } from "@/hooks/useAuth";
 import { DASHBOARD_STATS, RECENT_SCANS, CHART_DATA } from "@/data/mockData";
 
