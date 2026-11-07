@@ -5,11 +5,11 @@ from app.core.config import settings
 
 
 @pytest.mark.asyncio
-async def test_google_oauth_redirect_simulation(client: AsyncClient):
+async def test_google_oauth_redirect_simulation(async_client: AsyncClient):
     """
     Test GET /api/v1/auth/oauth/google initiates flow and redirects.
     """
-    response = await client.get("/api/v1/auth/oauth/google", follow_redirects=False)
+    response = await async_client.get("/api/v1/auth/oauth/google", follow_redirects=False)
     assert response.status_code in (302, 307)
     location = response.headers.get("location")
     assert location is not None
@@ -17,11 +17,11 @@ async def test_google_oauth_redirect_simulation(client: AsyncClient):
 
 
 @pytest.mark.asyncio
-async def test_github_oauth_redirect_simulation(client: AsyncClient):
+async def test_github_oauth_redirect_simulation(async_client: AsyncClient):
     """
     Test GET /api/v1/auth/oauth/github initiates flow and redirects.
     """
-    response = await client.get("/api/v1/auth/oauth/github", follow_redirects=False)
+    response = await async_client.get("/api/v1/auth/oauth/github", follow_redirects=False)
     assert response.status_code in (302, 307)
     location = response.headers.get("location")
     assert location is not None
@@ -29,11 +29,11 @@ async def test_github_oauth_redirect_simulation(client: AsyncClient):
 
 
 @pytest.mark.asyncio
-async def test_google_oauth_callback_creates_session(client: AsyncClient):
+async def test_google_oauth_callback_creates_session(async_client: AsyncClient):
     """
     Test GET /api/v1/auth/oauth/google/callback with simulated code returns tokens and redirects to frontend.
     """
-    response = await client.get(
+    response = await async_client.get(
         "/api/v1/auth/oauth/google/callback",
         params={
             "code": "dev_google_mock_code",
@@ -57,11 +57,11 @@ async def test_google_oauth_callback_creates_session(client: AsyncClient):
 
 
 @pytest.mark.asyncio
-async def test_github_oauth_callback_creates_session(client: AsyncClient):
+async def test_github_oauth_callback_creates_session(async_client: AsyncClient):
     """
     Test GET /api/v1/auth/oauth/github/callback with simulated code returns tokens and redirects to frontend.
     """
-    response = await client.get(
+    response = await async_client.get(
         "/api/v1/auth/oauth/github/callback",
         params={
             "code": "dev_github_mock_code",
