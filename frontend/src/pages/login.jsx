@@ -5,6 +5,8 @@ import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { Input, Label } from "@/components/ui/input";
 import { useAuth, useToast } from "@/hooks/useAuth";
+import { authApi } from "@/utils/api";
+import OAuthSetupModal from "@/components/auth/OAuthSetupModal";
 
 function GoogleIcon({ className = "w-4 h-4 mr-2" }) {
   return (
@@ -46,6 +48,7 @@ export default function Login() {
   const [loading, setLoading] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [setupProvider, setSetupProvider] = useState(null);
 
   useEffect(() => {
     const errorMsg = searchParams.get("error");
@@ -55,6 +58,11 @@ export default function Login() {
         description: decodeURIComponent(errorMsg),
         type: "error",
       });
+    }
+
+    const setupParam = searchParams.get("oauth_setup");
+    if (setupParam === "google" || setupParam === "github") {
+      setSetupProvider(setupParam);
     }
   }, [searchParams, toast]);
 
@@ -88,8 +96,19 @@ export default function Login() {
     }
   };
 
-  const handleOAuthLogin = (provider) => {
-    window.location.href = `http://localhost:8000/api/v1/auth/oauth/${provider}`;
+  const handleOAuthLogin = async (provider) => {
+    try {
+      const statusRes = await authApi.getOAuthStatus();
+      if (statusRes[provider] && statusRes[provider].configured) {
+        // Provider credentials exist -> redirect straight to official Google / GitHub accounts page!
+        window.location.href = `http://localhost:8000/api/v1/auth/oauth/${provider}`;
+      } else {
+        // Not configured yet -> prompt user for their Client ID so Google can fetch real accounts
+        setSetupProvider(provider);
+      }
+    } catch (_) {
+      window.location.href = `http://localhost:8000/api/v1/auth/oauth/${provider}`;
+    }
   };
 
   return (
@@ -193,6 +212,13 @@ export default function Login() {
           </p>
         </CardContent>
       </Card>
+
+      {/* OAuth Setup Modal if credentials not yet configured */}
+      <OAuthSetupModal
+        provider={setupProvider || "google"}
+        isOpen={!!setupProvider}
+        onClose={() => setSetupProvider(null)}
+      />
     </div>
   );
 }
