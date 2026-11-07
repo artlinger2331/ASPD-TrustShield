@@ -136,7 +136,8 @@ export default function App() {
               <Route path="/dashboard" element={<Dashboard />} />
               <Route path="/scan" element={<UrlScan />} />
               <Route path="/reports/:id" element={<ScanReport />} />
-              <Route path="/reports" element={<Navigate to="/scan" replace />} />
+              <Route path="/report/:id" element={<ScanReport />} />
+              <Route path="/reports" element={<ScanReport />} />
               <Route path="/community" element={<CommunityReports />} />
               <Route path="/report" element={<ReportWebsite />} />
               <Route path="/report-website" element={<ReportWebsite />} />
