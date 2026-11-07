@@ -1,10 +1,12 @@
-import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { Mail, Lock, Eye, EyeOff, ArrowRight, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { Input, Label } from "@/components/ui/input";
 import { useAuth, useToast } from "@/hooks/useAuth";
+import { authApi } from "@/utils/api";
+import OAuthSetupModal from "@/components/auth/OAuthSetupModal";
 
 function GoogleIcon({ className = "w-4 h-4 mr-2" }) {
   return (
@@ -41,11 +43,29 @@ export default function Register() {
   const { register } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [setupProvider, setSetupProvider] = useState(null);
+
+  useEffect(() => {
+    const errorMsg = searchParams.get("error");
+    if (errorMsg) {
+      toast({
+        title: "Authentication Error",
+        description: decodeURIComponent(errorMsg),
+        type: "error",
+      });
+    }
+
+    const setupParam = searchParams.get("oauth_setup");
+    if (setupParam === "google" || setupParam === "github") {
+      setSetupProvider(setupParam);
+    }
+  }, [searchParams, toast]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -85,8 +105,19 @@ export default function Register() {
     }
   };
 
-  const handleOAuthLogin = (provider) => {
-    window.location.href = `http://localhost:8000/api/v1/auth/oauth/${provider}`;
+  const handleOAuthLogin = async (provider) => {
+    try {
+      const statusRes = await authApi.getOAuthStatus();
+      if (statusRes[provider] && statusRes[provider].configured) {
+        // Direct redirect to live provider!
+        window.location.href = `http://localhost:8000/api/v1/auth/oauth/${provider}`;
+      } else {
+        // Open setup modal
+        setSetupProvider(provider);
+      }
+    } catch (_) {
+      window.location.href = `http://localhost:8000/api/v1/auth/oauth/${provider}`;
+    }
   };
 
   return (
@@ -198,6 +229,13 @@ export default function Register() {
           </p>
         </CardContent>
       </Card>
+
+      {/* OAuth Setup Modal if credentials not yet configured */}
+      <OAuthSetupModal
+        provider={setupProvider || "google"}
+        isOpen={!!setupProvider}
+        onClose={() => setSetupProvider(null)}
+      />
     </div>
   );
 }
