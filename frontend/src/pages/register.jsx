@@ -4,10 +4,11 @@ import { Mail, Lock, Eye, EyeOff, ArrowRight, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { Input, Label } from "@/components/ui/input";
-import { useAuth } from "@/hooks/useAuth";
+import { useAuth, useToast } from "@/hooks/useAuth";
 
 export default function Register() {
   const { register } = useAuth();
+  const { toast } = useToast();
   const navigate = useNavigate();
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -15,11 +16,42 @@ export default function Register() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
+    if (!email.trim() || !password) {
+      toast({
+        title: "Missing fields",
+        description: "Please enter your email and a secure password.",
+        type: "error",
+      });
+      return;
+    }
+    if (password.length < 8) {
+      toast({
+        title: "Weak password",
+        description: "Password must be at least 8 characters in length.",
+        type: "error",
+      });
+      return;
+    }
     setLoading(true);
-    register(name, email, password);
-    setTimeout(() => { setLoading(false); navigate("/dashboard"); }, 800);
+    try {
+      await register(name.trim(), email.trim(), password);
+      toast({
+        title: "Account Created",
+        description: "Welcome to TrustShield Security Platform.",
+        type: "success",
+      });
+      navigate("/dashboard");
+    } catch (err) {
+      toast({
+        title: "Registration Failed",
+        description: err.message || "Failed to create account. Please try again.",
+        type: "error",
+      });
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
