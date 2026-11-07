@@ -10,31 +10,17 @@ if str(backend_dir) not in sys.path:
 import pytest
 import pytest_asyncio
 from httpx import AsyncClient, ASGITransport
-from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker, AsyncSession
-from sqlalchemy.pool import StaticPool
+from sqlalchemy.orm import Session
 
 from app.main import app
 from app.models import Base
-from app.db.session import get_db
+from app.db.session import (
+    get_db,
+    local_sync_engine,
+    local_session_factory,
+    AsyncSessionFallback,
+)
 from app.core.rate_limit import clear_rate_limit
-
-# High-speed in-memory SQLite async test database
-TEST_SQLITE_URL = "sqlite+aiosqlite:///:memory:"
-
-test_async_engine = create_async_engine(
-    TEST_SQLITE_URL,
-    connect_args={"check_same_thread": False},
-    poolclass=StaticPool,
-    echo=False,
-)
-
-test_async_session_factory = async_sessionmaker(
-    bind=test_async_engine,
-    class_=AsyncSession,
-    autocommit=False,
-    autoflush=False,
-    expire_on_commit=False,
-)
 
 
 @pytest_asyncio.fixture(autouse=True)
@@ -43,22 +29,20 @@ async def init_test_database():
     Initialize schema tables and reset rate limits once per test.
     """
     clear_rate_limit()
-    async with test_async_engine.begin() as conn:
-        await conn.run_sync(Base.metadata.create_all)
+    Base.metadata.create_all(local_sync_engine)
     yield
-    async with test_async_engine.begin() as conn:
-        await conn.run_sync(Base.metadata.drop_all)
 
 
-async def override_get_db() -> AsyncGenerator[AsyncSession, None]:
-    async with test_async_session_factory() as session:
-        try:
-            yield session
-        except Exception:
-            await session.rollback()
-            raise
-        finally:
-            await session.close()
+async def override_get_db() -> AsyncGenerator[AsyncSessionFallback, None]:
+    sync_sess = local_session_factory()
+    fallback = AsyncSessionFallback(sync_sess)
+    try:
+        yield fallback
+    except Exception:
+        await fallback.rollback()
+        raise
+    finally:
+        await fallback.close()
 
 
 app.dependency_overrides[get_db] = override_get_db
@@ -75,9 +59,16 @@ async def async_client() -> AsyncGenerator[AsyncClient, None]:
 
 
 @pytest_asyncio.fixture
-async def db_session() -> AsyncGenerator[AsyncSession, None]:
+async def db_session() -> AsyncGenerator[AsyncSessionFallback, None]:
     """
-    Direct async database session for unit testing database operations.
+    Direct database session for unit testing database operations.
     """
-    async with test_async_session_factory() as session:
-        yield session
+    sync_sess = local_session_factory()
+    fallback = AsyncSessionFallback(sync_sess)
+    try:
+        yield fallback
+    except Exception:
+        await fallback.rollback()
+        raise
+    finally:
+        await fallback.close()
