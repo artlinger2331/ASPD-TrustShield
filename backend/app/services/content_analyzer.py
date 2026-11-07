@@ -2,10 +2,12 @@ import re
 import ipaddress
 import socket
 import uuid
-from typing import List, Dict, Any, Optional, Tuple, Set
+import inspect
+from typing import List, Dict, Any, Optional, Tuple, Set, Union
 from urllib.parse import urlparse, urljoin
 import httpx
 from bs4 import BeautifulSoup
+from sqlalchemy.orm import Session
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.scan_finding import ScanFinding
