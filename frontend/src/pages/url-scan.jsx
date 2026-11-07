@@ -9,6 +9,7 @@ import { VerdictBadge, SeverityBadge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/useAuth";
 import { cn } from "@/utils/cn";
 import { verdictLabel, riskColor, shortenUrl } from "@/utils/formatters";
+import { scanApi } from "@/utils/api";
 
 export default function UrlScan() {
   const navigate = useNavigate();
@@ -30,36 +31,61 @@ export default function UrlScan() {
 
   const STEPS = 7;
 
-  const handleScan = () => {
-    if (!url) return;
+  const handleScan = async () => {
+    if (!url.trim()) return;
     setScanning(true);
     setCompleted(false);
     setResult(null);
-    let step = 0;
-    const interval = setInterval(() => {
-      setActiveStep((s) => {
-        if (s >= STEPS - 1) {
-          clearInterval(interval);
-          setScanning(false);
-          setCompleted(true);
-          setResult({
-            score: 87,
-            verdict: "dangerous",
-            verdictLabel: "Dangerous / Likely Phishing",
-            confidence: "High",
-            mainReason: "Domain mimics a major banking brand; login form requests password + OTP; newly registered domain; missing security headers.",
-            recommendedAction: "Do not enter passwords, OTPs, or banking details on this website.",
-          });
-          toast({
-            title: "Scan complete",
-            description: "The website has been analyzed. View the full report.",
-            type: "error",
-          });
-          return s;
+    setActiveStep(1);
+
+    try {
+      const initRes = await scanApi.createScan(url.trim());
+      const scanId = initRes.id;
+
+      const pollInterval = setInterval(async () => {
+        try {
+          const statusRes = await scanApi.getScanStatus(scanId);
+          setActiveStep(Math.max(1, statusRes.step));
+
+          if (statusRes.status === "completed") {
+            clearInterval(pollInterval);
+            setScanning(false);
+            setCompleted(true);
+            setResult({
+              id: scanId,
+              score: statusRes.risk_score || 0,
+              verdict: statusRes.verdict || "safe",
+              verdictLabel: statusRes.summary || "Scan complete",
+              confidence: statusRes.confidence ? `${Math.round(statusRes.confidence * 100)}%` : "High",
+              mainReason: statusRes.summary,
+              recommendedAction: statusRes.recommendation || "View full report for detailed telemetry.",
+            });
+            toast({
+              title: "Scan complete",
+              description: `Verdict: ${statusRes.verdict?.toUpperCase() || "SAFE"} (Score: ${statusRes.risk_score || 0}/100)`,
+              type: statusRes.risk_score >= 70 ? "error" : statusRes.risk_score >= 50 ? "warning" : "success",
+            });
+          } else if (statusRes.status === "failed") {
+            clearInterval(pollInterval);
+            setScanning(false);
+            toast({
+              title: "Scan Failed",
+              description: statusRes.error_message || "The scanner was unable to analyze this URL.",
+              type: "error",
+            });
+          }
+        } catch (pollErr) {
+          // Keep polling through transient errors
         }
-        return s + 1;
+      }, 1500);
+    } catch (err) {
+      setScanning(false);
+      toast({
+        title: "Scan Failed",
+        description: err.message || "Failed to initiate scan",
+        type: "error",
       });
-    }, 700);
+    }
   };
 
   const handleClipboard = async () => {
