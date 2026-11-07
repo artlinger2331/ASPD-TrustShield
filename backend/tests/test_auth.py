@@ -30,6 +30,7 @@ async def test_register_success(async_client: AsyncClient):
         "full_name": "Test User",
     }
     response = await async_client.post("/api/v1/auth/register", json=payload)
+    print("\nREGISTER RESPONSE:", response.status_code, response.json())
     assert response.status_code == status.HTTP_201_CREATED
 
     data = response.json()
