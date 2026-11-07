@@ -258,43 +258,47 @@ def test_benign_website_analysis():
     assert "No significant phishing" in result.summary
 
 
-@pytest.mark.asyncio
-async def test_database_persistence_of_findings(db_session: AsyncSession):
+def test_database_persistence_of_findings(db_session):
     """
     Test end-to-end integration: analyze HTML and save findings directly to database.
     """
-    # 1. Create a Scan record
-    scan = Scan(
-        input_url="http://fake-paypal-verify.xyz/login",
-        normalized_url="http://fake-paypal-verify.xyz/login",
-        status="running",
-    )
-    db_session.add(scan)
-    await db_session.commit()
-    await db_session.refresh(scan)
+    import anyio
 
-    # 2. Run content analyzer with scan_id and db
-    result = await analyze_content(
-        url=scan.normalized_url,
-        scan_id=scan.id,
-        html=HTML_PAYPAL_PHISHING,
-        db=db_session,
-    )
+    async def _run():
+        # 1. Create a Scan record
+        scan = Scan(
+            input_url="http://fake-paypal-verify.xyz/login",
+            normalized_url="http://fake-paypal-verify.xyz/login",
+            status="running",
+        )
+        db_session.add(scan)
+        await db_session.commit()
+        await db_session.refresh(scan)
 
-    assert len(result.findings) >= 2
+        # 2. Run content analyzer with scan_id and db
+        result = await analyze_content(
+            url=scan.normalized_url,
+            scan_id=scan.id,
+            html=HTML_PAYPAL_PHISHING,
+            db=db_session,
+        )
 
-    # 3. Query scan_findings from database
-    query = select(ScanFinding).where(ScanFinding.scan_id == scan.id)
-    exec_res = await db_session.execute(query)
-    saved_findings = exec_res.scalars().all()
+        assert len(result.findings) >= 2
 
-    assert len(saved_findings) == len(result.findings)
+        # 3. Query scan_findings from database
+        query = select(ScanFinding).where(ScanFinding.scan_id == scan.id)
+        exec_res = await db_session.execute(query)
+        saved_findings = exec_res.scalars().all()
 
-    # Verify attributes and JSON evidence
-    for f in saved_findings:
-        assert f.scan_id == scan.id
-        assert f.category in ("credential_harvesting", "brand_impersonation", "deceptive_content")
-        assert f.severity in ("critical", "high", "medium")
-        assert f.risk_points > 0
-        assert isinstance(f.evidence, dict)
-        assert f.description != ""
+        assert len(saved_findings) == len(result.findings)
+
+        # Verify attributes and JSON evidence
+        for f in saved_findings:
+            assert f.scan_id == scan.id
+            assert f.category in ("credential_harvesting", "brand_impersonation", "deceptive_content")
+            assert f.severity in ("critical", "high", "medium")
+            assert f.risk_points > 0
+            assert isinstance(f.evidence, dict)
+            assert f.description != ""
+
+    anyio.run(_run)
