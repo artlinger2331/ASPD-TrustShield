@@ -1,4 +1,13 @@
 [
+  "tests/test_auth.py::test_get_current_user_me",
+  "tests/test_auth.py::test_get_current_user_unauthorized",
+  "tests/test_auth.py::test_login_invalid_password",
+  "tests/test_auth.py::test_login_success",
+  "tests/test_auth.py::test_logout",
+  "tests/test_auth.py::test_refresh_token_rotation",
+  "tests/test_auth.py::test_register_duplicate_email",
+  "tests/test_auth.py::test_register_success",
+  "tests/test_auth.py::test_role_based_authorization",
   "tests/test_basic.py::test_root_liveness",
   "tests/test_basic.py::test_sanity",
   "tests/test_health.py::test_api_v1_health_readiness",

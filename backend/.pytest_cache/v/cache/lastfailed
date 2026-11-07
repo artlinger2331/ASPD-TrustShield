@@ -1,0 +1,11 @@
+{
+  "tests/test_auth.py::test_register_success": true,
+  "tests/test_auth.py::test_register_duplicate_email": true,
+  "tests/test_auth.py::test_login_success": true,
+  "tests/test_auth.py::test_login_invalid_password": true,
+  "tests/test_auth.py::test_get_current_user_me": true,
+  "tests/test_auth.py::test_get_current_user_unauthorized": true,
+  "tests/test_auth.py::test_refresh_token_rotation": true,
+  "tests/test_auth.py::test_logout": true,
+  "tests/test_auth.py::test_role_based_authorization": true
+}

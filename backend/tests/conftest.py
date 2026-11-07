@@ -36,10 +36,10 @@ test_async_session_factory = async_sessionmaker(
 )
 
 
-@pytest_asyncio.fixture(scope="session", autouse=True)
+@pytest_asyncio.fixture(autouse=True)
 async def init_test_database():
     """
-    Initialize schema tables once per test session.
+    Initialize schema tables once per test.
     """
     async with test_async_engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
