@@ -125,31 +125,11 @@ const WORKFLOW_STEPS = [
   },
 ];
 
-const FAQS = [
-  {
-    q: "How does TrustShield detect zero-day phishing before traditional blocklists?",
-    a: "Traditional blocklists rely on reactive reports after users have already been victimized. TrustShield utilizes real-time neural heuristics to inspect visual brand impersonation, character homoglyphs (such as Cyrillic lookalikes), DOM credential forms, and newly minted SSL certificates on the fly.",
-  },
-  {
-    q: "Is it safe to scan malicious URLs? Does TrustShield execute malware locally?",
-    a: "Scanning is 100% safe. All inspections take place inside an isolated edge sandbox. No scripts, binaries, or malicious payloads are ever executed on your local machine or browser.",
-  },
-  {
-    q: "Why isn't a valid SSL certificate (green padlock) enough to verify security?",
-    a: "Over 82% of modern phishing websites now possess valid SSL certificates obtained through free, automated certificate authorities. The padlock only indicates encryption in transit, not the authenticity or trustworthiness of the party receiving your data.",
-  },
-  {
-    q: "Can I integrate TrustShield into my enterprise SOC or browser workflow?",
-    a: "Yes! TrustShield offers seamless API webhooks, automated SIEM data feeds, and community threat exports for enterprise incident response and proactive URL filtering.",
-  },
-];
-
 export default function Landing() {
   const navigate = useNavigate();
   const scannerInputRef = useRef(null);
   const [url, setUrl] = useState("https://secure-chase-update.bank-verify.xyz/login");
   const [activeConsoleTab, setActiveConsoleTab] = useState("homograph");
-  const [activeFaq, setActiveFaq] = useState(null);
   const [scrolled, setScrolled] = useState(false);
 
   // Framer Motion scroll progress indicator
@@ -1111,58 +1091,6 @@ export default function Landing() {
               </div>
             </div>
           </motion.div>
-        </section>
-
-        {/* ========================================================================= */}
-        {/* COMPACT FAQ SECTION                                                       */}
-        {/* ========================================================================= */}
-        <section className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-10 w-full">
-          <div className="text-center mb-8">
-            <span className="text-xs font-mono text-cyan-400 uppercase tracking-widest font-semibold">
-              Security Answers
-            </span>
-            <h2 className="text-2xl font-extrabold text-white tracking-tight mt-1">
-              Frequently Asked Questions
-            </h2>
-          </div>
-
-          <div className="space-y-2.5">
-            {FAQS.map((faq, idx) => {
-              const isOpen = activeFaq === idx;
-              return (
-                <div
-                  key={idx}
-                  className="liquid-glass rounded-2xl border border-white/10 overflow-hidden transition-all"
-                >
-                  <button
-                    onClick={() => setActiveFaq(isOpen ? null : idx)}
-                    className="w-full p-4 text-left flex items-center justify-between gap-4 cursor-pointer hover:bg-white/[0.02] transition-colors"
-                  >
-                    <span className="text-xs sm:text-sm font-bold text-slate-200">{faq.q}</span>
-                    {isOpen ? (
-                      <ChevronUp className="w-4 h-4 text-cyan-400 shrink-0" />
-                    ) : (
-                      <ChevronDown className="w-4 h-4 text-slate-400 shrink-0" />
-                    )}
-                  </button>
-
-                  <AnimatePresence>
-                    {isOpen && (
-                      <motion.div
-                        initial={{ height: 0, opacity: 0 }}
-                        animate={{ height: "auto", opacity: 1 }}
-                        exit={{ height: 0, opacity: 0 }}
-                        transition={{ duration: 0.25 }}
-                        className="px-4 pb-4 text-xs text-slate-300 leading-relaxed border-t border-white/5 pt-2.5"
-                      >
-                        {faq.a}
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
-                </div>
-              );
-            })}
-          </div>
         </section>
       </main>
 
