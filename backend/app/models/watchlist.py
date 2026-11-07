@@ -1,7 +1,7 @@
 import uuid
 from datetime import datetime
 from typing import TYPE_CHECKING, Any, List, Optional
-from sqlalchemy import String, Boolean, DateTime, ForeignKey, UniqueConstraint, Index
+from sqlalchemy import String, Boolean, DateTime, ForeignKey, UniqueConstraint, Index, Integer
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base, UUIDField, JSONField, TimestampMixin
@@ -40,6 +40,18 @@ class WatchlistItem(Base, TimestampMixin):
     )
     last_checked_at: Mapped[Optional[datetime]] = mapped_column(
         DateTime(timezone=True),
+        nullable=True,
+    )
+    last_risk_score: Mapped[Optional[int]] = mapped_column(
+        Integer,
+        nullable=True,
+    )
+    last_verdict: Mapped[Optional[str]] = mapped_column(
+        String(32),
+        nullable=True,
+    )
+    cert_days_left: Mapped[Optional[int]] = mapped_column(
+        Integer,
         nullable=True,
     )
     is_active: Mapped[bool] = mapped_column(
