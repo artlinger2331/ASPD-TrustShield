@@ -19,10 +19,11 @@ import asyncio
 def test_dashboard_stats_calculation():
     """Verify aggregated metrics: total scans, clean ratio, verdict counts, categories."""
     async def _run():
+        print('1. in _run', flush=True)
         session = local_session_factory()
         try:
+            print('2. adding records', flush=True)
             now = datetime.now(timezone.utc)
-            # Create scans of different verdicts
             s1 = Scan(
                 id=uuid.uuid4(),
                 input_url="https://safe-site.com",
@@ -45,7 +46,6 @@ def test_dashboard_stats_calculation():
             )
             session.add_all([s1, s2])
 
-            # Add finding for category distribution
             f1 = ScanFinding(
                 scan_id=s2.id,
                 category="credential_harvesting",
@@ -56,12 +56,15 @@ def test_dashboard_stats_calculation():
                 risk_points=40,
             )
             session.add(f1)
+            print('3. committing', flush=True)
             session.commit()
+            print('4. committed', flush=True)
 
-            # Call get_dashboard_stats using sync session adapter
             from app.db.session import AsyncSessionFallback
             fallback = AsyncSessionFallback(session)
+            print('5. calling get_dashboard_stats', flush=True)
             stats = await get_dashboard_stats(db=fallback)
+            print('6. got stats', flush=True)
 
             assert stats.total_scans >= 2
             assert stats.malicious_detected >= 1
