@@ -29,9 +29,23 @@ class User(Base, TimestampMixin):
         index=True,
         nullable=False,
     )
-    hashed_password: Mapped[str] = mapped_column(
+    hashed_password: Mapped[Optional[str]] = mapped_column(
         String(255),
+        nullable=True,
+    )
+    auth_provider: Mapped[str] = mapped_column(
+        String(32),
+        default="local",
         nullable=False,
+    )
+    oauth_id: Mapped[Optional[str]] = mapped_column(
+        String(255),
+        nullable=True,
+        index=True,
+    )
+    avatar_url: Mapped[Optional[str]] = mapped_column(
+        String(1024),
+        nullable=True,
     )
     full_name: Mapped[Optional[str]] = mapped_column(
         String(255),
