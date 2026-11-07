@@ -1,3 +1,9 @@
 [
-  "tests/test_basic.py::test_sanity"
+  "tests/test_basic.py::test_root_liveness",
+  "tests/test_basic.py::test_sanity",
+  "tests/test_health.py::test_api_v1_health_readiness",
+  "tests/test_health.py::test_cors_headers_for_react_app",
+  "tests/test_health.py::test_postgresql_connection_via_database_url",
+  "tests/test_health.py::test_root_health_liveness",
+  "tests/test_health.py::test_standardized_error_envelope"
 ]
