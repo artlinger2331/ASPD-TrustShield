@@ -43,11 +43,18 @@ class Settings(BaseSettings):
 
     @property
     def cors_origins_list(self) -> List[str]:
+        base_origins = [
+            "http://localhost:5173",
+            "http://127.0.0.1:5173",
+            "http://localhost:3000",
+            "http://127.0.0.1:3000",
+        ]
         if isinstance(self.CORS_ORIGINS, list):
-            return self.CORS_ORIGINS
+            return list(set(self.CORS_ORIGINS + base_origins))
         if isinstance(self.CORS_ORIGINS, str):
-            return [origin.strip() for origin in self.CORS_ORIGINS.split(",") if origin.strip()]
-        return ["http://localhost:5173"]
+            configured = [origin.strip() for origin in self.CORS_ORIGINS.split(",") if origin.strip()]
+            return list(set(configured + base_origins))
+        return base_origins
 
     @property
     def async_database_url(self) -> str:
