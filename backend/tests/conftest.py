@@ -58,17 +58,12 @@ async def async_client() -> AsyncGenerator[AsyncClient, None]:
         yield client
 
 
-@pytest_asyncio.fixture
-async def db_session() -> AsyncGenerator[AsyncSessionFallback, None]:
+@pytest.fixture
+def db_session():
     """
     Direct database session for unit testing database operations.
     """
     sync_sess = local_session_factory()
     fallback = AsyncSessionFallback(sync_sess)
-    try:
-        yield fallback
-    except Exception:
-        await fallback.rollback()
-        raise
-    finally:
-        await fallback.close()
+    yield fallback
+    sync_sess.close()
