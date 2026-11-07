@@ -13,12 +13,16 @@ Coordinates the 7-stage end-to-end security analysis pipeline:
 import logging
 import uuid
 from datetime import datetime, timezone
-from typing import Optional, List, Dict, Any
+from typing import Optional, List, Dict, Any, Tuple
 
 from app.analyzers.url_normalizer import normalize_and_validate_url
 from app.analyzers.domain_analyzer import (
     analyze_domain,
     save_domain_findings_to_db_sync,
+)
+from app.analyzers.brand_impersonation import (
+    analyze_brand_impersonation,
+    save_brand_impersonation_findings_to_db_sync,
 )
 from app.analyzers.cert_analyzer import (
     analyze_certificate,
@@ -34,10 +38,21 @@ from app.analyzers.content_analyzer import (
     safe_fetch_html,
     save_findings_to_db_sync,
 )
+from app.analyzers.threat_intel_analyzer import (
+    analyze_threat_intel,
+    save_threat_intel_to_db_sync,
+)
+from app.analyzers.ml_classifier import (
+    classify_url,
+    save_ml_classification_to_db_sync,
+)
+from app.services.risk_engine import evaluate_risk
 from app.db.session import local_session_factory
 from app.models.scan import Scan
 from app.models.scan_finding import ScanFinding
 from app.models.certificate import Certificate
+from app.models.threat_intel import ThreatIntelResult
+
 
 logger = logging.getLogger("trustshield.orchestrator")
 
@@ -110,6 +125,15 @@ def execute_scan_pipeline_sync(
                     findings=domain_result.findings,
                     db=session,
                 )
+
+            # Check for brand impersonation, homoglyphs, and typosquatting
+            brand_matches = analyze_brand_impersonation(norm.host)
+            if brand_matches:
+                save_brand_impersonation_findings_to_db_sync(
+                    scan_id=scan.id,
+                    matches=brand_matches,
+                    db=session,
+                )
         except Exception as e:
             logger.warning(f"Domain analysis failed for {norm.host}: {str(e)}")
 
@@ -155,7 +179,23 @@ def execute_scan_pipeline_sync(
             logger.warning(f"Security headers analysis failed for {norm.normalized_url}: {str(e)}")
 
         # =====================================================================
-        # STAGE 5: Safe Content Fetching & Phishing Heuristics
+        # STAGE 5: Threat Intelligence Feeds (Google Safe Browsing, URLhaus, VirusTotal)
+        # =====================================================================
+        try:
+            intel_result = analyze_threat_intel(
+                url=norm.normalized_url,
+                resolve_network=resolve_network,
+            )
+            save_threat_intel_to_db_sync(
+                scan_id=scan.id,
+                result=intel_result,
+                db=session,
+            )
+        except Exception as e:
+            logger.warning(f"Threat intelligence query failed for {norm.normalized_url}: {str(e)}")
+
+        # =====================================================================
+        # STAGE 6: Safe Content Fetching & Phishing Heuristics
         # =====================================================================
         try:
             html_content = mock_html
@@ -178,49 +218,43 @@ def execute_scan_pipeline_sync(
             logger.warning(f"Content analysis failed for {norm.normalized_url}: {str(e)}")
 
         # =====================================================================
-        # STAGE 6: Risk Scoring & Finding Aggregation
+        # STAGE 7: Machine Learning URL Classifier
+        # =====================================================================
+        ml_result = None
+        try:
+            ml_result = classify_url(norm.normalized_url)
+            save_ml_classification_to_db_sync(
+                scan_id=scan.id,
+                result=ml_result,
+                db=session,
+            )
+        except Exception as e:
+            logger.warning(f"ML classification failed for {norm.normalized_url}: {str(e)}")
+
+        # =====================================================================
+        # STAGE 8: Explainable Risk Engine Synthesis
         # =====================================================================
         findings = session.query(ScanFinding).filter(ScanFinding.scan_id == scan.id).all()
+        cert = session.query(Certificate).filter(Certificate.scan_id == scan.id).first()
+        threat_results = session.query(ThreatIntelResult).filter(ThreatIntelResult.scan_id == scan.id).all()
 
-        total_risk_points = sum(f.risk_points for f in findings)
-        risk_score = min(100, max(0, total_risk_points))
-        verdict, verdict_label = calculate_verdict(risk_score)
-
-        # Synthesize ranked summary from highest severity findings
-        critical_findings = [f.title for f in findings if f.severity == "critical"]
-        high_findings = [f.title for f in findings if f.severity == "high"]
-        medium_findings = [f.title for f in findings if f.severity == "medium"]
-
-        reasons: List[str] = []
-        if critical_findings:
-            reasons.extend(critical_findings[:2])
-        if high_findings and len(reasons) < 3:
-            reasons.extend(high_findings[:3 - len(reasons)])
-        if medium_findings and len(reasons) < 3:
-            reasons.extend(medium_findings[:3 - len(reasons)])
-
-        if risk_score >= 70:
-            summary = f"{verdict_label}: " + "; ".join(reasons) + "."
-            recommendation = "Do not enter passwords, OTPs, or banking details on this website."
-        elif risk_score >= 50:
-            summary = f"{verdict_label}: " + ("; ".join(reasons) if reasons else "Multiple suspicious indicators detected.") + "."
-            recommendation = "Exercise caution. Verify website ownership before submitting any credentials or payments."
-        elif risk_score >= 25:
-            summary = f"{verdict_label}: Website has minor configuration warnings but no direct phishing lures detected."
-            recommendation = "Website appears low risk. Ensure browser connection remains encrypted."
-        else:
-            summary = "Safe: Website exhibits established domain age, valid TLS encryption, and no credential harvesting indicators."
-            recommendation = "Website appears safe to browse."
+        evaluation = evaluate_risk(
+            findings=findings,
+            certificate=cert,
+            threat_intel_results=threat_results,
+            ml_result=ml_result,
+            domain=norm.host,
+        )
 
         # =====================================================================
-        # STAGE 7: Final Completion & Persistence
+        # STAGE 9: Final Completion & Persistence
         # =====================================================================
         scan.status = "completed"
-        scan.verdict = verdict
-        scan.risk_score = risk_score
-        scan.confidence = 0.92
-        scan.summary = summary
-        scan.recommendation = recommendation
+        scan.verdict = evaluation.verdict
+        scan.risk_score = evaluation.risk_score
+        scan.confidence = evaluation.confidence
+        scan.summary = evaluation.summary
+        scan.recommendation = evaluation.recommendation
         scan.completed_at = datetime.now(timezone.utc)
         session.commit()
         session.refresh(scan)
