@@ -26,14 +26,6 @@ class Settings(BaseSettings):
     URLHAUS_AUTH_KEY: Optional[str] = ""
     VIRUSTOTAL_API_KEY: Optional[str] = ""
 
-    # OAuth2 Providers (Google & GitHub)
-    GOOGLE_CLIENT_ID: Optional[str] = ""
-    GOOGLE_CLIENT_SECRET: Optional[str] = ""
-    GITHUB_CLIENT_ID: Optional[str] = ""
-    GITHUB_CLIENT_SECRET: Optional[str] = ""
-    FRONTEND_URL: str = "http://localhost:5173"
-    OAUTH_REDIRECT_BASE_URL: str = "http://localhost:8000"
-
     model_config = SettingsConfigDict(
         env_file=(".env", "../.env"),
         env_file_encoding="utf-8",
