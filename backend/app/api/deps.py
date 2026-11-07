@@ -79,6 +79,20 @@ async def get_current_active_user(
     return current_user
 
 
+async def get_optional_current_user(
+    request: Request,
+    token: Optional[str] = Depends(oauth2_scheme),
+    db: AsyncSession = Depends(get_db),
+) -> Optional[User]:
+    """
+    Extracts user if valid authentication is supplied, or returns None for public actions.
+    """
+    try:
+        return await get_current_user(request=request, token=token, db=db)
+    except Exception:
+        return None
+
+
 def require_roles(allowed_roles: List[str]) -> Callable:
     """
     Role-Based Access Control (RBAC) dependency factory.
