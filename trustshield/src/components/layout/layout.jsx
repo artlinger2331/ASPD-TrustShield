@@ -1,6 +1,7 @@
-import { NavLink } from "react-router-dom";
-import { LayoutDashboard, Search, FileText, ShieldAlert, Bell, Settings, LogOut, Mail, Users, ShieldCheck, Zap } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { NavLink, useNavigate } from "react-router-dom";
+import { LayoutDashboard, Search, FileText, Bell, Settings, LogOut, Users, ShieldCheck, Zap } from "lucide-react";
+import { cn } from "@/utils/cn";
+import { useAuth } from "@/hooks/useAuth";
 
 const ITEMS = [
   { key: "dashboard", label: "Dashboard", icon: LayoutDashboard, to: "/dashboard" },
@@ -8,13 +9,21 @@ const ITEMS = [
   { key: "reports", label: "Scan Reports", icon: FileText, to: "/reports" },
   { key: "community", label: "Community Reports", icon: Users, to: "/community" },
   { key: "watchlist", label: "Watchlist", icon: ShieldCheck, to: "/watchlist" },
-  { key: "settings", label: "Settings", icon: Settings, to: "/settings" },
+  { key: "settings", label: "Settings", icon: Settings, to: "/profile" },
 ];
 
 export function Sidebar({ className }) {
+  const { logout } = useAuth();
+  const navigate = useNavigate();
+
+  const handleSignOut = () => {
+    logout();
+    navigate("/login");
+  };
+
   return (
     <aside className={cn("fixed left-0 top-0 bottom-0 w-64 glass border-r border-white/5 flex flex-col z-40", className)}>
-      <div className="px-6 py-5 flex items-center gap-2">
+      <div className="px-6 py-5 flex items-center gap-2 cursor-pointer" onClick={() => navigate("/dashboard")}>
         <div className="w-8 h-8 rounded-lg bg-blue-600/20 flex items-center justify-center text-blue-400 font-bold">
           TS
         </div>
@@ -40,7 +49,10 @@ export function Sidebar({ className }) {
         ))}
       </nav>
       <div className="px-6 py-4 border-t border-white/5">
-        <button className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-red-400 hover:bg-red-500/5 transition-colors">
+        <button
+          onClick={handleSignOut}
+          className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-red-400 hover:bg-red-500/5 transition-colors"
+        >
           <LogOut className="w-4 h-4" />
           Sign out
         </button>
@@ -49,17 +61,18 @@ export function Sidebar({ className }) {
   );
 }
 
-export function TopBar({ onSearch, onNotify, onProfile, onThemeToggle }) {
+export function TopBar({ onSearch, onNotify, onProfile, onThemeToggle, onMenuToggle }) {
+  const navigate = useNavigate();
   return (
     <header className="glass border-b border-white/5 flex items-center justify-between px-6 py-3 z-30 sticky top-0">
-      <div className="flex items-center gap-3">
-        <button className="md:hidden text-slate-400 hover:text-white p-2">
+      <div className="flex items-center gap-3 flex-1 min-w-0">
+        <button onClick={onMenuToggle} className="md:hidden text-slate-400 hover:text-white p-2">
           <span className="sr-only">Open menu</span>
           <svg className="w-5 h-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 12h16M4 18h16" />
           </svg>
         </button>
-        <div className="hidden md:flex items-center gap-2">
+        <div className="hidden md:flex items-center gap-2 cursor-pointer" onClick={() => navigate("/dashboard")}>
           <div className="w-6 h-6 rounded-lg bg-blue-600/20 flex items-center justify-center text-blue-400 font-bold">TS</div>
           <span className="font-bold text-slate-100 text-sm tracking-tight">TrustShield</span>
         </div>
@@ -70,7 +83,7 @@ export function TopBar({ onSearch, onNotify, onProfile, onThemeToggle }) {
               type="text"
               placeholder="Scan a URL..."
               className="w-full rounded-xl border border-white/10 bg-white/5 pl-9 pr-4 py-2.5 text-sm text-slate-200 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500/50"
-              onKeyDown={(e) => e.key === "Enter" && onSearch(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && onSearch && onSearch(e.target.value)}
             />
           </div>
         </div>
@@ -88,7 +101,7 @@ export function TopBar({ onSearch, onNotify, onProfile, onThemeToggle }) {
         <button onClick={onNotify} className="relative p-2 rounded-lg text-slate-400 hover:bg-white/5 hover:text-white transition-colors" aria-label="Notifications">
           <Bell className="w-5 h-5" />
         </button>
-        <button onClick={onProfile} className="flex items-center gap-2 px-3 py-1.5 rounded-xl border border-white/10 bg-white/5 text-sm font-medium text-slate-200 hover:bg-white/10 transition-colors">
+        <button onClick={onProfile || (() => navigate("/profile"))} className="flex items-center gap-2 px-3 py-1.5 rounded-xl border border-white/10 bg-white/5 text-sm font-medium text-slate-200 hover:bg-white/10 transition-colors">
           <div className="w-7 h-7 rounded-full bg-blue-600/30 flex items-center justify-center text-blue-400 text-xs font-bold">A</div>
         </button>
       </div>
