@@ -87,3 +87,4 @@ class ScanFinding(Base):
 
     def __repr__(self) -> str:
         return f"<ScanFinding id={self.id} category={self.category} severity={self.severity} title={self.title}>"
+

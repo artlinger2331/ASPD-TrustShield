@@ -68,3 +68,4 @@ class ThreatIntelResult(Base):
 
     def __repr__(self) -> str:
         return f"<ThreatIntelResult id={self.id} source={self.source} match={self.match_type}>"
+

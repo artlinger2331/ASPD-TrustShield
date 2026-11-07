@@ -84,3 +84,4 @@ class CommunityReport(Base, TimestampMixin):
 
     def __repr__(self) -> str:
         return f"<CommunityReport id={self.id} domain={self.domain} threat={self.threat_type} status={self.status}>"
+

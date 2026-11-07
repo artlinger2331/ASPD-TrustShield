@@ -195,3 +195,4 @@ def downgrade() -> None:
     op.drop_table("scan_findings")
     op.drop_table("scans")
     op.drop_table("users")
+

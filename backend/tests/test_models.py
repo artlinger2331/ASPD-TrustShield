@@ -235,3 +235,4 @@ def test_watchlist_and_alert_system(memory_db_session):
     memory_db_session.commit()
 
     assert memory_db_session.query(Alert).filter_by(watchlist_item_id=watchlist_item.id).first() is None
+

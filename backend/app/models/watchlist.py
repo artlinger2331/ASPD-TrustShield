@@ -68,3 +68,4 @@ class WatchlistItem(Base, TimestampMixin):
 
     def __repr__(self) -> str:
         return f"<WatchlistItem id={self.id} domain={self.domain} active={self.is_active}>"
+

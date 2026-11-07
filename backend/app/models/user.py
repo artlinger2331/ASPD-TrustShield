@@ -76,3 +76,4 @@ class User(Base, TimestampMixin):
 
     def __repr__(self) -> str:
         return f"<User email={self.email} role={self.role}>"
+

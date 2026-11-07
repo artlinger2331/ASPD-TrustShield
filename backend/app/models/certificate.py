@@ -92,3 +92,4 @@ class Certificate(Base):
 
     def __repr__(self) -> str:
         return f"<Certificate id={self.id} subject={self.subject} is_valid={self.is_valid}>"
+
