@@ -16,6 +16,7 @@ from sqlalchemy.pool import StaticPool
 from app.main import app
 from app.models import Base
 from app.db.session import get_db
+from app.core.rate_limit import clear_rate_limit
 
 # High-speed in-memory SQLite async test database
 TEST_SQLITE_URL = "sqlite+aiosqlite:///:memory:"
@@ -39,8 +40,9 @@ test_async_session_factory = async_sessionmaker(
 @pytest_asyncio.fixture(autouse=True)
 async def init_test_database():
     """
-    Initialize schema tables once per test.
+    Initialize schema tables and reset rate limits once per test.
     """
+    clear_rate_limit()
     async with test_async_engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
     yield

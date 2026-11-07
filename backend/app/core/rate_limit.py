@@ -55,7 +55,11 @@ async def check_rate_limit(
         # 2. Redis offline / error -> Fallback to in-memory sliding window
         pass
 
-    # In-memory sliding window fallback
+    def clear_rate_limit() -> None:
+    """
+    Clear in-memory rate limiting store (useful for tests).
+    """
+    _MEMORY_RATE_LIMIT_STORE.clear()
     timestamps = _MEMORY_RATE_LIMIT_STORE.get(rate_key, [])
     # Prune old timestamps
     cutoff = now - window_seconds
