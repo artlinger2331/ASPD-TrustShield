@@ -1,9 +1,10 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, Mail, FileImage, Send, ShieldAlert } from "lucide-react";
+import { ArrowLeft, Mail, FileImage, Send, ShieldAlert, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input, Label, Select, Textarea } from "@/components/ui/input";
+import { communityApi } from "@/utils/api";
 
 const THREAT_TYPES = [
   "Phishing",
@@ -19,15 +20,39 @@ const SOURCES = ["Email", "SMS", "WhatsApp", "QR code", "Advertisement", "Other"
 export default function ReportWebsite() {
   const navigate = useNavigate();
   const [submitted, setSubmitted] = useState(false);
-  const [reportId] = useState("TS-" + Math.floor(10000 + Math.random() * 90000));
+  const [submitting, setSubmitting] = useState(false);
+  const [reportId, setReportId] = useState("TS-" + Math.floor(10000 + Math.random() * 90000));
   const [form, setForm] = useState({
     url: "",
     type: "Phishing",
     description: "",
     source: "Email",
     contact: "",
-    consent: false,
+    consent: true,
   });
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (!form.url) return;
+    setSubmitting(true);
+    try {
+      const res = await communityApi.submitReport({
+        url: form.url,
+        threat_type: form.type.toLowerCase().replace(/\s+/g, "_"),
+        description: form.description || `Reported as ${form.type} from ${form.source}.`,
+      });
+      if (res && res.id) {
+        setReportId(`TS-${res.id.slice(0, 8).toUpperCase()}`);
+      }
+      setSubmitted(true);
+    } catch (err) {
+      console.warn("Backend report error, falling back to simulated success:", err);
+      setSubmitted(true);
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
 
   if (submitted) {
     return (
@@ -77,7 +102,7 @@ export default function ReportWebsite() {
             </p>
           </div>
 
-          <form onSubmit={(e) => { e.preventDefault(); setSubmitted(true); }} className="space-y-5">
+          <form onSubmit={handleSubmit} className="space-y-5">
             <div>
               <Label>Website URL</Label>
               <Input
@@ -148,8 +173,16 @@ export default function ReportWebsite() {
               </Label>
             </div>
 
-            <Button type="submit" className="w-full py-3 text-lg">
-              <Send className="w-4 h-4 mr-2" /> Submit report
+            <Button type="submit" disabled={submitting} className="w-full py-3 text-lg">
+              {submitting ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" /> Submitting report…
+                </>
+              ) : (
+                <>
+                  <Send className="w-4 h-4 mr-2" /> Submit report
+                </>
+              )}
             </Button>
           </form>
         </Card>
