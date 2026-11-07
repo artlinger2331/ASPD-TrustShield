@@ -4,21 +4,45 @@ import { Mail, Lock, Eye, EyeOff, ArrowRight, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { Input, Label } from "@/components/ui/input";
-import { useAuth } from "@/hooks/useAuth";
+import { useAuth, useToast } from "@/hooks/useAuth";
 
 export default function Login() {
   const { login } = useAuth();
+  const { toast } = useToast();
   const navigate = useNavigate();
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
+    if (!email.trim() || !password) {
+      toast({
+        title: "Missing fields",
+        description: "Please enter both email and password.",
+        type: "error",
+      });
+      return;
+    }
     setLoading(true);
-    login(email, password);
-    setTimeout(() => { setLoading(false); navigate("/dashboard"); }, 800);
+    try {
+      await login(email.trim(), password);
+      toast({
+        title: "Welcome back",
+        description: "Successfully authenticated with TrustShield SecOps.",
+        type: "success",
+      });
+      navigate("/dashboard");
+    } catch (err) {
+      toast({
+        title: "Authentication Failed",
+        description: err.message || "Invalid email or password. Please try again.",
+        type: "error",
+      });
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
