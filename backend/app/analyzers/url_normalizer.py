@@ -281,9 +281,22 @@ def normalize_and_validate_url(
     # 1. Defang input
     clean_input = defang_url(raw_url)
 
-    # 2. Ensure scheme exists; default to https if absent
-    if "://" not in clean_input:
-        # Check if user typed "http://example.com" or just "example.com"
+    # 2. Check for explicit URI scheme
+    scheme_match = re.match(r"^([a-zA-Z][a-zA-Z0-9+.-]*):", clean_input)
+    if scheme_match:
+        scheme_candidate = scheme_match.group(1).lower()
+        if scheme_candidate in ("http", "https"):
+            # Ensure proper scheme delimiter '://'
+            remainder = clean_input[len(scheme_candidate) + 1:].lstrip("/")
+            clean_input = f"{scheme_candidate}://{remainder}"
+        else:
+            return None, (
+                f"Unsupported URL scheme '{scheme_candidate}:'. "
+                "TrustShield strictly analyzes web protocols ('http://' or 'https://'). "
+                "File, FTP, Javascript, Data, and non-web schemes are blocked for security."
+            )
+    else:
+        # No scheme specified at all; default to https://
         clean_input = f"https://{clean_input}"
 
     # 3. Parse with urlsplit
@@ -295,7 +308,7 @@ def normalize_and_validate_url(
     scheme = parts.scheme.lower()
     if scheme not in ("http", "https"):
         return None, (
-            f"Unsupported URL scheme '{scheme}://'. "
+            f"Unsupported URL scheme '{scheme}:'. "
             "TrustShield strictly analyzes web protocols ('http://' or 'https://'). "
             "File, FTP, Javascript, and Data schemes are blocked for security."
         )

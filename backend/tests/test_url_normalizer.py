@@ -182,3 +182,4 @@ def test_valid_public_urls():
         assert err is None
         assert norm is not None
         assert norm.normalized_url == expected
+
