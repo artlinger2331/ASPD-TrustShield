@@ -218,20 +218,21 @@ async def google_callback(
             )
         user_email = user_email.lower().strip()
         user_name = userinfo.get("name") or user_email.split("@")[0].title()
+        oauth_id = str(userinfo.get("sub") or "")
+        avatar_url = userinfo.get("picture")
 
     # Find or create user with real Google account
-    user_id = str(uuid.uuid4())
-    user_role = "user"
     try:
         query = select(User).where(User.email == user_email)
         result = await db.execute(query)
         user = result.scalar_one_or_none()
 
         if not user:
-            random_pwd = hash_password(secrets.token_urlsafe(32))
             user = User(
                 email=user_email,
-                hashed_password=random_pwd,
+                auth_provider="google",
+                oauth_id=oauth_id,
+                avatar_url=avatar_url,
                 full_name=user_name,
                 role="user",
                 is_active=True,
@@ -239,11 +240,26 @@ async def google_callback(
             db.add(user)
             await db.commit()
             await db.refresh(user)
+        else:
+            # Update oauth fields if missing
+            updated = False
+            if not user.avatar_url and avatar_url:
+                user.avatar_url = avatar_url
+                updated = True
+            if not user.oauth_id and oauth_id:
+                user.oauth_id = oauth_id
+                updated = True
+            if updated:
+                await db.commit()
+                await db.refresh(user)
 
         user_id = str(user.id)
         user_role = user.role
-    except Exception:
-        pass
+    except Exception as exc:
+        await db.rollback()
+        return RedirectResponse(
+            url=f"{settings.FRONTEND_URL}/login?error=OAuthAccountCreationFailed"
+        )
 
     access_token = create_access_token(
         subject=user_id,
@@ -356,20 +372,21 @@ async def github_callback(
             )
 
         user_email = user_email.lower().strip()
+        oauth_id = str(gh_user.get("id") or "")
+        avatar_url = gh_user.get("avatar_url")
 
     # Find or create user
-    user_id = str(uuid.uuid4())
-    user_role = "user"
     try:
         query = select(User).where(User.email == user_email)
         result = await db.execute(query)
         user = result.scalar_one_or_none()
 
         if not user:
-            random_pwd = hash_password(secrets.token_urlsafe(32))
             user = User(
                 email=user_email,
-                hashed_password=random_pwd,
+                auth_provider="github",
+                oauth_id=oauth_id,
+                avatar_url=avatar_url,
                 full_name=user_name,
                 role="user",
                 is_active=True,
@@ -377,11 +394,25 @@ async def github_callback(
             db.add(user)
             await db.commit()
             await db.refresh(user)
+        else:
+            updated = False
+            if not user.avatar_url and avatar_url:
+                user.avatar_url = avatar_url
+                updated = True
+            if not user.oauth_id and oauth_id:
+                user.oauth_id = oauth_id
+                updated = True
+            if updated:
+                await db.commit()
+                await db.refresh(user)
 
         user_id = str(user.id)
         user_role = user.role
-    except Exception:
-        pass
+    except Exception as exc:
+        await db.rollback()
+        return RedirectResponse(
+            url=f"{settings.FRONTEND_URL}/login?error=OAuthAccountCreationFailed"
+        )
 
     access_token = create_access_token(
         subject=user_id,
