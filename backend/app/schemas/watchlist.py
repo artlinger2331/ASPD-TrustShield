@@ -22,6 +22,9 @@ class WatchlistResponse(BaseModel):
     domain: str
     alert_types: Optional[List[str]] = None
     last_checked_at: Optional[datetime] = None
+    last_risk_score: Optional[int] = None
+    last_verdict: Optional[str] = None
+    cert_days_left: Optional[int] = None
     is_active: bool
     created_at: datetime
     unread_alerts_count: int = 0

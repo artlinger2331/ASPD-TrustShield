@@ -153,3 +153,14 @@ class ScanListItem(BaseModel):
 
     model_config = ConfigDict(from_attributes=True)
 
+
+class ScanListResponse(BaseModel):
+    """
+    Paginated envelope for scan listings.
+    """
+    total: int
+    items: List[ScanListItem]
+
+    model_config = ConfigDict(from_attributes=True)
+
+
