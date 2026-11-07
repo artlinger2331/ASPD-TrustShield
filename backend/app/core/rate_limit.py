@@ -51,29 +51,29 @@ async def check_rate_limit(
                 socket_timeout=1.0,
                 decode_responses=True,
             )
-        async with r:
-            pipe = r.pipeline()
-            # Remove timestamps older than window
-            pipe.zremrangebyscore(rate_key, 0, now - window_seconds)
-            # Count remaining timestamps
-            pipe.zcard(rate_key)
-            # Add current timestamp
-            pipe.zadd(rate_key, {str(now): now})
-            # Set TTL on key
-            pipe.expire(rate_key, window_seconds)
-            results = await pipe.execute()
-            count = results[1]
+            async with r:
+                pipe = r.pipeline()
+                # Remove timestamps older than window
+                pipe.zremrangebyscore(rate_key, 0, now - window_seconds)
+                # Count remaining timestamps
+                pipe.zcard(rate_key)
+                # Add current timestamp
+                pipe.zadd(rate_key, {str(now): now})
+                # Set TTL on key
+                pipe.expire(rate_key, window_seconds)
+                results = await pipe.execute()
+                count = results[1]
 
-            if count >= max_requests:
-                raise RateLimitException(
-                    f"Too many requests. Please wait {window_seconds} seconds before retrying."
-                )
-            return
-    except RateLimitException:
-        raise
-    except Exception:
-        # 2. Redis offline / error -> Fallback to in-memory sliding window
-        pass
+                if count >= max_requests:
+                    raise RateLimitException(
+                        f"Too many requests. Please wait {window_seconds} seconds before retrying."
+                    )
+                return
+        except RateLimitException:
+            raise
+        except Exception:
+            # 2. Redis offline / error -> Fallback to in-memory sliding window
+            pass
 
     # In-memory sliding window fallback
     timestamps = _MEMORY_RATE_LIMIT_STORE.get(rate_key, [])
