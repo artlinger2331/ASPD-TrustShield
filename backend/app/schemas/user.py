@@ -17,6 +17,8 @@ class UserResponse(UserBase):
     id: uuid.UUID
     role: str
     is_active: bool
+    auth_provider: str = "local"
+    avatar_url: Optional[str] = None
     created_at: datetime
 
     model_config = ConfigDict(from_attributes=True)
