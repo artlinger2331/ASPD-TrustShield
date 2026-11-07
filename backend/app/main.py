@@ -18,6 +18,8 @@ from app.api.v1.community_reports import router as community_reports_v1_router
 from app.api.v1.watchlist import router as watchlist_v1_router
 from app.api.v1.alerts import router as alerts_v1_router
 from app.api.v1.ai_assistant import router as ai_assistant_v1_router
+from app.api.v1.notifications import router as notifications_v1_router
+
 
 
 
@@ -118,5 +120,7 @@ app.include_router(community_reports_v1_router, prefix=settings.API_V1_STR)
 app.include_router(watchlist_v1_router, prefix=settings.API_V1_STR)
 app.include_router(alerts_v1_router, prefix=settings.API_V1_STR)
 app.include_router(ai_assistant_v1_router, prefix=settings.API_V1_STR)
+app.include_router(notifications_v1_router, prefix=settings.API_V1_STR)
+
 
 
