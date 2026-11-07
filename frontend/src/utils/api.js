@@ -208,3 +208,70 @@ export const scanApi = {
     }),
 };
 
+export const communityApi = {
+  submitReport: (payload) =>
+    apiFetch("/api/v1/community-reports", {
+      method: "POST",
+      body: JSON.stringify(payload),
+    }),
+
+  getReports: (threatType = null, status = null, limit = 20, offset = 0) => {
+    const params = new URLSearchParams({ limit, offset });
+    if (threatType && threatType !== "All") params.append("threat_type", threatType.toLowerCase().replace(/\s+/g, "_"));
+    if (status) params.append("status", status);
+    return apiFetch(`/api/v1/community-reports?${params.toString()}`, {
+      method: "GET",
+    });
+  },
+
+  voteReport: (reportId, voteType) =>
+    apiFetch(`/api/v1/community-reports/${reportId}/vote`, {
+      method: "POST",
+      body: JSON.stringify({ vote_type: voteType }),
+    }),
+};
+
+export const watchlistApi = {
+  addDomain: (payload) =>
+    apiFetch("/api/v1/watchlist", {
+      method: "POST",
+      body: JSON.stringify(payload),
+    }),
+
+  getWatchlist: () =>
+    apiFetch("/api/v1/watchlist", {
+      method: "GET",
+    }),
+
+  removeDomain: (itemId) =>
+    apiFetch(`/api/v1/watchlist/${itemId}`, {
+      method: "DELETE",
+    }),
+};
+
+export const alertsApi = {
+  getAlerts: (limit = 25, offset = 0) =>
+    apiFetch(`/api/v1/alerts?limit=${limit}&offset=${offset}`, {
+      method: "GET",
+    }),
+
+  markRead: (alertId) =>
+    apiFetch(`/api/v1/alerts/${alertId}/read`, {
+      method: "PATCH",
+    }),
+
+  markAllRead: () =>
+    apiFetch("/api/v1/alerts/mark-all-read", {
+      method: "POST",
+    }),
+};
+
+export const assistantApi = {
+  chat: (payload) =>
+    apiFetch("/api/v1/assistant/chat", {
+      method: "POST",
+      body: JSON.stringify(payload),
+    }),
+};
+
+
