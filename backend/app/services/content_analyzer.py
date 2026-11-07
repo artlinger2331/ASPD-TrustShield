@@ -158,7 +158,7 @@ CLICKFIX_PATTERNS = [
 # SSRF PROTECTION HELPER
 # ---------------------------------------------------------------------------
 
-def is_safe_url(url: str) -> bool:
+def is_safe_url(url: str, resolve_dns: bool = True) -> bool:
     """
     Validates if a URL is strictly safe for server-side outbound HTTP requests.
     Prevents Server-Side Request Forgery (SSRF) against internal metadata,
@@ -173,25 +173,38 @@ def is_safe_url(url: str) -> bool:
         if not hostname:
             return False
 
-        # Block literal localhost keywords
-        if hostname.lower() in ("localhost", "0.0.0.0", "127.0.0.1", "::1", "metadata.google.internal"):
+        hostname_lower = hostname.lower()
+
+        # Block literal localhost keywords & internal cloud metadata
+        if hostname_lower in ("localhost", "0.0.0.0", "127.0.0.1", "::1", "metadata.google.internal", "instance-data"):
             return False
 
-        # Resolve IP addresses for the hostname
+        # Fast path 1: Check if hostname is an IP address directly (no DNS lookup needed)
         try:
-            addr_info = socket.getaddrinfo(hostname, None, socket.AF_UNSPEC, socket.SOCK_STREAM)
-        except (socket.gaierror, socket.herror):
-            # Inability to resolve is suspicious, but let HTTP request handle standard DNS failures
-            return True
-
-        for item in addr_info:
-            ip_str = item[4][0]
-            ip_obj = ipaddress.ip_address(ip_str)
-
-            # Check against blocked private, loopback, and link-local ranges
+            ip_obj = ipaddress.ip_address(hostname_lower)
             for net in BLOCKED_IP_NETWORKS:
                 if ip_obj in net:
                     return False
+            return True
+        except ValueError:
+            pass
+
+        # Fast path 2: Check standard private domain suffixes
+        if hostname_lower.endswith((".local", ".localhost", ".internal", ".lan", ".home")):
+            return False
+
+        # Optional DNS resolution for domain names
+        if resolve_dns:
+            try:
+                addr_info = socket.getaddrinfo(hostname, None, socket.AF_UNSPEC, socket.SOCK_STREAM)
+                for item in addr_info:
+                    ip_str = item[4][0]
+                    ip_obj = ipaddress.ip_address(ip_str)
+                    for net in BLOCKED_IP_NETWORKS:
+                        if ip_obj in net:
+                            return False
+            except (socket.gaierror, socket.herror, TimeoutError, OSError):
+                pass
 
         return True
     except Exception:
