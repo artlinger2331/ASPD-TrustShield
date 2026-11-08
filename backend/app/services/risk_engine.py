@@ -35,6 +35,7 @@ def evaluate_risk(
 
     # Partition findings by telemetry layer
     CONTENT_CATEGORIES = {
+        "phishing",
         "credential_harvesting",
         "brand_impersonation",
         "login_form",
