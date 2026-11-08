@@ -5,7 +5,7 @@ echo Starting TrustShield Platform (Frontend + Backend)
 echo ====================================================
 
 start "TrustShield Backend (FastAPI)" cmd /k "cd /d %~dp0 && python -m uvicorn app.main:app --app-dir backend --host 127.0.0.1 --port 8000 --reload"
-timeout /t 2 /nobreak >nul
+ping 127.0.0.1 -n 3 >nul
 
 start "TrustShield Frontend (Vite)" cmd /k "cd /d %~dp0frontend && npm run dev"
 
