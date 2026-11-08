@@ -443,3 +443,4 @@ def test_database_persistence_of_web_security_findings():
         assert any("Environment Configuration File" in r.title for r in db_records)
     finally:
         session.close()
+
