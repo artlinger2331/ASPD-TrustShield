@@ -81,6 +81,21 @@ if _use_sqlite_fallback:
     import app.models  # Load all models
     Base.metadata.create_all(local_sync_engine)
 
+    # Safe column migration for SQLite development
+    from sqlalchemy import inspect, text
+    try:
+        with local_sync_engine.connect() as conn:
+            inspector = inspect(local_sync_engine)
+            if "scans" in inspector.get_table_names():
+                existing_cols = {c["name"] for c in inspector.get_columns("scans")}
+                if "current_step" not in existing_cols:
+                    conn.execute(text("ALTER TABLE scans ADD COLUMN current_step INTEGER DEFAULT 0"))
+                if "current_action" not in existing_cols:
+                    conn.execute(text("ALTER TABLE scans ADD COLUMN current_action VARCHAR(256)"))
+                conn.commit()
+    except Exception:
+        pass
+
 
 class AsyncSessionFallback:
     """
