@@ -1,4 +1,6 @@
 [
+  "tests/test_async_scan_pipeline.py::test_failed_scan_saves_partial_findings",
+  "tests/test_async_scan_pipeline.py::test_real_time_step_and_action_progress",
   "tests/test_async_scan_pipeline.py::test_scan_timeout_graceful_handling",
   "tests/test_auth.py::test_get_current_user_me",
   "tests/test_auth.py::test_get_current_user_unauthorized",
