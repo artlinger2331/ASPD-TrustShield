@@ -15,7 +15,10 @@ import uuid
 from datetime import datetime, timezone
 from typing import Optional, List, Dict, Any, Tuple
 
-from app.analyzers.url_normalizer import normalize_and_validate_url
+from app.analyzers.url_normalizer import (
+    normalize_and_validate_url,
+    save_url_heuristic_findings_to_db_sync,
+)
 from app.analyzers.domain_analyzer import (
     analyze_domain,
     save_domain_findings_to_db_sync,
@@ -110,6 +113,17 @@ def execute_scan_pipeline_sync(
 
         scan.normalized_url = norm.normalized_url
         session.commit()
+
+        # Persist URL heuristic findings if detected
+        if getattr(norm, "heuristics", None) and norm.heuristics.findings_list:
+            try:
+                save_url_heuristic_findings_to_db_sync(
+                    scan_id=scan.id,
+                    findings=norm.heuristics.findings_list,
+                    db=session,
+                )
+            except Exception as e:
+                logger.warning(f"Failed to persist URL heuristic findings: {e}")
 
         # =====================================================================
         # STAGE 2: Domain & DNS Infrastructure Analysis
