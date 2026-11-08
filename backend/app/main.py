@@ -11,6 +11,8 @@ from app.core.config import settings
 from app.core.exceptions import AppException, format_error_response
 from app.db.session import async_engine
 from app.api.v1.health import router as health_v1_router
+from app.api.v1.auth import router as auth_v1_router
+from app.api.v1.oauth import router as oauth_v1_router
 
 
 @asynccontextmanager
@@ -21,7 +23,8 @@ async def lifespan(app: FastAPI):
     # Startup actions
     yield
     # Shutdown actions
-    await async_engine.dispose()
+    if async_engine is not None:
+        await async_engine.dispose()
 
 
 app = FastAPI(
@@ -102,4 +105,6 @@ async def root_liveness() -> Dict[str, Any]:
 
 # 4. Include v1 API Routers
 app.include_router(health_v1_router, prefix=settings.API_V1_STR)
+app.include_router(auth_v1_router, prefix=settings.API_V1_STR)
+app.include_router(oauth_v1_router, prefix=settings.API_V1_STR)
 

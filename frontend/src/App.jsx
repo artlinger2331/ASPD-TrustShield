@@ -20,10 +20,22 @@ import Login from "@/pages/login";
 import Register from "@/pages/register";
 import ForgotPassword from "@/pages/forgot-password";
 import Profile from "@/pages/profile";
+import OAuthCallback from "@/pages/oauth-callback";
 
 function ProtectedRoute() {
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, loading } = useAuth();
   const location = useLocation();
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-[#070b14] text-cyan-400 font-mono text-sm">
+        <div className="flex items-center gap-3">
+          <span className="w-2 h-2 rounded-full bg-cyan-400 animate-ping" />
+          <span>Authenticating SecOps session...</span>
+        </div>
+      </div>
+    );
+  }
 
   if (!isAuthenticated) {
     return <Navigate to="/login" replace state={{ from: location }} />;
@@ -129,6 +141,7 @@ export default function App() {
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
           <Route path="/forgot-password" element={<ForgotPassword />} />
+          <Route path="/auth/callback" element={<OAuthCallback />} />
 
           {/* Authenticated / App layout pages */}
           <Route element={<AppLayout toggleTheme={toggleTheme} />}>
