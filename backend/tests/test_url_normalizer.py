@@ -183,3 +183,107 @@ def test_valid_public_urls():
         assert norm is not None
         assert norm.normalized_url == expected
 
+
+def test_detect_ip_based_urls():
+    """Verify detection of public direct IP addresses in URL authority."""
+    norm, err = normalize_and_validate_url("http://93.184.216.34/test", resolve_dns=False)
+    assert err is None
+    assert norm.is_ip is True
+    assert norm.heuristics.is_ip is True
+    assert any(f["title"] == "IP-Based Target Authority" for f in norm.heuristics.findings_list)
+
+
+def test_detect_url_shorteners():
+    """Verify known shorteners are flagged with medium severity findings."""
+    norm, err = normalize_and_validate_url("https://bit.ly/3xY7kL9", resolve_dns=False)
+    assert err is None
+    assert norm.heuristics.is_shortener is True
+    assert any(f["title"] == "Known URL Shortener Detected" for f in norm.heuristics.findings_list)
+
+    norm2, _ = normalize_and_validate_url("https://tinyurl.com/secure-login", resolve_dns=False)
+    assert norm2.heuristics.is_shortener is True
+
+
+def test_detect_suspicious_keywords():
+    """Verify detection of phishing lure keywords across path, query, and subdomains."""
+    norm, err = normalize_and_validate_url(
+        "https://portal.bank.com/account/security/verify?claim=reward&login=prompt",
+        resolve_dns=False,
+    )
+    assert err is None
+    found_keywords = set(norm.heuristics.suspicious_keywords_found)
+    assert "account" in found_keywords
+    assert "security" in found_keywords
+    assert "verify" in found_keywords
+    assert "claim" in found_keywords
+    assert "reward" in found_keywords
+    assert "login" in found_keywords
+    assert any(f["title"] == "Deceptive Phishing Keywords in URL" for f in norm.heuristics.findings_list)
+
+
+def test_detect_excessive_subdomains():
+    """Verify domains with >= 3 subdomain labels trigger excessive subdomain warnings."""
+    # 3 subdomains: login.verify.portal.evil.com
+    norm, err = normalize_and_validate_url("https://login.verify.portal.evil.com/path", resolve_dns=False)
+    assert err is None
+    assert norm.heuristics.has_excessive_subdomains is True
+    assert norm.heuristics.subdomain_count == 3
+    assert any(f["title"] == "Excessive Subdomain Stacking" for f in norm.heuristics.findings_list)
+
+    # 1 subdomain: standard
+    norm_normal, _ = normalize_and_validate_url("https://docs.github.com/en", resolve_dns=False)
+    assert norm_normal.heuristics.has_excessive_subdomains is False
+    assert norm_normal.heuristics.subdomain_count == 1
+
+
+def test_detect_suspicious_tlds():
+    """Verify high-abuse/suspicious TLDs are flagged."""
+    for tld in ["tk", "xyz", "top", "click", "loan", "work"]:
+        norm, err = normalize_and_validate_url(f"https://account-update.{tld}/login", resolve_dns=False)
+        assert err is None
+        assert norm.heuristics.has_suspicious_tld is True
+        assert any(f["title"] == "Suspicious / High-Abuse Top-Level Domain" for f in norm.heuristics.findings_list)
+
+
+def test_detect_embedded_credentials():
+    """Verify embedded userinfo credentials are detected, stripped from normalized URL, and flagged."""
+    norm, err = normalize_and_validate_url("https://admin:SuperSecret123@target-portal.com/dashboard", resolve_dns=False)
+    assert err is None
+    assert norm.heuristics.has_embedded_credentials is True
+    assert "admin:SuperSecret123@" not in norm.normalized_url
+    assert norm.normalized_url == "https://target-portal.com/dashboard"
+    assert any(f["title"] == "Deceptive Embedded Credentials in URL" for f in norm.heuristics.findings_list)
+
+
+def test_detect_overly_long_url():
+    """Verify URLs > 255 chars are flagged as long, and > 2048 chars are hard-rejected."""
+    long_path = "a" * 260
+    norm, err = normalize_and_validate_url(f"https://example.com/{long_path}", resolve_dns=False)
+    assert err is None
+    assert norm.heuristics.is_overly_long is True
+    assert any(f["title"] == "Abnormally Long URL Structure" for f in norm.heuristics.findings_list)
+
+    # Exceeding 2048 chars: hard rejection
+    too_long = "https://example.com/" + ("b" * 2050)
+    norm_bad, err_bad = normalize_and_validate_url(too_long, resolve_dns=False)
+    assert norm_bad is None
+    assert "maximum permissible length of 2048 characters" in err_bad
+
+
+def test_query_params_and_fragment_parsing():
+    """Verify structured parsing of query parameter dictionary and fragment separation."""
+    norm, err = normalize_and_validate_url(
+        "https://store.com/checkout?product_id=101&coupon=SAVE20&tag=electronics&tag=sale#payment-summary",
+        resolve_dns=False,
+    )
+    assert err is None
+    assert norm.query_params["product_id"] == "101"
+    assert norm.query_params["coupon"] == "SAVE20"
+    assert norm.query_params["tag"] == ["electronics", "sale"]
+    assert norm.fragment == "payment-summary"
+    assert norm.subdomain == "store"
+    assert norm.base_domain == "store.com"
+    assert norm.tld == "com"
+    assert norm.path == "/checkout"
+
+
