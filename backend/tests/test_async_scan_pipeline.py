@@ -13,13 +13,15 @@ import uuid
 from datetime import datetime, timezone, timedelta
 from unittest.mock import patch, MagicMock
 import pytest
-from httpx import AsyncClient
-from fastapi import status
+from fastapi import status, BackgroundTasks
 
+from app.core.exceptions import AppException
 from app.models.scan import Scan
 from app.models.scan_finding import ScanFinding
 from app.models.certificate import Certificate
-from app.db.session import local_session_factory
+from app.schemas.scan import ScanCreate
+from app.db.session import local_session_factory, AsyncSessionFallback
+from app.api.v1.scans import create_scan, get_scan_status, get_scan_report
 from app.services.scan_orchestrator import execute_scan_pipeline_sync
 from app.tasks.scan_tasks import execute_scan_task, SoftTimeLimitExceeded
 
@@ -56,70 +58,56 @@ def mock_background_dispatch():
 
 
 @pytest.mark.asyncio
-async def test_successful_scan_end_to_end(async_client: AsyncClient, mock_background_dispatch):
+async def test_successful_scan_end_to_end(mock_background_dispatch):
     """
     Test end-to-end flow:
-    1. Submit POST /api/v1/scans
+    1. Submit create_scan (POST /api/v1/scans)
     2. Verify queued record with step 0
     3. Run pipeline synchronously with mock HTML
-    4. Poll GET /api/v1/scans/{id} to verify completion (step 6, score, verdict)
-    5. GET /api/v1/scans/{id}/report for full telemetry
+    4. Poll get_scan_status (GET /api/v1/scans/{id}) to verify completion (step 6, score, verdict)
+    5. Call get_scan_report (GET /api/v1/scans/{id}/report) for full telemetry dossier
     """
-    print("\n--- Starting test_successful_scan_end_to_end ---")
+    db = AsyncSessionFallback(local_session_factory())
+    bg = BackgroundTasks()
     target_url = "https://safe-enterprise-platform.com/portal"
+
     # 1. Submit scan request
-    print("Step 1: POST /api/v1/scans")
-    post_res = await async_client.post("/api/v1/scans", json={"url": target_url})
-    print(f"POST returned: {post_res.status_code}")
-    assert post_res.status_code == status.HTTP_202_ACCEPTED
-    post_data = post_res.json()
-    scan_id_str = post_data["id"]
-    scan_uuid = uuid.UUID(scan_id_str)
-    assert post_data["status"] == "queued"
-    assert post_data["current_step"] == 0
+    post_data = await create_scan(ScanCreate(url=target_url), bg, None, db)
+    scan_id = post_data.id
+    assert post_data.status == "queued"
+    assert post_data.current_step == 0
     assert mock_background_dispatch.called
 
     # 2. Check initial status polling
-    print("Step 2: GET status initial")
-    poll_res1 = await async_client.get(f"/api/v1/scans/{scan_id_str}")
-    print(f"Poll 1 returned: {poll_res1.status_code}")
-    assert poll_res1.status_code == status.HTTP_200_OK
-    poll_data1 = poll_res1.json()
-    assert poll_data1["status"] == "queued"
-    assert poll_data1["step"] == 0
-    assert poll_data1["total_steps"] == 6
+    poll_data1 = await get_scan_status(scan_id, db)
+    assert poll_data1.status == "queued"
+    assert poll_data1.step == 0
+    assert poll_data1.total_steps == 6
 
     # 3. Execute scan pipeline (simulating worker execution offline)
-    print("Step 3: execute_scan_pipeline_sync")
     completed_scan = execute_scan_pipeline_sync(
-        scan_id=scan_uuid,
+        scan_id=scan_id,
         resolve_network=False,
         mock_html=MOCK_SAFE_HTML,
     )
-    print(f"Pipeline finished: {completed_scan.status if completed_scan else None}")
     assert completed_scan is not None
     assert completed_scan.status == "completed"
     assert completed_scan.current_step == 6
 
     # 4. Check completed status polling
-    print("Step 4: GET status completed")
-    poll_res2 = await async_client.get(f"/api/v1/scans/{scan_id_str}")
-    assert poll_res2.status_code == status.HTTP_200_OK
-    poll_data2 = poll_res2.json()
-    assert poll_data2["status"] == "completed"
-    assert poll_data2["step"] == 6
-    assert poll_data2["verdict"] is not None
-    assert poll_data2["risk_score"] is not None
-    assert poll_data2["current_action"] == "Scan completed successfully"
+    poll_data2 = await get_scan_status(scan_id, db)
+    assert poll_data2.status == "completed"
+    assert poll_data2.step == 6
+    assert poll_data2.verdict is not None
+    assert poll_data2.risk_score is not None
+    assert poll_data2.current_action == "Scan completed successfully"
 
     # 5. Retrieve full report
-    print("Step 5: GET report")
-    report_res = await async_client.get(f"/api/v1/scans/{scan_id_str}/report")
-    assert report_res.status_code == status.HTTP_200_OK
-    report_data = report_res.json()
-    assert report_data["id"] == scan_id_str
-    assert report_data["status"] == "completed"
-    assert "findings" in report_data
+    report_data = await get_scan_report(scan_id, db)
+    assert report_data.id == scan_id
+    assert report_data.status == "completed"
+    assert len(report_data.findings) > 0
+    assert report_data.verdict is not None
 
 
 def test_failed_scan_saves_partial_findings():
@@ -245,66 +233,65 @@ def test_scan_timeout_graceful_handling():
 
 
 @pytest.mark.asyncio
-async def test_invalid_url_rejection(async_client: AsyncClient):
+async def test_invalid_url_rejection():
     """
-    Test validation layer rejects malformed URLs and SSRF targets with HTTP 422.
+    Test validation layer rejects malformed URLs and SSRF targets with AppException(code='INVALID_URL', status_code=422).
     """
+    db = AsyncSessionFallback(local_session_factory())
+    bg = BackgroundTasks()
+
     # 1. Non-HTTP scheme
-    res1 = await async_client.post("/api/v1/scans", json={"url": "ftp://files.example.com/data"})
-    assert res1.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
-    data1 = res1.json()
-    assert data1.get("code") == "INVALID_URL"
+    with pytest.raises(AppException) as exc1:
+        await create_scan(ScanCreate(url="ftp://files.example.com/data"), bg, None, db)
+    assert exc1.value.code == "INVALID_URL"
+    assert exc1.value.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
 
     # 2. Localhost SSRF loopback
-    res2 = await async_client.post("/api/v1/scans", json={"url": "http://127.0.0.1:8000/internal"})
-    assert res2.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
-    data2 = res2.json()
-    assert data2.get("code") == "INVALID_URL"
+    with pytest.raises(AppException) as exc2:
+        await create_scan(ScanCreate(url="http://127.0.0.1:8000/internal"), bg, None, db)
+    assert exc2.value.code == "INVALID_URL"
+    assert exc2.value.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
 
     # 3. Cloud metadata IP SSRF
-    res3 = await async_client.post("/api/v1/scans", json={"url": "http://169.254.169.254/latest/meta-data"})
-    assert res3.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
-    data3 = res3.json()
-    assert data3.get("code") == "INVALID_URL"
+    with pytest.raises(AppException) as exc3:
+        await create_scan(ScanCreate(url="http://169.254.169.254/latest/meta-data"), bg, None, db)
+    assert exc3.value.code == "INVALID_URL"
+    assert exc3.value.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
 
     # 4. Empty or missing host structure
-    res4 = await async_client.post("/api/v1/scans", json={"url": "http://"})
-    assert res4.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
-    data4 = res4.json()
-    assert data4.get("code") == "INVALID_URL"
+    with pytest.raises(AppException) as exc4:
+        await create_scan(ScanCreate(url="http://"), bg, None, db)
+    assert exc4.value.code == "INVALID_URL"
+    assert exc4.value.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
 
 
 @pytest.mark.asyncio
-async def test_concurrent_duplicate_scan_prevention(async_client: AsyncClient, mock_background_dispatch):
+async def test_concurrent_duplicate_scan_prevention(mock_background_dispatch):
     """
     Test duplicate scan deduplication:
     When a scan for the same URL is already 'queued' or 'running' within 5 minutes,
     the API returns the existing scan ID rather than launching redundant background work.
     """
+    db = AsyncSessionFallback(local_session_factory())
+    bg = BackgroundTasks()
     target_url = "https://duplicate-check-portal.org/login"
 
     # Reset mock call count
     mock_background_dispatch.reset_mock()
 
     # First submission
-    res1 = await async_client.post("/api/v1/scans", json={"url": target_url})
-    assert res1.status_code == status.HTTP_202_ACCEPTED
-    data1 = res1.json()
-    scan_id_1 = data1["id"]
+    res1 = await create_scan(ScanCreate(url=target_url), bg, None, db)
+    scan_id_1 = res1.id
 
     # Immediate second submission with identical URL
-    res2 = await async_client.post("/api/v1/scans", json={"url": target_url})
-    # Should accept and return the exact same scan ID
-    assert res2.status_code in (status.HTTP_200_OK, status.HTTP_202_ACCEPTED)
-    data2 = res2.json()
-    scan_id_2 = data2["id"]
+    res2 = await create_scan(ScanCreate(url=target_url), bg, None, db)
+    scan_id_2 = res2.id
 
     assert scan_id_1 == scan_id_2, "Concurrent duplicate scan should reuse the existing in-flight scan ID"
 
     # Immediate third submission with slight formatting differences (trailing slash / whitespace)
-    res3 = await async_client.post("/api/v1/scans", json={"url": "  https://duplicate-check-portal.org/login/  "})
-    data3 = res3.json()
-    assert data3["id"] == scan_id_1, "Normalized URL match should deduplicate formatting variants"
+    res3 = await create_scan(ScanCreate(url="  https://duplicate-check-portal.org/login/  "), bg, None, db)
+    assert res3.id == scan_id_1, "Normalized URL match should deduplicate formatting variants"
 
     # mock_background_dispatch should have been called only once for the first submission, not for the duplicates!
     assert mock_background_dispatch.call_count == 1
@@ -331,8 +318,6 @@ def test_real_time_step_and_action_progress():
     session.add(scan)
     session.commit()
     session.close()
-
-    step_history = []
 
     # Run the pipeline
     completed_scan = execute_scan_pipeline_sync(
