@@ -1,12 +1,17 @@
-import asyncio
-print("1. Getting loop...", flush=True)
-loop = asyncio.new_event_loop()
-print("2. Loop created:", loop, flush=True)
-async def hello():
-    print("In hello()", flush=True)
-    return 42
+def run_coro(coro):
+    """Executes a coroutine that wraps synchronous/fallback operations without creating an asyncio event loop."""
+    try:
+        while True:
+            coro.send(None)
+    except StopIteration as e:
+        return e.value
 
-res = loop.run_until_complete(hello())
-print("3. Result:", res, flush=True)
-loop.close()
-print("4. Done!", flush=True)
+async def inner():
+    return 100
+
+async def outer():
+    val = await inner()
+    return val + 42
+
+result = run_coro(outer())
+print("RESULT:", result, flush=True)
