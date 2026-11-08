@@ -1,8 +1,12 @@
-import sys, asyncio
-if sys.platform == "win32":
-    asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
+import asyncio
+print("1. Getting loop...", flush=True)
+loop = asyncio.new_event_loop()
+print("2. Loop created:", loop, flush=True)
+async def hello():
+    print("In hello()", flush=True)
+    return 42
 
-async def f():
-    print("HELLO ASYNCIO", flush=True)
-
-asyncio.run(f())
+res = loop.run_until_complete(hello())
+print("3. Result:", res, flush=True)
+loop.close()
+print("4. Done!", flush=True)
