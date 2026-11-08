@@ -36,9 +36,12 @@ def is_redis_available() -> bool:
 
     try:
         parsed = urlparse(settings.REDIS_URL)
-        host = parsed.hostname or "localhost"
+        host = parsed.hostname or "127.0.0.1"
+        if host == "redis":
+            # In local dev outside docker compose, avoid Windows DNS lookup hang
+            host = "127.0.0.1"
         port = parsed.port or 6379
-        with socket.create_connection((host, port), timeout=0.5):
+        with socket.create_connection((host, port), timeout=0.2):
             return True
     except Exception:
         return False
