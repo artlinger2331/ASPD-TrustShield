@@ -174,6 +174,23 @@ export default function Login() {
             <Button type="submit" loading={loading} className="w-full py-2.5 text-base font-semibold bg-blue-600 hover:bg-blue-500 text-white shadow-lg shadow-blue-600/30 transition-all">
               Sign in <ArrowRight className="w-4 h-4 ml-2" />
             </Button>
+
+            <button
+              type="button"
+              onClick={async () => {
+                await login("analyst@trustshield.sec", "demo12345");
+                toast({
+                  title: "Demo Analyst Mode",
+                  description: "Signed in as Security Analyst.",
+                  type: "success",
+                });
+                navigate("/dashboard");
+              }}
+              className="w-full mt-2 py-2 px-3 rounded-xl border border-cyan-500/30 bg-cyan-500/10 hover:bg-cyan-500/20 text-cyan-300 text-xs font-mono font-semibold transition-all flex items-center justify-center gap-2 cursor-pointer"
+            >
+              <span className="w-2 h-2 rounded-full bg-cyan-400 animate-pulse" />
+              Instant Demo Access (Analyst Mode)
+            </button>
           </form>
 
           <div className="relative my-4">
