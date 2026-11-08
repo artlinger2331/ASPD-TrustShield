@@ -804,3 +804,34 @@ def trace_redirects_safely_sync(
             )
     except RuntimeError:
         return asyncio.run(trace_redirects_safely_async(start_url, max_hops, timeout))
+
+
+def save_url_heuristic_findings_to_db_sync(
+    scan_id: Any,
+    findings: List[Dict[str, Any]],
+    db: Any,
+) -> List[Any]:
+    """
+    Synchronously persists URL heuristic findings into the scan_findings table.
+    """
+    from app.models.scan_finding import ScanFinding
+    db_records = []
+    for f in findings:
+        record = ScanFinding(
+            scan_id=scan_id,
+            category=f.get("category", "url_heuristics"),
+            title=f.get("title", "URL Heuristic Alert"),
+            severity=f.get("severity", "medium"),
+            confidence=f.get("confidence", 0.85),
+            description=f.get("description", ""),
+            evidence=f.get("evidence") or {},
+            recommendation=f.get("recommendation"),
+            risk_points=f.get("risk_points", 15),
+            raw_data=f.get("raw_data") or {},
+        )
+        db.add(record)
+        db_records.append(record)
+    if db_records:
+        db.commit()
+    return db_records
+
