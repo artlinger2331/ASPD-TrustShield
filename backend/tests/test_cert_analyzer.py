@@ -4,10 +4,12 @@ Covers all 12 core checks, structured chain visualization payload,
 and database persistence.
 """
 
+import struct
 from datetime import datetime, timezone, timedelta
+from unittest.mock import patch
 import pytest
 from cryptography import x509
-from cryptography.x509.oid import NameOID, ExtensionOID
+from cryptography.x509.oid import NameOID, ExtensionOID, ObjectIdentifier
 from cryptography.hazmat.primitives import hashes, serialization
 from cryptography.hazmat.primitives.asymmetric import rsa
 
@@ -27,6 +29,19 @@ from app.db.session import local_session_factory
 # ---------------------------------------------------------------------------
 # MOCK CERTIFICATE GENERATOR HELPERS
 # ---------------------------------------------------------------------------
+
+def _build_rfc6962_sct_der_bytes() -> bytes:
+    """Constructs valid ASN.1 DER for RFC 6962 SerializedSCTList extension."""
+    version = b"\x00"
+    log_id = b"A" * 32
+    timestamp = struct.pack("!Q", 1700000000000)
+    extensions = struct.pack("!H", 0)
+    sig = b"\x04\x03" + struct.pack("!H", 10) + b"X" * 10
+    sct = version + log_id + timestamp + extensions + sig
+    sct_item = struct.pack("!H", len(sct)) + sct
+    sct_list = struct.pack("!H", len(sct_item)) + sct_item
+    return b"\x04" + bytes([len(sct_list)]) + sct_list
+
 
 def generate_mock_cert(
     subject_cn: str,
@@ -73,9 +88,9 @@ def generate_mock_cert(
 
     # Optional Certificate Transparency (CT) Signed Certificate Timestamps (SCT) extension
     if add_ct_sct:
-        # Dummy SCT DER payload
+        sct_der = _build_rfc6962_sct_der_bytes()
         builder = builder.add_extension(
-            x509.UnrecognizedExtension(PRECERT_SCT_OID, b"\x04\x10test-ct-sct-payload"),
+            x509.UnrecognizedExtension(PRECERT_SCT_OID, sct_der),
             critical=False,
         )
 
@@ -107,6 +122,7 @@ def test_valid_certificate_parsing_and_chain_payload():
     assert result.weak_algo is False
     assert result.ca_trust_status == "trusted"
     assert result.ct_log_present is True
+    assert result.ct_sct_count >= 1
 
     # Validate exact structured certificate-chain visualization payload
     chain_payload = result.to_chain_payload()
@@ -256,10 +272,20 @@ def test_weak_signature_algorithm_sha1():
         issuer_cn="DigiCert CA",
         san_names=["sha1-site.com"],
         key_size=2048,
-        hash_algo=hashes.SHA1(),
     )
 
-    result = parse_x509_certificate(der, target_domain="sha1-site.com")
+    real_cert = x509.load_der_x509_certificate(der)
+    # Mock signature_algorithm_oid to sha1WithRSAEncryption (1.2.840.113549.1.1.5)
+    with patch("cryptography.x509.load_der_x509_certificate") as mock_load:
+        # Create a proxy around real_cert overriding signature_algorithm_oid
+        class CertProxy:
+            def __getattr__(self, name):
+                if name == "signature_algorithm_oid":
+                    return ObjectIdentifier("1.2.840.113549.1.1.5")
+                return getattr(real_cert, name)
+
+        mock_load.return_value = CertProxy()
+        result = parse_x509_certificate(der, target_domain="sha1-site.com")
 
     assert result.weak_algo is True
     assert any("Deprecated Cryptographic Signature Algorithm" in f.title for f in result.findings)
