@@ -13,12 +13,16 @@ const ITEMS = [
 ];
 
 export function Sidebar({ className }) {
-  const { logout } = useAuth();
+  const { logout, user } = useAuth();
   const navigate = useNavigate();
 
   const handleSignOut = () => {
-    logout();
-    navigate("/login");
+    if (user) {
+      logout();
+      navigate("/login");
+    } else {
+      navigate("/login");
+    }
   };
 
   return (
@@ -51,10 +55,12 @@ export function Sidebar({ className }) {
       <div className="px-6 py-4 border-t border-white/5">
         <button
           onClick={handleSignOut}
-          className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-red-400 hover:bg-red-500/5 transition-colors"
+          className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-colors ${
+            user ? "text-red-400 hover:bg-red-500/5" : "text-cyan-400 hover:bg-cyan-500/10"
+          }`}
         >
           <LogOut className="w-4 h-4" />
-          Sign out
+          {user ? "Sign out" : "Sign in"}
         </button>
       </div>
     </aside>
