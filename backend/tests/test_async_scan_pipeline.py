@@ -259,25 +259,29 @@ async def test_concurrent_duplicate_scan_prevention(async_client: AsyncClient):
     """
     target_url = "https://duplicate-check-portal.org/login"
 
-    # First submission
-    res1 = await async_client.post("/api/v1/scans", json={"url": target_url})
-    assert res1.status_code == status.HTTP_202_ACCEPTED
-    data1 = res1.json()
-    scan_id_1 = data1["id"]
+    with patch("app.api.v1.scans.dispatch_scan") as mock_dispatch:
+        # First submission
+        res1 = await async_client.post("/api/v1/scans", json={"url": target_url})
+        assert res1.status_code == status.HTTP_202_ACCEPTED
+        data1 = res1.json()
+        scan_id_1 = data1["id"]
 
-    # Immediate second submission with identical URL
-    res2 = await async_client.post("/api/v1/scans", json={"url": target_url})
-    # Should accept and return the exact same scan ID
-    assert res2.status_code in (status.HTTP_200_OK, status.HTTP_202_ACCEPTED)
-    data2 = res2.json()
-    scan_id_2 = data2["id"]
+        # Immediate second submission with identical URL
+        res2 = await async_client.post("/api/v1/scans", json={"url": target_url})
+        # Should accept and return the exact same scan ID
+        assert res2.status_code in (status.HTTP_200_OK, status.HTTP_202_ACCEPTED)
+        data2 = res2.json()
+        scan_id_2 = data2["id"]
 
-    assert scan_id_1 == scan_id_2, "Concurrent duplicate scan should reuse the existing in-flight scan ID"
+        assert scan_id_1 == scan_id_2, "Concurrent duplicate scan should reuse the existing in-flight scan ID"
 
-    # Immediate third submission with slight formatting differences (trailing slash / whitespace)
-    res3 = await async_client.post("/api/v1/scans", json={"url": "  https://duplicate-check-portal.org/login/  "})
-    data3 = res3.json()
-    assert data3["id"] == scan_id_1, "Normalized URL match should deduplicate formatting variants"
+        # Immediate third submission with slight formatting differences (trailing slash / whitespace)
+        res3 = await async_client.post("/api/v1/scans", json={"url": "  https://duplicate-check-portal.org/login/  "})
+        data3 = res3.json()
+        assert data3["id"] == scan_id_1, "Normalized URL match should deduplicate formatting variants"
+
+        # mock_dispatch should have been called only once for the first submission, not for the duplicates!
+        assert mock_dispatch.call_count == 1
 
 
 @pytest.mark.asyncio
