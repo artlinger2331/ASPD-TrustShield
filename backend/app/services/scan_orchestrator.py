@@ -31,13 +31,14 @@ from app.analyzers.cert_analyzer import (
     analyze_certificate,
     save_certificate_to_db_sync,
 )
-from app.analyzers.security_headers_analyzer import (
-    analyze_security_headers,
-    fetch_and_analyze_security_headers,
-    save_security_headers_findings_to_db_sync,
+from app.services.web_security_analyzer import (
+    analyze_web_security,
+    fetch_and_analyze_web_security,
+    save_web_security_findings_to_db_sync,
 )
 from app.analyzers.content_analyzer import (
     analyze_content,
+    analyze_content_sync,
     safe_fetch_html,
     save_findings_to_db_sync,
 )
