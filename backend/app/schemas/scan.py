@@ -35,6 +35,8 @@ class ScanResponse(BaseModel):
     input_url: str
     normalized_url: str
     status: str
+    current_step: Optional[int] = 0
+    current_action: Optional[str] = None
     created_at: datetime
 
     model_config = ConfigDict(from_attributes=True)
@@ -46,8 +48,8 @@ class ScanStatusResponse(BaseModel):
     """
     id: uuid.UUID
     status: str = Field(..., description="queued, running, completed, failed, timeout")
-    step: int = Field(0, description="Current pipeline step (0 to 7)")
-    total_steps: int = Field(7, description="Total pipeline steps")
+    step: int = Field(0, description="Current pipeline step (0 to 6)")
+    total_steps: int = Field(6, description="Total pipeline steps")
     current_action: Optional[str] = Field(None, description="Active telemetry analysis description")
     verdict: Optional[str] = None
     risk_score: Optional[int] = None
@@ -55,6 +57,8 @@ class ScanStatusResponse(BaseModel):
     summary: Optional[str] = None
     recommendation: Optional[str] = None
     error_message: Optional[str] = None
+    started_at: Optional[datetime] = None
+    completed_at: Optional[datetime] = None
 
     model_config = ConfigDict(from_attributes=True)
 
