@@ -147,8 +147,8 @@ async def test_failed_scan_saves_partial_findings():
     session.commit()
     session.close()
 
-    # Simulate crash during Stage 4 (DOM content analysis)
-    with patch("app.services.scan_orchestrator.analyze_content_sync", side_effect=RuntimeError("DOM parser fatal core dump")):
+    # Simulate crash during Stage 7 (risk evaluation synthesis)
+    with patch("app.services.scan_orchestrator.evaluate_risk", side_effect=RuntimeError("Risk engine unexpected synthesis failure")):
         failed_scan = execute_scan_pipeline_sync(
             scan_id=scan_id,
             resolve_network=False,
@@ -211,7 +211,7 @@ def test_scan_timeout_graceful_handling():
 
     # Simulate Celery worker running execute_scan_task and raising SoftTimeLimitExceeded
     with patch("app.tasks.scan_tasks.execute_scan_pipeline_sync", side_effect=SoftTimeLimitExceeded("Execution timed out")):
-        task_res = execute_scan_task(str(scan_id))
+        task_res = execute_scan_task(MagicMock(), str(scan_id))
 
     assert task_res["status"] == "failed"
     assert "timed out" in task_res["error"]
