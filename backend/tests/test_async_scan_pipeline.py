@@ -122,8 +122,7 @@ async def test_successful_scan_end_to_end(async_client: AsyncClient, mock_backgr
     assert "findings" in report_data
 
 
-@pytest.mark.asyncio
-async def test_failed_scan_saves_partial_findings():
+def test_failed_scan_saves_partial_findings():
     """
     Test that an unexpected failure or exception mid-pipeline:
     1. Does NOT discard previously committed findings (DNS, cert)
@@ -147,8 +146,18 @@ async def test_failed_scan_saves_partial_findings():
     session.commit()
     session.close()
 
+    call_count = 0
+    from app.services.risk_engine import evaluate_risk as real_evaluate
+
+    def failing_evaluate(*args, **kwargs):
+        nonlocal call_count
+        call_count += 1
+        if call_count == 1:
+            raise RuntimeError("Engine failure during final report synthesis")
+        return real_evaluate(*args, **kwargs)
+
     # Simulate crash during Stage 7 (risk evaluation synthesis)
-    with patch("app.services.scan_orchestrator.evaluate_risk", side_effect=RuntimeError("Risk engine unexpected synthesis failure")):
+    with patch("app.services.scan_orchestrator.evaluate_risk", side_effect=failing_evaluate):
         failed_scan = execute_scan_pipeline_sync(
             scan_id=scan_id,
             resolve_network=False,
@@ -162,12 +171,13 @@ async def test_failed_scan_saves_partial_findings():
         # Must be marked failed
         assert updated_scan.status == "failed"
         assert updated_scan.error_message is not None
+        assert "Engine failure during final report synthesis" in updated_scan.error_message
 
-        # Verify that earlier stages (domain/cert/headers) saved partial findings
+        # Verify that earlier stages (domain/cert/headers/phishing) saved partial findings
         findings = verify_session.query(ScanFinding).filter(ScanFinding.scan_id == scan_id).all()
-        # Should have findings from earlier steps (e.g. .xyz suspicious TLD)
+        # Should have findings from earlier steps (e.g. .xyz suspicious TLD, password form)
         assert len(findings) > 0
-        # Preliminary score was calculated
+        # Preliminary score was calculated from partial findings
         assert updated_scan.risk_score is not None
         assert updated_scan.verdict is not None
     finally:
@@ -300,8 +310,7 @@ async def test_concurrent_duplicate_scan_prevention(async_client: AsyncClient, m
     assert mock_background_dispatch.call_count == 1
 
 
-@pytest.mark.asyncio
-async def test_real_time_step_and_action_progress():
+def test_real_time_step_and_action_progress():
     """
     Test that current_step increments progressively across all 6 stages
     and current_action records descriptive telemetry status messages.
