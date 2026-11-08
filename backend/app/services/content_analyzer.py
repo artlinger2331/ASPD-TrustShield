@@ -258,20 +258,37 @@ async def safe_fetch_html(
         "Sec-Fetch-Site": "none",
     }
 
+    from urllib.parse import urljoin
+
     try:
-        # Custom client with strictly safe redirect handling
+        current_target = url
+        # Custom client with strictly safe per-hop redirect validation
         async with httpx.AsyncClient(
             headers=headers,
             timeout=timeout,
-            follow_redirects=True,
-            max_redirects=5,
+            follow_redirects=False,  # Enforce manual hop-by-hop SSRF validation
             verify=False,  # Allow inspecting untrusted/self-signed cert phishing targets
         ) as client:
-            response = await client.get(url)
+            response = None
+            for hop in range(5):
+                if not is_safe_url(current_target):
+                    return None, current_target, f"Redirect hop {hop + 1} violates SSRF security boundary"
+                response = await client.get(current_target)
+                if response.status_code in (301, 302, 303, 307, 308):
+                    loc = response.headers.get("location")
+                    if not loc:
+                        break
+                    current_target = urljoin(current_target, loc)
+                else:
+                    break
+
+            if response is None:
+                return None, current_target, "No response received"
 
             # Validate that the final redirected URL is still SSRF safe
-            if not is_safe_url(str(response.url)):
-                return None, str(response.url), "Redirected to forbidden private network / loopback address"
+            final_url = str(response.url)
+            if not is_safe_url(final_url):
+                return None, final_url, "Redirected to forbidden private network / loopback address"
 
             # Check Content-Type to reject executable binaries, archives, and media
             content_type = response.headers.get("content-type", "").lower()

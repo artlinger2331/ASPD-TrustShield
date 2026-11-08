@@ -47,7 +47,7 @@ def evaluate_risk(
         "clickfix_deception",
     }
     content_findings = [f for f in findings if f.category in CONTENT_CATEGORIES]
-    domain_findings = [f for f in findings if f.category in ("domain_infrastructure", "dns_security")]
+    domain_findings = [f for f in findings if f.category in ("domain_infrastructure", "dns_security", "url_heuristics", "url_syntax")]
     cert_findings = [f for f in findings if f.category == "tls_certificate"]
     header_findings = [f for f in findings if f.category == "security_headers"]
     ml_findings = [f for f in findings if f.category == "ml_classifier"]

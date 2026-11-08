@@ -81,11 +81,20 @@
   "tests/test_threat_intel_analyzer.py::test_threat_intel_flagged_detection",
   "tests/test_threat_intel_analyzer.py::test_threat_intel_offline_benign",
   "tests/test_url_normalizer.py::test_defang_url",
+  "tests/test_url_normalizer.py::test_detect_embedded_credentials",
+  "tests/test_url_normalizer.py::test_detect_excessive_subdomains",
+  "tests/test_url_normalizer.py::test_detect_ip_based_urls",
+  "tests/test_url_normalizer.py::test_detect_overly_long_url",
+  "tests/test_url_normalizer.py::test_detect_suspicious_keywords",
+  "tests/test_url_normalizer.py::test_detect_suspicious_tlds",
+  "tests/test_url_normalizer.py::test_detect_url_shorteners",
   "tests/test_url_normalizer.py::test_extract_domain_parts",
   "tests/test_url_normalizer.py::test_punycode_and_homoglyph_detection",
+  "tests/test_url_normalizer.py::test_query_params_and_fragment_parsing",
   "tests/test_url_normalizer.py::test_ssrf_prohibited_hostnames",
   "tests/test_url_normalizer.py::test_ssrf_prohibited_ip_ranges",
   "tests/test_url_normalizer.py::test_unsupported_protocols_blocked",
   "tests/test_url_normalizer.py::test_url_normalization_canonicalization",
-  "tests/test_url_normalizer.py::test_valid_public_urls"
+  "tests/test_url_normalizer.py::test_valid_public_urls",
+  "tests/test_url_validation_api.py::test_scan_pipeline_persists_url_heuristics"
 ]
