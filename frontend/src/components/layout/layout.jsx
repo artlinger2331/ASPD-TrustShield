@@ -69,6 +69,7 @@ export function Sidebar({ className }) {
 
 export function TopBar({ onSearch, onNotify, onProfile, onThemeToggle, onMenuToggle }) {
   const navigate = useNavigate();
+  const { user } = useAuth();
   return (
     <header className="glass border-b border-white/5 flex items-center justify-between px-6 py-3 z-30 sticky top-0">
       <div className="flex items-center gap-3 flex-1 min-w-0">
@@ -107,8 +108,14 @@ export function TopBar({ onSearch, onNotify, onProfile, onThemeToggle, onMenuTog
         <button onClick={onNotify} className="relative p-2 rounded-lg text-slate-400 hover:bg-white/5 hover:text-white transition-colors" aria-label="Notifications">
           <Bell className="w-5 h-5" />
         </button>
-        <button onClick={onProfile || (() => navigate("/profile"))} className="flex items-center gap-2 px-3 py-1.5 rounded-xl border border-white/10 bg-white/5 text-sm font-medium text-slate-200 hover:bg-white/10 transition-colors">
-          <div className="w-7 h-7 rounded-full bg-blue-600/30 flex items-center justify-center text-blue-400 text-xs font-bold">A</div>
+        <button
+          onClick={onProfile || (() => navigate(user ? "/profile" : "/login"))}
+          className="flex items-center gap-2 px-3 py-1.5 rounded-xl border border-white/10 bg-white/5 text-sm font-medium text-slate-200 hover:bg-white/10 transition-colors cursor-pointer"
+        >
+          <div className="w-7 h-7 rounded-full bg-blue-600/30 flex items-center justify-center text-blue-400 text-xs font-bold">
+            {user?.full_name ? user.full_name.charAt(0).toUpperCase() : user ? "U" : "G"}
+          </div>
+          <span className="text-xs hidden sm:inline">{user?.full_name || (user ? "Account" : "Sign In")}</span>
         </button>
       </div>
     </header>
