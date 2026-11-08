@@ -95,5 +95,6 @@
   "tests/test_url_normalizer.py::test_ssrf_prohibited_ip_ranges",
   "tests/test_url_normalizer.py::test_unsupported_protocols_blocked",
   "tests/test_url_normalizer.py::test_url_normalization_canonicalization",
-  "tests/test_url_normalizer.py::test_valid_public_urls"
+  "tests/test_url_normalizer.py::test_valid_public_urls",
+  "tests/test_url_validation_api.py::test_scan_pipeline_persists_url_heuristics"
 ]
