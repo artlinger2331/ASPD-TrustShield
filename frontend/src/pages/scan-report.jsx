@@ -89,79 +89,171 @@ export default function ScanReport() {
         <div className="mb-8 flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
             <div className="flex items-center gap-2 mb-2">
-              <ShieldAlert className="w-5 h-5 text-blue-400" />
-              <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Scan Report</span>
+              <div className="px-2.5 py-0.5 rounded-full border border-cyan-500/30 bg-cyan-500/10 text-cyan-300 font-mono text-[11px] font-semibold flex items-center gap-1.5 shadow-[0_0_10px_rgba(34,211,238,0.2)]">
+                <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-pulse shadow-[0_0_6px_#22d3ee]" />
+                SCAN REPORT
+              </div>
             </div>
-            <h1 className="text-2xl font-bold text-slate-100">{scan.url}</h1>
-            <p className="text-sm text-slate-500">
-              Scan ID: {scan.id} &nbsp;•&nbsp; Scanned {formatDateTime(scan.scannedAt)}
+            <h1 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight break-all">
+              {scan.url}
+            </h1>
+            <p className="text-sm font-mono text-slate-400 mt-1">
+              Scan ID: <span className="text-slate-300">{scan.id}</span> &nbsp;•&nbsp; Scanned {formatDateTime(scan.scannedAt)}
             </p>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2.5 self-start md:self-center">
             <button
               onClick={() => setModalOpen(true)}
-              className="px-3 py-2 rounded-xl border border-white/10 bg-white/5 text-xs font-medium text-slate-300 hover:bg-white/10 transition-colors"
+              className="px-3.5 py-2 rounded-xl border border-white/10 hover:border-cyan-400/50 bg-gradient-to-b from-white/[0.08] to-white/[0.02] hover:bg-cyan-500/10 text-xs font-mono font-medium text-slate-200 hover:text-white shadow-[0_4px_12px_-2px_rgba(0,0,0,0.5),inset_0_1px_0_rgba(255,255,255,0.18)] transition-all flex items-center cursor-pointer"
             >
-              <Download className="w-4 h-4 mr-1.5" /> Export PDF
+              <Download className="w-3.5 h-3.5 mr-1.5 text-cyan-400" /> Export PDF
             </button>
             <button
               onClick={() => {
                 navigator.clipboard.writeText(JSON.stringify(scan, null, 2));
                 toast({ title: "JSON copied to clipboard", type: "success" });
               }}
-              className="px-3 py-2 rounded-xl border border-white/10 bg-white/5 text-xs font-medium text-slate-300 hover:bg-white/10 transition-colors"
+              className="px-3.5 py-2 rounded-xl border border-white/10 hover:border-cyan-400/50 bg-gradient-to-b from-white/[0.08] to-white/[0.02] hover:bg-cyan-500/10 text-xs font-mono font-medium text-slate-200 hover:text-white shadow-[0_4px_12px_-2px_rgba(0,0,0,0.5),inset_0_1px_0_rgba(255,255,255,0.18)] transition-all flex items-center cursor-pointer"
             >
-              <Copy className="w-4 h-4 mr-1.5" /> JSON
+              <Copy className="w-3.5 h-3.5 mr-1.5 text-cyan-400" /> JSON
             </button>
           </div>
         </div>
 
-        {/* A. Summary Card */}
-        <Card className="mb-6">
-          <CardHeader>
-            <CardTitle className="text-sm">A. Summary</CardTitle>
-            <CardDescription>High-level verdict and risk assessment.</CardDescription>
-          </CardHeader>
-          <CardContent className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="bg-white/3 rounded-xl p-3 border border-white/5">
-              <div className="text-xs text-slate-500 uppercase mb-1">Scanned URL</div>
-              <div className="text-sm font-medium text-slate-200 truncate" title={scan.url}>{scan.url}</div>
+        {/* A. Summary Card with 3D Cyber Border Styling */}
+        <div className="relative rounded-2xl border border-cyan-500/30 bg-gradient-to-b from-slate-900/95 via-navy-900/90 to-navy-950/95 backdrop-blur-2xl shadow-[0_12px_40px_-8px_rgba(0,0,0,0.7),inset_0_1px_1px_rgba(255,255,255,0.15)] mb-6 p-5 sm:p-6 overflow-hidden">
+          {/* Top Specular Edge Highlight */}
+          <div className="absolute top-0 left-6 right-6 h-[1px] bg-gradient-to-r from-transparent via-cyan-400/40 to-transparent pointer-events-none" />
+          
+          {/* Cyber Corner Marks */}
+          <div className="absolute top-2.5 left-2.5 w-2 h-2 border-t border-l border-cyan-400/40 pointer-events-none" />
+          <div className="absolute top-2.5 right-2.5 w-2 h-2 border-t border-r border-cyan-400/40 pointer-events-none" />
+          <div className="absolute bottom-2.5 left-2.5 w-2 h-2 border-b border-l border-cyan-400/30 pointer-events-none" />
+          <div className="absolute bottom-2.5 right-2.5 w-2 h-2 border-b border-r border-cyan-400/30 pointer-events-none" />
+
+          {/* Section Header */}
+          <div className="mb-5 pb-3 border-b border-white/5 flex items-center justify-between">
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="w-2 h-2 rounded-full bg-cyan-400 animate-pulse shadow-[0_0_8px_#22d3ee]" />
+                <h3 className="text-sm font-bold text-white tracking-wide uppercase font-mono">A. Summary</h3>
+              </div>
+              <p className="text-xs text-slate-400 mt-0.5">High-level verdict and risk assessment.</p>
             </div>
-            <div className="bg-white/3 rounded-xl p-3 border border-white/5">
-              <div className="text-xs text-slate-500 uppercase mb-1">Final URL</div>
-              <div className="text-sm font-medium text-slate-200 truncate" title={scan.finalUrl}>{scan.finalUrl}</div>
+            <span className="text-[10px] font-mono px-2 py-0.5 rounded border border-cyan-500/20 bg-cyan-500/10 text-cyan-400 hidden sm:inline-block">
+              DIAGNOSTIC SUMMARY
+            </span>
+          </div>
+
+          {/* 6 Metric Pods with 3D Beveled Borders */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3.5">
+            {/* Scanned URL */}
+            <div className="relative rounded-xl border border-white/10 hover:border-cyan-500/40 bg-gradient-to-b from-white/[0.06] via-slate-900/80 to-slate-950/90 backdrop-blur-md p-3.5 shadow-[0_6px_16px_-2px_rgba(0,0,0,0.5),inset_0_1px_0_rgba(255,255,255,0.12),inset_0_-1px_2px_rgba(0,0,0,0.4)] transition-all duration-300 hover:-translate-y-0.5 group overflow-hidden">
+              <div className="absolute top-1.5 right-1.5 w-1 h-1 border-t border-r border-white/20 group-hover:border-cyan-400 transition-colors" />
+              <div className="text-[10px] font-mono uppercase text-slate-400 tracking-wider mb-1 flex items-center gap-1.5">
+                <span className="w-1 h-1 rounded-full bg-cyan-400/70" />
+                Scanned URL
+              </div>
+              <div className="text-sm font-medium text-slate-100 font-mono truncate" title={scan.url}>
+                {scan.url}
+              </div>
             </div>
-            <div className="bg-white/3 rounded-xl p-3 border border-white/5">
-              <div className="text-xs text-slate-500 uppercase mb-1">Scan time</div>
-              <div className="text-sm font-medium text-slate-200">{formatDateTime(scan.scannedAt)}</div>
+
+            {/* Final URL */}
+            <div className="relative rounded-xl border border-white/10 hover:border-cyan-500/40 bg-gradient-to-b from-white/[0.06] via-slate-900/80 to-slate-950/90 backdrop-blur-md p-3.5 shadow-[0_6px_16px_-2px_rgba(0,0,0,0.5),inset_0_1px_0_rgba(255,255,255,0.12),inset_0_-1px_2px_rgba(0,0,0,0.4)] transition-all duration-300 hover:-translate-y-0.5 group overflow-hidden">
+              <div className="absolute top-1.5 right-1.5 w-1 h-1 border-t border-r border-white/20 group-hover:border-cyan-400 transition-colors" />
+              <div className="text-[10px] font-mono uppercase text-slate-400 tracking-wider mb-1 flex items-center gap-1.5">
+                <span className="w-1 h-1 rounded-full bg-cyan-400/70" />
+                Final URL
+              </div>
+              <div className="text-sm font-medium text-slate-100 font-mono truncate" title={scan.finalUrl}>
+                {scan.finalUrl}
+              </div>
             </div>
-            <div className="bg-white/3 rounded-xl p-3 border border-white/5">
-              <div className="text-xs text-slate-500 uppercase mb-1">Overall verdict</div>
-              <VerdictBadge verdict={scan.verdict} />
+
+            {/* Scan Time */}
+            <div className="relative rounded-xl border border-white/10 hover:border-cyan-500/40 bg-gradient-to-b from-white/[0.06] via-slate-900/80 to-slate-950/90 backdrop-blur-md p-3.5 shadow-[0_6px_16px_-2px_rgba(0,0,0,0.5),inset_0_1px_0_rgba(255,255,255,0.12),inset_0_-1px_2px_rgba(0,0,0,0.4)] transition-all duration-300 hover:-translate-y-0.5 group overflow-hidden">
+              <div className="absolute top-1.5 right-1.5 w-1 h-1 border-t border-r border-white/20 group-hover:border-cyan-400 transition-colors" />
+              <div className="text-[10px] font-mono uppercase text-slate-400 tracking-wider mb-1 flex items-center gap-1.5">
+                <span className="w-1 h-1 rounded-full bg-cyan-400/70" />
+                Scan Time
+              </div>
+              <div className="text-sm font-medium text-slate-200">
+                {formatDateTime(scan.scannedAt)}
+              </div>
             </div>
-            <div className="bg-white/3 rounded-xl p-3 border border-white/5">
-              <div className="text-xs text-slate-500 uppercase mb-1">Risk score</div>
-              <div className="text-sm font-bold text-slate-200">{scan.score} / 100</div>
+
+            {/* Overall Verdict */}
+            <div className="relative rounded-xl border border-red-500/40 bg-gradient-to-b from-red-950/25 via-slate-900/80 to-slate-950/90 backdrop-blur-md p-3.5 shadow-[0_6px_18px_-2px_rgba(239,68,68,0.25),inset_0_1px_0_rgba(255,255,255,0.15)] transition-all duration-300 hover:-translate-y-0.5 group overflow-hidden">
+              <div className="absolute top-0 left-0 bottom-0 w-1 bg-red-500 shadow-[0_0_8px_#ef4444]" />
+              <div className="pl-1.5">
+                <div className="text-[10px] font-mono uppercase text-slate-400 tracking-wider mb-1.5 flex items-center gap-1.5">
+                  <span className="w-1 h-1 rounded-full bg-red-400" />
+                  Overall Verdict
+                </div>
+                <VerdictBadge verdict={scan.verdict} />
+              </div>
             </div>
-            <div className="bg-white/3 rounded-xl p-3 border border-white/5">
-              <div className="text-xs text-slate-500 uppercase mb-1">Confidence</div>
-              <div className="text-sm font-medium text-slate-200">{scan.confidence}</div>
+
+            {/* Risk Score */}
+            <div className="relative rounded-xl border border-orange-500/40 bg-gradient-to-b from-orange-950/25 via-slate-900/80 to-slate-950/90 backdrop-blur-md p-3.5 shadow-[0_6px_18px_-2px_rgba(249,115,22,0.25),inset_0_1px_0_rgba(255,255,255,0.15)] transition-all duration-300 hover:-translate-y-0.5 group overflow-hidden">
+              <div className="absolute top-0 left-0 bottom-0 w-1 bg-orange-500 shadow-[0_0_8px_#f97316]" />
+              <div className="pl-1.5">
+                <div className="text-[10px] font-mono uppercase text-slate-400 tracking-wider mb-1 flex items-center gap-1.5">
+                  <span className="w-1 h-1 rounded-full bg-orange-400" />
+                  Risk Score
+                </div>
+                <div className="text-base font-extrabold font-mono text-white">
+                  {scan.score} <span className="text-slate-400 text-xs font-normal">/ 100</span>
+                </div>
+              </div>
             </div>
-          </CardContent>
-          <CardContent className="mt-5 grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="bg-white/3 rounded-xl p-3 border border-white/5">
-              <div className="text-xs text-slate-500 uppercase mb-1">Main reason</div>
-              <p className="text-sm text-slate-300 leading-relaxed">{scan.mainReason}</p>
+
+            {/* Confidence */}
+            <div className="relative rounded-xl border border-white/10 hover:border-cyan-500/40 bg-gradient-to-b from-white/[0.06] via-slate-900/80 to-slate-950/90 backdrop-blur-md p-3.5 shadow-[0_6px_16px_-2px_rgba(0,0,0,0.5),inset_0_1px_0_rgba(255,255,255,0.12),inset_0_-1px_2px_rgba(0,0,0,0.4)] transition-all duration-300 hover:-translate-y-0.5 group overflow-hidden">
+              <div className="absolute top-1.5 right-1.5 w-1 h-1 border-t border-r border-white/20 group-hover:border-cyan-400 transition-colors" />
+              <div className="text-[10px] font-mono uppercase text-slate-400 tracking-wider mb-1 flex items-center gap-1.5">
+                <span className="w-1 h-1 rounded-full bg-cyan-400/70" />
+                Confidence
+              </div>
+              <div className="text-sm font-semibold text-emerald-400 font-mono">
+                {scan.confidence}
+              </div>
             </div>
-            <div className="bg-white/3 rounded-xl p-3 border border-white/5">
-              <div className="text-xs text-slate-500 uppercase mb-1">Recommended action</div>
-              <p className="text-sm text-slate-300 leading-relaxed">{scan.recommendedAction}</p>
+          </div>
+
+          {/* Main Reason & Recommended Action with 3D Beveled Borders */}
+          <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-3.5">
+            {/* Main Reason */}
+            <div className="relative rounded-xl border border-red-500/35 bg-gradient-to-b from-red-950/20 via-slate-900/80 to-slate-950/90 backdrop-blur-md p-4 shadow-[0_8px_20px_-3px_rgba(239,68,68,0.2),inset_0_1px_0_rgba(255,255,255,0.15),inset_0_-2px_4px_rgba(0,0,0,0.5)] overflow-hidden">
+              <div className="absolute left-0 top-0 bottom-0 w-1 bg-red-500 shadow-[0_0_10px_#ef4444]" />
+              <div className="pl-1.5">
+                <div className="text-[10px] font-mono uppercase text-red-300 tracking-wider mb-1.5 font-bold flex items-center gap-1.5">
+                  <span className="w-1.5 h-1.5 rounded-full bg-red-400" />
+                  Main Threat Driver
+                </div>
+                <p className="text-sm text-slate-200 leading-relaxed">{scan.mainReason}</p>
+              </div>
             </div>
-          </CardContent>
-          <CardFooter className="flex justify-center pt-2">
+
+            {/* Recommended Action */}
+            <div className="relative rounded-xl border border-cyan-500/35 bg-gradient-to-b from-cyan-950/20 via-slate-900/80 to-slate-950/90 backdrop-blur-md p-4 shadow-[0_8px_20px_-3px_rgba(6,182,212,0.2),inset_0_1px_0_rgba(255,255,255,0.15),inset_0_-2px_4px_rgba(0,0,0,0.5)] overflow-hidden">
+              <div className="absolute left-0 top-0 bottom-0 w-1 bg-cyan-400 shadow-[0_0_10px_#22d3ee]" />
+              <div className="pl-1.5">
+                <div className="text-[10px] font-mono uppercase text-cyan-300 tracking-wider mb-1.5 font-bold flex items-center gap-1.5">
+                  <span className="w-1.5 h-1.5 rounded-full bg-cyan-400" />
+                  Recommended Action
+                </div>
+                <p className="text-sm text-slate-200 leading-relaxed">{scan.recommendedAction}</p>
+              </div>
+            </div>
+          </div>
+
+          {/* 3D Risk Gauge Footer with Ambient Slot */}
+          <div className="w-full pt-5 mt-4 border-t border-white/5 flex flex-col items-center justify-center">
             <RiskGauge score={scan.score} size={160} className="mx-auto" />
-          </CardFooter>
-        </Card>
+          </div>
+        </div>
 
         {/* B. Phishing Analysis */}
         <Card className="mb-6">
