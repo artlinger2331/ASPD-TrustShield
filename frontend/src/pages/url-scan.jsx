@@ -511,7 +511,7 @@ export default function UrlScan() {
               <div className="mt-5 pt-3 border-t border-white/10 flex flex-col sm:flex-row gap-2">
                 <button
                   type="button"
-                  onClick={() => navigate(`/report/scan`)}
+                  onClick={() => navigate(result?.id ? `/reports/${result.id}` : `/reports`)}
                   className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-500 hover:to-cyan-500 text-white text-xs font-semibold shadow-lg shadow-cyan-500/20 transition-all cursor-pointer"
                 >
                   <FileText className="w-3.5 h-3.5" />
