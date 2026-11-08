@@ -1,1 +1,3 @@
-{}
+{
+  "tests/test_url_validation_api.py": true
+}
