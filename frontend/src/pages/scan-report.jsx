@@ -177,30 +177,66 @@ export default function ScanReport() {
             </div>
           </CardHeader>
           <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {Object.entries(MOCK_PHISHING_ANALYSIS).map(([key, finding]) => (
-              <Card key={key} className="p-4 border-l-2">
-                <div className="flex items-center justify-between mb-2">
-                  <div className="flex items-center gap-2">
-                    <SeverityBadge severity={finding.severity}>{finding.severity}</SeverityBadge>
-                    <span className="text-xs font-medium text-slate-300">{finding.label}</span>
+            {Object.entries(MOCK_PHISHING_ANALYSIS).map(([key, finding]) => {
+              const sev = finding.severity;
+              const borderStyles =
+                sev === "Critical"
+                  ? "border-red-500/50 hover:border-red-400 bg-gradient-to-b from-red-950/30 via-slate-900/90 to-navy-950/90 shadow-[0_8px_24px_-4px_rgba(239,68,68,0.3),inset_0_1px_1px_rgba(255,255,255,0.2),inset_0_-2px_4px_rgba(0,0,0,0.6)]"
+                  : sev === "High"
+                  ? "border-orange-500/50 hover:border-orange-400 bg-gradient-to-b from-orange-950/25 via-slate-900/90 to-navy-950/90 shadow-[0_8px_24px_-4px_rgba(249,115,22,0.3),inset_0_1px_1px_rgba(255,255,255,0.2),inset_0_-2px_4px_rgba(0,0,0,0.6)]"
+                  : sev === "Medium"
+                  ? "border-amber-500/40 hover:border-amber-400 bg-gradient-to-b from-amber-950/20 via-slate-900/90 to-navy-950/90 shadow-[0_8px_24px_-4px_rgba(245,158,11,0.25),inset_0_1px_1px_rgba(255,255,255,0.18),inset_0_-2px_4px_rgba(0,0,0,0.6)]"
+                  : "border-cyan-500/40 hover:border-cyan-400 bg-gradient-to-b from-cyan-950/20 via-slate-900/90 to-navy-950/90 shadow-[0_8px_24px_-4px_rgba(6,182,212,0.25),inset_0_1px_1px_rgba(255,255,255,0.18),inset_0_-2px_4px_rgba(0,0,0,0.6)]";
+
+              const pillarGlow =
+                sev === "Critical"
+                  ? "bg-red-500 shadow-[0_0_12px_#ef4444]"
+                  : sev === "High"
+                  ? "bg-orange-500 shadow-[0_0_12px_#f97316]"
+                  : sev === "Medium"
+                  ? "bg-amber-500 shadow-[0_0_12px_#f59e0b]"
+                  : "bg-cyan-500 shadow-[0_0_12px_#06b6d4]";
+
+              return (
+                <div
+                  key={key}
+                  className={cn(
+                    "relative p-4 rounded-2xl border transition-all duration-300 hover:-translate-y-1 hover:scale-[1.01] overflow-hidden group",
+                    borderStyles
+                  )}
+                >
+                  {/* 3D Vertical Neon Edge Pillar */}
+                  <div className={cn("absolute left-0 top-0 bottom-0 w-1", pillarGlow)} />
+
+                  {/* 3D Top Bevel Specular Reflection */}
+                  <div className="absolute top-0 left-3 right-3 h-[1px] bg-gradient-to-r from-transparent via-white/25 to-transparent pointer-events-none" />
+
+                  {/* Cyber Corner Reticle */}
+                  <div className="absolute top-2 right-2 w-1.5 h-1.5 border-t border-r border-white/20 pointer-events-none" />
+
+                  <div className="flex items-center justify-between mb-2 pl-1.5">
+                    <div className="flex items-center gap-2">
+                      <SeverityBadge severity={finding.severity}>{finding.severity}</SeverityBadge>
+                      <span className="text-xs font-semibold text-slate-200 tracking-wide">{finding.label}</span>
+                    </div>
+                    <button
+                      onClick={() => toggleSection(key)}
+                      className="p-1 text-slate-500 hover:text-white transition-colors"
+                      aria-label={isExpanded(key) ? "Collapse" : "Expand"}
+                    >
+                      <ChevronDown className={cn("w-3 h-3 transition-transform", isExpanded(key) && "rotate-180")} />
+                    </button>
                   </div>
-                  <button
-                    onClick={() => toggleSection(key)}
-                    className="p-1 text-slate-500 hover:text-white transition-colors"
-                    aria-label={isExpanded(key) ? "Collapse" : "Expand"}
-                  >
-                    <ChevronDown className={cn("w-3 h-3 transition-transform", isExpanded(key) && "rotate-180")} />
-                  </button>
+                  <p className="text-sm text-slate-300 leading-relaxed pl-1.5">{finding.detail}</p>
+                  {finding.hops && isExpanded(key) && (
+                    <div className="mt-3 ml-1.5 p-3 rounded-xl bg-black/40 border border-white/10 shadow-inner">
+                      <div className="text-xs font-semibold text-slate-400 mb-2 uppercase font-mono">Redirect path</div>
+                      <RedirectFlow hops={finding.hops} />
+                    </div>
+                  )}
                 </div>
-                <p className="text-sm text-slate-300 leading-relaxed">{finding.detail}</p>
-                {finding.hops && isExpanded(key) && (
-                  <div className="mt-3 p-3 rounded-lg bg-white/5 border border-white/5">
-                    <div className="text-xs font-semibold text-slate-400 mb-2 uppercase">Redirect path</div>
-                    <RedirectFlow hops={finding.hops} />
-                  </div>
-                )}
-              </Card>
-            ))}
+              );
+            })}
           </CardContent>
         </Card>
 
