@@ -273,7 +273,7 @@ def test_detect_overly_long_url():
 def test_query_params_and_fragment_parsing():
     """Verify structured parsing of query parameter dictionary and fragment separation."""
     norm, err = normalize_and_validate_url(
-        "https://store.com/checkout?product_id=101&coupon=SAVE20&tag=electronics&tag=sale#payment-summary",
+        "https://shop.store.com/checkout?product_id=101&coupon=SAVE20&tag=electronics&tag=sale#payment-summary",
         resolve_dns=False,
     )
     assert err is None
@@ -281,7 +281,7 @@ def test_query_params_and_fragment_parsing():
     assert norm.query_params["coupon"] == "SAVE20"
     assert norm.query_params["tag"] == ["electronics", "sale"]
     assert norm.fragment == "payment-summary"
-    assert norm.subdomain == "store"
+    assert norm.subdomain == "shop"
     assert norm.base_domain == "store.com"
     assert norm.tld == "com"
     assert norm.path == "/checkout"

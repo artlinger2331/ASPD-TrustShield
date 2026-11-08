@@ -1,1 +1,3 @@
-{}
+{
+  "tests/test_url_normalizer.py::test_query_params_and_fragment_parsing": true
+}
