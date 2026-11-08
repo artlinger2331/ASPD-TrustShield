@@ -73,21 +73,52 @@ export default function UrlScan() {
     }
   }, [logs]);
 
+  const addLog = (tag, text, level = "info") => {
+    const timestamp = new Date().toLocaleTimeString();
+    setLogs((prev) => [...prev, { timestamp, tag, text, level }]);
+  };
+
+  const STEP_LOG_MSGS = {
+    1: { tag: "DNS_PROBE", text: "Resolving A, AAAA, MX, NS records and BGP Autonomous System..." },
+    2: { tag: "SSL_AUDIT", text: "Inspecting X.509 certificate chain, SAN domains & TLS cipher suites..." },
+    3: { tag: "HTTP_RECON", text: "Tracing redirects, canonical headers, and HSTS/CSP configurations..." },
+    4: { tag: "DOM_PARSER", text: "Safely parsing DOM, checking login forms, password inputs, and script tags..." },
+    5: { tag: "HEURISTICS", text: "Executing homoglyph detection, Punycode transforms, and brand impersonation..." },
+    6: { tag: "THREAT_INTEL", text: "Cross-referencing Google Safe Browsing, URLhaus, and VirusTotal IOCs..." },
+  };
+
   const handleScan = async () => {
     if (!url.trim()) return;
     setScanning(true);
     setCompleted(false);
     setResult(null);
     setActiveStep(1);
+    setLogs([]);
+
+    addLog("DISPATCH", `Dispatching forensic probe for ${url.trim()}`);
+    addLog("DNS_PROBE", "Resolving authoritative name servers and DNS records...");
+
+    let lastStep = 1;
 
     try {
       const initRes = await scanApi.createScan(url.trim());
       const scanId = initRes.id;
+      addLog("QUEUE", `Job accepted by pipeline: ID #${scanId}`);
 
       const pollInterval = setInterval(async () => {
         try {
           const statusRes = await scanApi.getScanStatus(scanId);
-          setActiveStep(Math.max(1, statusRes.step));
+          const currentStep = Math.max(1, statusRes.step || 1);
+          setActiveStep(currentStep);
+
+          if (currentStep > lastStep) {
+            for (let s = lastStep + 1; s <= currentStep; s++) {
+              if (STEP_LOG_MSGS[s]) {
+                addLog(STEP_LOG_MSGS[s].tag, STEP_LOG_MSGS[s].text);
+              }
+            }
+            lastStep = currentStep;
+          }
 
           if (statusRes.status === "completed") {
             clearInterval(pollInterval);
@@ -102,6 +133,11 @@ export default function UrlScan() {
               mainReason: statusRes.summary,
               recommendedAction: statusRes.recommendation || "View full report for detailed telemetry.",
             });
+            addLog(
+              "SCORE_SYNTHESIS",
+              `Analysis finalized. Score: ${statusRes.risk_score || 0}/100 [Verdict: ${(statusRes.verdict || "SAFE").toUpperCase()}]`,
+              (statusRes.risk_score || 0) >= 50 ? "warn" : "info"
+            );
             toast({
               title: "Scan complete",
               description: `Verdict: ${statusRes.verdict?.toUpperCase() || "SAFE"} (Score: ${statusRes.risk_score || 0}/100)`,
@@ -110,6 +146,7 @@ export default function UrlScan() {
           } else if (statusRes.status === "failed") {
             clearInterval(pollInterval);
             setScanning(false);
+            addLog("ERROR", statusRes.error_message || "The scanner encountered an unrecoverable error.", "error");
             toast({
               title: "Scan Failed",
               description: statusRes.error_message || "The scanner was unable to analyze this URL.",
@@ -122,6 +159,7 @@ export default function UrlScan() {
       }, 1500);
     } catch (err) {
       setScanning(false);
+      addLog("ERROR", err.message || "Failed to initiate scan", "error");
       toast({
         title: "Scan Failed",
         description: err.message || "Failed to initiate scan",
