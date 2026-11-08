@@ -332,68 +332,136 @@ export default function ScanReport() {
           </CardContent>
         </Card>
 
-        {/* C. Certificate & Trust */}
-        <Card className="mb-6">
-          <CardHeader>
-            <CardTitle className="text-sm">C. Certificate &amp; Trust Analysis</CardTitle>
-            <CardDescription>HTTPS status, certificate chain, and trust signals.</CardDescription>
-          </CardHeader>
-          <CardContent className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+        {/* C. Certificate & Trust with 3D Cyber Border Styling */}
+        <div className="relative rounded-2xl border border-cyan-500/30 bg-gradient-to-b from-slate-900/95 via-navy-900/90 to-navy-950/95 backdrop-blur-2xl shadow-[0_12px_40px_-8px_rgba(0,0,0,0.7),inset_0_1px_1px_rgba(255,255,255,0.15)] mb-6 p-5 sm:p-6 overflow-hidden">
+          {/* Top Specular Edge Highlight */}
+          <div className="absolute top-0 left-6 right-6 h-[1px] bg-gradient-to-r from-transparent via-cyan-400/40 to-transparent pointer-events-none" />
+          
+          {/* Cyber Corner Marks */}
+          <div className="absolute top-2.5 left-2.5 w-2 h-2 border-t border-l border-cyan-400/40 pointer-events-none" />
+          <div className="absolute top-2.5 right-2.5 w-2 h-2 border-t border-r border-cyan-400/40 pointer-events-none" />
+          <div className="absolute bottom-2.5 left-2.5 w-2 h-2 border-b border-l border-cyan-400/30 pointer-events-none" />
+          <div className="absolute bottom-2.5 right-2.5 w-2 h-2 border-b border-r border-cyan-400/30 pointer-events-none" />
+
+          {/* Section Header */}
+          <div className="mb-5 pb-3 border-b border-white/5 flex items-center justify-between">
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="w-2 h-2 rounded-full bg-cyan-400 animate-pulse shadow-[0_0_8px_#22d3ee]" />
+                <h3 className="text-sm font-bold text-white tracking-wide uppercase font-mono">
+                  C. Certificate &amp; Trust Analysis
+                </h3>
+              </div>
+              <p className="text-xs text-slate-400 mt-0.5">HTTPS status, certificate chain, and cryptographic trust signals.</p>
+            </div>
+            <span className="text-[10px] font-mono px-2 py-0.5 rounded border border-cyan-500/20 bg-cyan-500/10 text-cyan-400 hidden sm:inline-block">
+              X.509 CRYPTOGRAPHIC AUDIT
+            </span>
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+            {/* Left 2 Columns: Certificate Chain & HTTPS Technical Grid */}
             <div className="lg:col-span-2 space-y-4">
               <CertificateChain chain={MOCK_CERT_ANALYSIS.chain} />
-              <div className="bg-white/3 rounded-xl p-4 border border-white/5">
-                <div className="grid grid-cols-2 gap-4 text-sm">
-                  <div>
-                    <div className="text-xs text-slate-500 uppercase mb-1">HTTPS status</div>
-                    <div className="text-slate-200 font-medium">Secure (TLS 1.3)</div>
+
+              {/* 3D Beveled Certificate Specs Pod */}
+              <div className="relative rounded-xl border border-white/10 hover:border-cyan-500/40 bg-gradient-to-b from-white/[0.05] via-slate-900/80 to-slate-950/90 backdrop-blur-md p-4 shadow-[0_6px_20px_-2px_rgba(0,0,0,0.5),inset_0_1px_0_rgba(255,255,255,0.12),inset_0_-1px_2px_rgba(0,0,0,0.4)] transition-all overflow-hidden group">
+                <div className="absolute top-1.5 right-1.5 w-1 h-1 border-t border-r border-white/20 group-hover:border-cyan-400 transition-colors pointer-events-none" />
+                
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3.5 text-sm">
+                  <div className="p-2.5 rounded-lg bg-black/20 border border-white/5">
+                    <div className="text-[10px] font-mono text-slate-400 uppercase tracking-wider mb-1">HTTPS status</div>
+                    <div className="text-emerald-400 font-semibold font-mono text-xs flex items-center gap-1.5">
+                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                      Secure (TLS 1.3)
+                    </div>
                   </div>
-                  <div>
-                    <div className="text-xs text-slate-500 uppercase mb-1">Issuer</div>
-                    <div className="text-slate-200 font-medium truncate">{MOCK_CERT_ANALYSIS.issuer}</div>
+                  <div className="p-2.5 rounded-lg bg-black/20 border border-white/5">
+                    <div className="text-[10px] font-mono text-slate-400 uppercase tracking-wider mb-1">Issuer CA</div>
+                    <div className="text-slate-100 font-medium text-xs font-mono truncate" title={MOCK_CERT_ANALYSIS.issuer}>
+                      {MOCK_CERT_ANALYSIS.issuer}
+                    </div>
                   </div>
-                  <div>
-                    <div className="text-xs text-slate-500 uppercase mb-1">Valid from</div>
-                    <div className="text-slate-200 font-medium">{MOCK_CERT_ANALYSIS.validFrom}</div>
+                  <div className="p-2.5 rounded-lg bg-black/20 border border-white/5">
+                    <div className="text-[10px] font-mono text-slate-400 uppercase tracking-wider mb-1">Valid from</div>
+                    <div className="text-slate-200 font-medium text-xs font-mono">{MOCK_CERT_ANALYSIS.validFrom}</div>
                   </div>
-                  <div>
-                    <div className="text-xs text-slate-500 uppercase mb-1">Expires</div>
-                    <div className="text-slate-200 font-medium">{MOCK_CERT_ANALYSIS.validTo}</div>
+                  <div className="p-2.5 rounded-lg bg-black/20 border border-white/5">
+                    <div className="text-[10px] font-mono text-slate-400 uppercase tracking-wider mb-1">Expires on</div>
+                    <div className="text-slate-200 font-medium text-xs font-mono">{MOCK_CERT_ANALYSIS.validTo}</div>
                   </div>
-                  <div>
-                    <div className="text-xs text-slate-500 uppercase mb-1">Days until expiry</div>
-                    <div className="text-slate-200 font-medium">{MOCK_CERT_ANALYSIS.daysUntilExpiry} days</div>
+                  <div className="p-2.5 rounded-lg bg-black/20 border border-white/5">
+                    <div className="text-[10px] font-mono text-slate-400 uppercase tracking-wider mb-1">Days to expiry</div>
+                    <div className="text-cyan-300 font-bold text-xs font-mono">{MOCK_CERT_ANALYSIS.daysUntilExpiry} days</div>
                   </div>
-                  <div>
-                    <div className="text-xs text-slate-500 uppercase mb-1">CA trust</div>
-                    <div className="text-slate-200 font-medium">{MOCK_CERT_ANALYSIS.caTrust}</div>
+                  <div className="p-2.5 rounded-lg bg-black/20 border border-white/5">
+                    <div className="text-[10px] font-mono text-slate-400 uppercase tracking-wider mb-1">Root CA trust</div>
+                    <div className="text-emerald-400 font-semibold text-xs font-mono">{MOCK_CERT_ANALYSIS.caTrust}</div>
                   </div>
                 </div>
-                <div className="mt-3 p-3 rounded-lg bg-amber-500/5 border border-amber-500/20">
-                  <div className="flex items-start gap-2">
+
+                {/* 3D Warning Box */}
+                <div className="mt-3.5 relative rounded-xl border border-amber-500/40 bg-gradient-to-b from-amber-950/25 via-slate-900/80 to-slate-950/90 p-3.5 shadow-[0_4px_16px_-2px_rgba(245,158,11,0.25),inset_0_1px_0_rgba(255,255,255,0.15)] overflow-hidden">
+                  <div className="absolute left-0 top-0 bottom-0 w-1 bg-amber-400 shadow-[0_0_8px_#f59e0b]" />
+                  <div className="flex items-start gap-2.5 pl-1.5">
                     <AlertTriangle className="w-4 h-4 text-amber-400 mt-0.5 shrink-0" />
-                    <p className="text-sm text-slate-300 leading-relaxed">
+                    <p className="text-xs text-amber-200/90 leading-relaxed font-sans">
                       {MOCK_CERT_ANALYSIS.warning}
                     </p>
                   </div>
                 </div>
               </div>
             </div>
-            <div className="space-y-4">
-              <div className="bg-white/3 rounded-xl p-4 border border-white/5">
-                <div className="text-xs text-slate-500 uppercase mb-2">Revocation</div>
-                <div className="text-sm text-slate-200">{MOCK_CERT_ANALYSIS.revocation}</div>
+
+            {/* Right Column: 3 Dedicated 3D Cyber Metric Pods */}
+            <div className="space-y-3.5">
+              {/* Revocation Pod */}
+              <div className="relative rounded-xl border border-white/10 hover:border-emerald-500/40 bg-gradient-to-b from-white/[0.06] via-slate-900/80 to-slate-950/90 backdrop-blur-md p-4 shadow-[0_6px_18px_-2px_rgba(0,0,0,0.5),inset_0_1px_0_rgba(255,255,255,0.12),inset_0_-1px_2px_rgba(0,0,0,0.4)] transition-all duration-300 hover:-translate-y-0.5 group overflow-hidden">
+                <div className="absolute top-1.5 right-1.5 w-1 h-1 border-t border-r border-white/20 group-hover:border-emerald-400 transition-colors pointer-events-none" />
+                <div className="text-[10px] font-mono uppercase text-slate-400 tracking-wider mb-1.5 flex items-center gap-1.5">
+                  <span className="w-1 h-1 rounded-full bg-emerald-400" />
+                  Revocation Status (OCSP)
+                </div>
+                <div className="text-xs font-semibold font-mono text-slate-100 flex items-center justify-between">
+                  <span>{MOCK_CERT_ANALYSIS.revocation}</span>
+                  <span className="px-2 py-0.5 rounded text-[10px] font-mono bg-emerald-500/10 text-emerald-400 border border-emerald-500/30">
+                    PASS
+                  </span>
+                </div>
               </div>
-              <div className="bg-white/3 rounded-xl p-4 border border-white/5">
-                <div className="text-xs text-slate-500 uppercase mb-2">Transparency log</div>
-                <div className="text-sm text-slate-200">{MOCK_CERT_ANALYSIS.ctLog}</div>
+
+              {/* Transparency Log Pod */}
+              <div className="relative rounded-xl border border-white/10 hover:border-cyan-500/40 bg-gradient-to-b from-white/[0.06] via-slate-900/80 to-slate-950/90 backdrop-blur-md p-4 shadow-[0_6px_18px_-2px_rgba(0,0,0,0.5),inset_0_1px_0_rgba(255,255,255,0.12),inset_0_-1px_2px_rgba(0,0,0,0.4)] transition-all duration-300 hover:-translate-y-0.5 group overflow-hidden">
+                <div className="absolute top-1.5 right-1.5 w-1 h-1 border-t border-r border-white/20 group-hover:border-cyan-400 transition-colors pointer-events-none" />
+                <div className="text-[10px] font-mono uppercase text-slate-400 tracking-wider mb-1.5 flex items-center gap-1.5">
+                  <span className="w-1 h-1 rounded-full bg-cyan-400" />
+                  Transparency Log (CT)
+                </div>
+                <div className="text-xs font-semibold font-mono text-slate-100 flex items-center justify-between">
+                  <span className="truncate pr-2">{MOCK_CERT_ANALYSIS.ctLog}</span>
+                  <span className="px-2 py-0.5 rounded text-[10px] font-mono bg-cyan-500/10 text-cyan-400 border border-cyan-500/30 shrink-0">
+                    VERIFIED
+                  </span>
+                </div>
               </div>
-              <div className="bg-white/3 rounded-xl p-4 border border-white/5">
-                <div className="text-xs text-slate-500 uppercase mb-2">Weak algorithm</div>
-                <div className="text-sm text-emerald-400">None detected</div>
+
+              {/* Weak Algorithm Pod */}
+              <div className="relative rounded-xl border border-white/10 hover:border-emerald-500/40 bg-gradient-to-b from-white/[0.06] via-slate-900/80 to-slate-950/90 backdrop-blur-md p-4 shadow-[0_6px_18px_-2px_rgba(0,0,0,0.5),inset_0_1px_0_rgba(255,255,255,0.12),inset_0_-1px_2px_rgba(0,0,0,0.4)] transition-all duration-300 hover:-translate-y-0.5 group overflow-hidden">
+                <div className="absolute top-1.5 right-1.5 w-1 h-1 border-t border-r border-white/20 group-hover:border-emerald-400 transition-colors pointer-events-none" />
+                <div className="text-[10px] font-mono uppercase text-slate-400 tracking-wider mb-1.5 flex items-center gap-1.5">
+                  <span className="w-1 h-1 rounded-full bg-emerald-400" />
+                  Weak Cipher / Algorithm
+                </div>
+                <div className="text-xs font-semibold font-mono text-emerald-400 flex items-center justify-between">
+                  <span>None detected</span>
+                  <span className="px-2 py-0.5 rounded text-[10px] font-mono bg-emerald-500/10 text-emerald-400 border border-emerald-500/30">
+                    SHA-256
+                  </span>
+                </div>
               </div>
             </div>
-          </CardContent>
-        </Card>
+          </div>
+        </div>
 
         {/* D. Security Assessment */}
         <Card className="mb-6">
