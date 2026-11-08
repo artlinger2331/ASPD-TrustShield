@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import {
   Routes,
   Route,
@@ -22,6 +22,44 @@ import Register from "@/pages/register";
 import ForgotPassword from "@/pages/forgot-password";
 import Profile from "@/pages/profile";
 import OAuthCallback from "@/pages/oauth-callback";
+
+class ErrorBoundary extends React.Component {
+  constructor(props) {
+    super(props);
+    this.state = { hasError: false, error: null };
+  }
+  static getDerivedStateFromError(error) {
+    return { hasError: true, error };
+  }
+  componentDidCatch(error, errorInfo) {
+    console.error("UI Error Caught by Boundary:", error, errorInfo);
+  }
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div className="min-h-screen bg-[#070b14] flex flex-col items-center justify-center p-6 text-center">
+          <div className="w-12 h-12 rounded-xl bg-red-500/10 border border-red-500/30 flex items-center justify-center text-red-400 mb-4 text-xl font-bold">
+            !
+          </div>
+          <h2 className="text-xl font-bold text-white mb-2">Interface Render Notice</h2>
+          <p className="text-sm text-slate-400 max-w-md mb-6 font-mono bg-black/40 p-3 rounded-lg border border-white/5 text-xs text-red-300">
+            {this.state.error?.message || "Unexpected rendering exception"}
+          </p>
+          <button
+            onClick={() => {
+              this.setState({ hasError: false, error: null });
+              window.location.reload();
+            }}
+            className="px-4 py-2 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-black font-semibold text-xs uppercase tracking-wider transition-colors cursor-pointer"
+          >
+            Reload Interface
+          </button>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
 
 function ProtectedRoute() {
   const { isAuthenticated, loading } = useAuth();
