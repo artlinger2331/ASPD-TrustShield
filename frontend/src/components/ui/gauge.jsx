@@ -2,16 +2,16 @@ import React, { useEffect, useState, useRef } from "react";
 import { motion } from "framer-motion";
 import { cn } from "@/utils/cn";
 
-export function RiskGauge({ score = 0, size = 220, className }) {
+export function RiskGauge({ score = 0, size = 200, className }) {
   const containerRef = useRef(null);
   const [percent, setPercent] = useState(0);
-  const [tilt, setTilt] = useState({ x: 12, y: -6 });
+  const [tilt, setTilt] = useState({ x: 10, y: -5 });
 
-  // Smooth animated count-up
+  // Smooth ease-out animated count-up
   useEffect(() => {
     let start = 0;
-    const end = Math.max(0, Math.min(100, score));
-    const dur = 950;
+    const end = Math.max(0, Math.min(100, Number(score) || 0));
+    const dur = 900;
     const startTime = performance.now();
     function frame(now) {
       const t = Math.min(1, (now - startTime) / dur);
@@ -24,20 +24,20 @@ export function RiskGauge({ score = 0, size = 220, className }) {
     requestAnimationFrame(frame);
   }, [score]);
 
-  // Mouse tilt physics
+  // Interactive mouse tilt physics
   const handleMouseMove = (e) => {
     if (!containerRef.current) return;
     const rect = containerRef.current.getBoundingClientRect();
     const x = (e.clientX - rect.left) / rect.width - 0.5;
     const y = (e.clientY - rect.top) / rect.height - 0.5;
     setTilt({
-      x: -y * 24 + 10,
-      y: x * 24 - 4,
+      x: -y * 22 + 8,
+      y: x * 22 - 4,
     });
   };
 
   const handleMouseLeave = () => {
-    setTilt({ x: 12, y: -6 });
+    setTilt({ x: 10, y: -5 });
   };
 
   // Color & severity config by score
@@ -47,9 +47,10 @@ export function RiskGauge({ score = 0, size = 220, className }) {
         main: "#10b981",
         gradientStart: "#34d399",
         gradientEnd: "#059669",
-        label: "SAFE // VERIFIED",
+        label: "SAFE",
+        subLabel: "VERIFIED",
         glow: "rgba(16, 185, 129, 0.4)",
-        badgeBg: "bg-emerald-500/10 text-emerald-300 border-emerald-500/30",
+        badgeBg: "bg-emerald-500/15 text-emerald-300 border-emerald-500/40",
       };
     }
     if (val <= 50) {
@@ -58,8 +59,9 @@ export function RiskGauge({ score = 0, size = 220, className }) {
         gradientStart: "#22d3ee",
         gradientEnd: "#0891b2",
         label: "SUSPICIOUS",
+        subLabel: "ELEVATED",
         glow: "rgba(6, 182, 212, 0.4)",
-        badgeBg: "bg-cyan-500/10 text-cyan-300 border-cyan-500/30",
+        badgeBg: "bg-cyan-500/15 text-cyan-300 border-cyan-500/40",
       };
     }
     if (val <= 75) {
@@ -68,33 +70,35 @@ export function RiskGauge({ score = 0, size = 220, className }) {
         gradientStart: "#fbbf24",
         gradientEnd: "#d97706",
         label: "HIGH RISK",
+        subLabel: "WARNING",
         glow: "rgba(245, 158, 11, 0.45)",
-        badgeBg: "bg-amber-500/10 text-amber-300 border-amber-500/30",
+        badgeBg: "bg-amber-500/15 text-amber-300 border-amber-500/40",
       };
     }
     return {
       main: "#ef4444",
       gradientStart: "#f87171",
       gradientEnd: "#dc2626",
-      label: "CRITICAL DANGER",
+      label: "DANGEROUS",
+      subLabel: "CRITICAL",
       glow: "rgba(239, 68, 68, 0.5)",
-      badgeBg: "bg-red-500/10 text-red-300 border-red-500/30",
+      badgeBg: "bg-red-500/15 text-red-300 border-red-500/40",
     };
   };
 
   const theme = getTheme(score);
 
-  // SVG Gauge Geometry
+  // Geometry configuration: mathematically aligned to prevent any overlap
   const cx = size / 2;
-  const cy = size / 2 + 10;
+  const cy = size / 2;
   const radius = size * 0.38;
-  const strokeWidth = size * 0.085;
+  const strokeWidth = Math.max(6, size * 0.075);
 
   // Arc range: 140° to 400° (260° sweep, open at bottom)
   const startAngle = 140;
   const endAngle = 400;
   const totalSweep = endAngle - startAngle;
-  const currentAngle = startAngle + (Math.min(100, percent) / 100) * totalSweep;
+  const currentAngle = startAngle + (Math.min(100, Math.max(0, percent)) / 100) * totalSweep;
 
   const polarToCartesian = (centerX, centerY, r, angleInDeg) => {
     const rad = ((angleInDeg - 90) * Math.PI) / 180.0;
@@ -111,24 +115,36 @@ export function RiskGauge({ score = 0, size = 220, className }) {
     return `M ${start.x} ${start.y} A ${r} ${r} 0 ${largeArc} 0 ${end.x} ${end.y}`;
   };
 
+  // Paths
   const bgTrackPath = describeArc(cx, cy, radius, startAngle, endAngle);
-  const bevelShadowPath = describeArc(cx, cy + 5, radius, startAngle, endAngle);
+  const bevelShadowPath = describeArc(cx, cy + 3.5, radius, startAngle, endAngle);
   const activeArcPath =
     percent > 0.5 ? describeArc(cx, cy, radius, startAngle, currentAngle) : "";
 
-  // Tip of the active beam (for laser beacon dot)
+  // Tip of the active beam (laser beacon dot)
   const tipPos = polarToCartesian(cx, cy, radius, currentAngle);
 
-  // Generate graduated tick marks (11 primary ticks: 0, 10, ..., 100)
+  // Graduated Cyber Ticks (11 ticks along the arc)
   const TICKS_COUNT = 11;
   const ticks = Array.from({ length: TICKS_COUNT }).map((_, i) => {
     const tickVal = i * 10;
     const tickAngle = startAngle + (i / (TICKS_COUNT - 1)) * totalSweep;
-    const pInner = polarToCartesian(cx, cy, radius - strokeWidth * 0.65, tickAngle);
-    const pOuter = polarToCartesian(cx, cy, radius - strokeWidth * 0.3, tickAngle);
+    const pInner = polarToCartesian(cx, cy, radius - strokeWidth * 0.75, tickAngle);
+    const pOuter = polarToCartesian(cx, cy, radius - strokeWidth * 0.35, tickAngle);
     const isActive = tickVal <= percent;
     return { tickVal, tickAngle, pInner, pOuter, isActive };
   });
+
+  // Dynamic proportional font sizes based on size
+  const scoreFontSize = Math.max(18, Math.round(size * 0.16));
+  const maxFontSize = Math.max(9, Math.round(size * 0.065));
+  const labelFontSize = Math.max(7, Math.round(size * 0.05));
+  const badgeFontSize = Math.max(7, Math.round(size * 0.048));
+  const hubSize = size * 0.52;
+
+  // Endpoint labels positioned outside arc terminals with clean clearance
+  const startP = polarToCartesian(cx, cy, radius + strokeWidth * 0.9, startAngle);
+  const endP = polarToCartesian(cx, cy, radius + strokeWidth * 0.9, endAngle);
 
   return (
     <div
@@ -136,12 +152,12 @@ export function RiskGauge({ score = 0, size = 220, className }) {
       onMouseMove={handleMouseMove}
       onMouseLeave={handleMouseLeave}
       className={cn(
-        "relative flex flex-col items-center select-none cursor-pointer perspective-[1000px]",
+        "relative flex flex-col items-center justify-center select-none cursor-pointer perspective-[1000px]",
         className
       )}
-      style={{ width: size, height: size * 0.88 }}
+      style={{ width: size, height: size }}
     >
-      {/* 3D Motion Wrapper */}
+      {/* 3D Isometric Motion Wrapper */}
       <motion.div
         animate={{
           rotateX: tilt.x,
@@ -150,7 +166,7 @@ export function RiskGauge({ score = 0, size = 220, className }) {
         transition={{ type: "spring", stiffness: 220, damping: 24, mass: 0.6 }}
         style={{
           width: size,
-          height: size * 0.88,
+          height: size,
           transformStyle: "preserve-3d",
         }}
         className="relative flex items-center justify-center"
@@ -159,66 +175,66 @@ export function RiskGauge({ score = 0, size = 220, className }) {
         <div
           className="absolute rounded-full pointer-events-none blur-2xl"
           style={{
-            width: size * 0.72,
-            height: size * 0.72,
-            transform: "translateZ(-35px)",
+            width: size * 0.7,
+            height: size * 0.7,
+            transform: "translateZ(-30px)",
             background: `radial-gradient(circle, ${theme.glow} 0%, transparent 70%)`,
             transition: "background 0.5s ease",
           }}
         />
 
-        {/* Layer 0 & 1: 3D Multi-Layer Volumetric SVG Dial */}
+        {/* Layer 0 & 1: 3D Volumetric SVG Dial */}
         <svg
           width={size}
-          height={size * 0.88}
+          height={size}
           className="block overflow-visible"
           style={{ transform: "translateZ(0px)" }}
         >
           <defs>
             {/* Dynamic Active Energy Gradient */}
-            <linearGradient id="riskDialGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+            <linearGradient id={`gaugeGrad_${size}`} x1="0%" y1="0%" x2="100%" y2="100%">
               <stop offset="0%" stopColor={theme.gradientStart} />
               <stop offset="100%" stopColor={theme.gradientEnd} />
             </linearGradient>
 
             {/* Neon Glow Filter */}
-            <filter id="gaugeNeonGlow" x="-20%" y="-20%" width="140%" height="140%">
-              <feGaussianBlur stdDeviation="3.5" result="blur" />
+            <filter id={`gaugeGlow_${size}`} x="-20%" y="-20%" width="140%" height="140%">
+              <feGaussianBlur stdDeviation="2.5" result="blur" />
               <feMerge>
                 <feMergeNode in="blur" />
                 <feMergeNode in="SourceGraphic" />
               </feMerge>
             </filter>
 
-            {/* Inset Shadow Bevel Filter */}
-            <filter id="innerDepthShadow" x="-10%" y="-10%" width="120%" height="120%">
-              <feDropShadow dx="0" dy="2" stdDeviation="2" floodColor="#000000" floodOpacity="0.7" />
+            {/* Inset Depth Shadow */}
+            <filter id={`depthShadow_${size}`} x="-10%" y="-10%" width="120%" height="120%">
+              <feDropShadow dx="0" dy="2" stdDeviation="1.5" floodColor="#000000" floodOpacity="0.8" />
             </filter>
           </defs>
 
-          {/* Extruded Bevel Under-Layer (gives physical thickness) */}
+          {/* Extruded Bevel Base (gives real 3D physical thickness) */}
           <path
             d={bevelShadowPath}
             fill="none"
-            stroke="#0b1120"
-            strokeWidth={strokeWidth + 3}
+            stroke="#070c18"
+            strokeWidth={strokeWidth + 2.5}
             strokeLinecap="round"
-            opacity="0.85"
+            opacity="0.9"
           />
 
           {/* Recessed Track Base (Metallic Slot) */}
           <path
             d={bgTrackPath}
             fill="none"
-            stroke="#1e293b"
+            stroke="#131d31"
             strokeWidth={strokeWidth}
             strokeLinecap="round"
-            filter="url(#innerDepthShadow)"
+            filter={`url(#depthShadow_${size})`}
           />
 
           {/* Subtle Outer Cyber Track Edge Ring */}
           <path
-            d={describeArc(cx, cy, radius + strokeWidth * 0.6, startAngle, endAngle)}
+            d={describeArc(cx, cy, radius + strokeWidth * 0.65, startAngle, endAngle)}
             fill="none"
             stroke="rgba(255, 255, 255, 0.08)"
             strokeWidth="1"
@@ -245,23 +261,23 @@ export function RiskGauge({ score = 0, size = 220, className }) {
             <path
               d={activeArcPath}
               fill="none"
-              stroke="url(#riskDialGradient)"
+              stroke={`url(#gaugeGrad_${size})`}
               strokeWidth={strokeWidth}
               strokeLinecap="round"
-              filter="url(#gaugeNeonGlow)"
+              filter={`url(#gaugeGlow_${size})`}
               style={{
-                filter: `drop-shadow(0 0 6px ${theme.main})`,
+                filter: `drop-shadow(0 0 5px ${theme.main})`,
               }}
             />
           )}
 
-          {/* Inner Specular Light Ridge */}
+          {/* Inner Specular Highlight Ridge */}
           {percent > 0.5 && (
             <path
               d={describeArc(cx, cy, radius - strokeWidth * 0.28, startAngle, currentAngle)}
               fill="none"
-              stroke="rgba(255, 255, 255, 0.4)"
-              strokeWidth="1.2"
+              stroke="rgba(255, 255, 255, 0.45)"
+              strokeWidth="1"
               strokeLinecap="round"
             />
           )}
@@ -269,85 +285,96 @@ export function RiskGauge({ score = 0, size = 220, className }) {
           {/* Pulsing Laser Beacon Dot at Beam Tip */}
           {percent > 0.5 && (
             <g transform={`translate(${tipPos.x}, ${tipPos.y})`}>
-              <circle r={strokeWidth * 0.55} fill={theme.main} opacity="0.3" className="animate-ping" />
-              <circle r={strokeWidth * 0.42} fill="#ffffff" filter="url(#gaugeNeonGlow)" />
-              <circle r={strokeWidth * 0.25} fill={theme.main} />
+              <circle r={strokeWidth * 0.5} fill={theme.main} opacity="0.3" className="animate-ping" />
+              <circle r={strokeWidth * 0.38} fill="#ffffff" filter={`url(#gaugeGlow_${size})`} />
+              <circle r={strokeWidth * 0.22} fill={theme.main} />
             </g>
           )}
 
-          {/* Scale Endpoint Labels */}
+          {/* Scale Endpoint Labels: positioned outside the arc with zero overlap */}
           <text
-            x={polarToCartesian(cx, cy, radius + strokeWidth * 0.7, startAngle).x - 4}
-            y={polarToCartesian(cx, cy, radius + strokeWidth * 0.7, startAngle).y + 6}
+            x={startP.x - 2}
+            y={startP.y + 7}
             fill="#64748b"
-            fontSize="9"
+            fontSize={Math.max(7, Math.round(size * 0.046))}
             fontFamily="monospace"
             textAnchor="end"
           >
-            0 SAFE
+            0
           </text>
           <text
-            x={polarToCartesian(cx, cy, radius + strokeWidth * 0.7, endAngle).x + 4}
-            y={polarToCartesian(cx, cy, radius + strokeWidth * 0.7, endAngle).y + 6}
+            x={endP.x + 2}
+            y={endP.y + 7}
             fill="#64748b"
-            fontSize="9"
+            fontSize={Math.max(7, Math.round(size * 0.046))}
             fontFamily="monospace"
             textAnchor="start"
           >
-            100 CRIT
+            100
           </text>
         </svg>
 
-        {/* Layer 2: Floating Holographic Center Hub (Elevated in 3D Space) */}
+        {/* Layer 2: Floating 3D Holographic Center Hub (Exactly Concentric at cx, cy) */}
         <div
-          className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none"
+          className="absolute flex flex-col items-center justify-center pointer-events-none"
           style={{
-            transform: "translateZ(26px)",
-            paddingTop: size * 0.06,
+            left: cx,
+            top: cy,
+            transform: "translate(-50%, -50%) translateZ(24px)",
+            width: hubSize,
+            height: hubSize,
           }}
         >
-          {/* Circular Glass Pedestal behind the score */}
+          {/* Glass Pedestal Disc */}
           <div
-            className="rounded-full flex flex-col items-center justify-center border border-white/10 backdrop-blur-md shadow-2xl"
+            className="w-full h-full rounded-full flex flex-col items-center justify-center border border-white/10 backdrop-blur-md shadow-2xl relative"
             style={{
-              width: size * 0.48,
-              height: size * 0.48,
-              backgroundColor: "rgba(10, 16, 30, 0.8)",
-              boxShadow: `0 8px 24px -4px ${theme.glow}, inset 0 1px 2px rgba(255, 255, 255, 0.2)`,
+              backgroundColor: "rgba(8, 14, 28, 0.82)",
+              boxShadow: `0 6px 20px -3px ${theme.glow}, inset 0 1px 2px rgba(255, 255, 255, 0.18)`,
             }}
           >
-            {/* Cyber Hub Glow Ring */}
+            {/* Inner Cyber Glow Ring */}
             <div
               className="absolute inset-1 rounded-full border border-white/5 pointer-events-none"
               style={{
-                boxShadow: `inset 0 0 12px ${theme.glow}`,
+                boxShadow: `inset 0 0 10px ${theme.glow}`,
               }}
             />
 
             {/* Score Number with 3D Emboss & Dynamic Glow */}
-            <div className="flex items-baseline gap-0.5 mt-1">
+            <div className="flex items-baseline justify-center leading-none">
               <span
-                className="text-3xl sm:text-4xl font-extrabold tracking-tight font-mono text-white transition-all duration-300"
+                className="font-extrabold tracking-tight font-mono text-white transition-all duration-300"
                 style={{
-                  textShadow: `0 0 18px ${theme.main}, 0 2px 4px rgba(0,0,0,0.8)`,
+                  fontSize: `${scoreFontSize}px`,
+                  textShadow: `0 0 14px ${theme.main}, 0 2px 4px rgba(0,0,0,0.9)`,
                 }}
               >
                 {Math.round(percent)}
               </span>
-              <span className="text-[11px] font-mono text-slate-400 font-bold">/100</span>
+              <span
+                className="font-mono text-slate-400 font-bold ml-0.5"
+                style={{ fontSize: `${maxFontSize}px` }}
+              >
+                /100
+              </span>
             </div>
 
-            {/* "RISK SCORE" Monospace Label */}
-            <span className="text-[9px] font-mono tracking-widest uppercase text-slate-400 mt-0.5">
+            {/* "RISK SCORE" Label */}
+            <span
+              className="font-mono tracking-widest uppercase text-slate-400 font-semibold mt-0.5"
+              style={{ fontSize: `${labelFontSize}px` }}
+            >
               Risk Score
             </span>
 
-            {/* Severity Pill */}
+            {/* Severity Status Pill */}
             <div
               className={cn(
-                "mt-1.5 px-2 py-0.5 rounded-full border text-[9px] font-mono font-bold tracking-wider uppercase transition-colors duration-300",
+                "rounded-full border font-mono font-bold tracking-wider uppercase transition-colors duration-300 mt-1 px-1.5 py-0.5 leading-none",
                 theme.badgeBg
               )}
+              style={{ fontSize: `${badgeFontSize}px` }}
             >
               {theme.label}
             </div>

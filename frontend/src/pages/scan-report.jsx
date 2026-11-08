@@ -158,8 +158,8 @@ export default function ScanReport() {
               <p className="text-sm text-slate-300 leading-relaxed">{scan.recommendedAction}</p>
             </div>
           </CardContent>
-          <CardFooter>
-            <RiskGauge score={scan.score} size={140} className="mx-auto" />
+          <CardFooter className="flex justify-center pt-2">
+            <RiskGauge score={scan.score} size={160} className="mx-auto" />
           </CardFooter>
         </Card>
 
