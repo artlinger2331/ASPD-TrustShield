@@ -16,7 +16,7 @@ def _check_postgres_reachable() -> bool:
         return False
     try:
         # Extract host and port
-        host = "localhost"
+        host = "127.0.0.1"
         port = 5432
         if "@" in url:
             host_part = url.split("@")[1].split("/")[0]
@@ -26,7 +26,11 @@ def _check_postgres_reachable() -> bool:
             else:
                 host = host_part
 
-        with socket.create_connection((host, port), timeout=0.8):
+        if host in ("db", "postgres"):
+            # In local dev outside Docker, avoid Windows DNS lookup hang on docker service name
+            host = "127.0.0.1"
+
+        with socket.create_connection((host, port), timeout=0.2):
             return True
     except Exception:
         return False
