@@ -32,16 +32,19 @@ export function StatusBadge({ status }) {
   );
 }
 
-export function VerdictBadge({ verdict }) {
+export function VerdictBadge({ verdict = "safe" }) {
   const map = {
     safe: "bg-emerald-500/10 border-emerald-500/20 text-emerald-400",
     suspicious: "bg-amber-500/10 border-amber-500/20 text-amber-400",
     "high-risk": "bg-orange-500/10 border-orange-500/20 text-orange-400",
     dangerous: "bg-red-500/10 border-red-500/20 text-red-400",
   };
+  const v = (verdict || "safe").toLowerCase();
+  const style = map[v] || map.safe;
+  const label = v.charAt(0).toUpperCase() + v.slice(1).replace("-", " ");
   return (
-    <span className={`rounded-full border px-3 py-1 text-xs font-semibold uppercase tracking-wider ${map[verdict]}`}>
-      {verdict.charAt(0).toUpperCase() + verdict.slice(1).replace("-", " ")}
+    <span className={`rounded-full border px-3 py-1 text-xs font-semibold uppercase tracking-wider ${style}`}>
+      {label}
     </span>
   );
 }
