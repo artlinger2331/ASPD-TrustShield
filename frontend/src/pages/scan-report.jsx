@@ -171,9 +171,27 @@ export default function ScanReport() {
               <CardDescription>Indicators of phishing, brand impersonation, and credential harvesting.</CardDescription>
             </div>
             <div className="flex gap-2">
-              <Button variant="ghost" size="sm" onClick={() => toggleSection("all")}>
-                {isExpanded("all") ? "Collapse all" : "Expand all"}
-              </Button>
+              <button
+                type="button"
+                onClick={() => toggleSection("all")}
+                className="group relative inline-flex items-center gap-2 px-3.5 py-1.5 rounded-xl text-xs font-mono font-medium text-cyan-300 bg-gradient-to-b from-slate-800/90 via-slate-900/95 to-slate-950 border border-cyan-500/40 shadow-[0_4px_14px_rgba(0,0,0,0.6),inset_0_1px_0_rgba(255,255,255,0.2),inset_0_-2px_0_rgba(0,0,0,0.5)] hover:border-cyan-400 hover:shadow-[0_0_20px_rgba(34,211,238,0.3),0_4px_12px_rgba(0,0,0,0.7),inset_0_1px_0_rgba(255,255,255,0.3)] hover:-translate-y-0.5 active:translate-y-0.5 active:shadow-[0_1px_4px_rgba(0,0,0,0.5)] transition-all duration-200 cursor-pointer"
+              >
+                {/* 3D Tech Corner Accents */}
+                <span className="absolute -top-[1px] -left-[1px] w-1.5 h-1.5 border-t-2 border-l-2 border-cyan-400 rounded-tl-sm pointer-events-none" />
+                <span className="absolute -bottom-[1px] -right-[1px] w-1.5 h-1.5 border-b-2 border-r-2 border-cyan-400 rounded-br-sm pointer-events-none" />
+
+                {/* Glowing Pulse Dot */}
+                <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 shadow-[0_0_6px_#22d3ee] group-hover:scale-125 transition-transform" />
+
+                <span>{isExpanded("all") ? "Collapse all" : "Expand all"}</span>
+
+                <ChevronDown
+                  className={cn(
+                    "w-3.5 h-3.5 text-cyan-400 transition-transform duration-300 ease-out",
+                    isExpanded("all") ? "rotate-180" : "rotate-0"
+                  )}
+                />
+              </button>
             </div>
           </CardHeader>
           <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4">
