@@ -266,7 +266,7 @@ def analyze_web_security(
             )
             findings.append(
                 ContentFindingSchema(
-                    category="web_security",
+                    category="security_headers",
                     title="Missing HTTP Strict Transport Security (HSTS) Header",
                     severity="medium",
                     confidence=0.92,
@@ -320,7 +320,7 @@ def analyze_web_security(
             )
             findings.append(
                 ContentFindingSchema(
-                    category="web_security",
+                    category="security_headers",
                     title="Permissive Content Security Policy (CSP)",
                     severity="low",
                     confidence=0.88,
@@ -364,7 +364,7 @@ def analyze_web_security(
         )
         findings.append(
             ContentFindingSchema(
-                category="web_security",
+                category="security_headers",
                 title="Missing Content-Security-Policy (CSP) Header",
                 severity="medium",
                 confidence=0.92,
@@ -435,7 +435,7 @@ def analyze_web_security(
         )
         findings.append(
             ContentFindingSchema(
-                category="web_security",
+                category="security_headers",
                 title="Missing X-Frame-Options (Clickjacking Protection)",
                 severity="medium",
                 confidence=0.92,
@@ -487,7 +487,7 @@ def analyze_web_security(
         )
         findings.append(
             ContentFindingSchema(
-                category="web_security",
+                category="security_headers",
                 title="Missing X-Content-Type-Options Header",
                 severity="low",
                 confidence=0.90,
@@ -645,7 +645,7 @@ def analyze_web_security(
             if not has_secure and is_https:
                 findings.append(
                     ContentFindingSchema(
-                        category="web_security",
+                        category="security_headers",
                         title=f"Cookie Missing 'Secure' Flag ({c_name})",
                         severity="medium",
                         confidence=0.92,
@@ -658,7 +658,7 @@ def analyze_web_security(
             if not has_httponly:
                 findings.append(
                     ContentFindingSchema(
-                        category="web_security",
+                        category="security_headers",
                         title=f"Cookie Missing 'HttpOnly' Flag ({c_name})",
                         severity="low",
                         confidence=0.88,
@@ -723,7 +723,7 @@ def analyze_web_security(
             )
             findings.append(
                 ContentFindingSchema(
-                    category="web_security",
+                    category="security_headers",
                     title="Active Mixed Content Detected (Unencrypted Script / Iframe)",
                     severity="high",
                     confidence=0.95,
@@ -750,7 +750,7 @@ def analyze_web_security(
             )
             findings.append(
                 ContentFindingSchema(
-                    category="web_security",
+                    category="security_headers",
                     title="Passive Mixed Content Detected (Unencrypted Media)",
                     severity="medium",
                     confidence=0.90,
@@ -822,7 +822,7 @@ def analyze_web_security(
         )
         findings.append(
             ContentFindingSchema(
-                category="web_security",
+                category="security_headers",
                 title="Server Technology & Version Information Disclosure",
                 severity="low",
                 confidence=0.88,
@@ -892,7 +892,7 @@ def analyze_web_security(
         for path, sev, label, pts in exposed_path_findings:
             findings.append(
                 ContentFindingSchema(
-                    category="web_security",
+                    category="security_headers",
                     title=f"Publicly Exposed {label}",
                     severity=sev,
                     confidence=0.98,
