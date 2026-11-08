@@ -49,27 +49,32 @@ MOCK_PHISHING_HTML = """
 """
 
 
+@pytest.fixture(autouse=True)
+def mock_background_dispatch():
+    with patch("app.api.v1.scans.dispatch_scan") as mock:
+        yield mock
+
+
 @pytest.mark.asyncio
-async def test_successful_scan_end_to_end(async_client: AsyncClient):
+async def test_successful_scan_end_to_end(async_client: AsyncClient, mock_background_dispatch):
     """
     Test end-to-end flow:
-    1. Submit POST /api/v1/scans (mocking dispatch_scan to avoid live network)
+    1. Submit POST /api/v1/scans
     2. Verify queued record with step 0
     3. Run pipeline synchronously with mock HTML
     4. Poll GET /api/v1/scans/{id} to verify completion (step 6, score, verdict)
     5. GET /api/v1/scans/{id}/report for full telemetry
     """
     target_url = "https://safe-enterprise-platform.com/portal"
-    with patch("app.api.v1.scans.dispatch_scan") as mock_dispatch:
-        # 1. Submit scan request
-        post_res = await async_client.post("/api/v1/scans", json={"url": target_url})
-        assert post_res.status_code == status.HTTP_202_ACCEPTED
-        post_data = post_res.json()
-        scan_id_str = post_data["id"]
-        scan_uuid = uuid.UUID(scan_id_str)
-        assert post_data["status"] == "queued"
-        assert post_data["current_step"] == 0
-        assert mock_dispatch.called
+    # 1. Submit scan request
+    post_res = await async_client.post("/api/v1/scans", json={"url": target_url})
+    assert post_res.status_code == status.HTTP_202_ACCEPTED
+    post_data = post_res.json()
+    scan_id_str = post_data["id"]
+    scan_uuid = uuid.UUID(scan_id_str)
+    assert post_data["status"] == "queued"
+    assert post_data["current_step"] == 0
+    assert mock_background_dispatch.called
 
     # 2. Check initial status polling
     poll_res1 = await async_client.get(f"/api/v1/scans/{scan_id_str}")
