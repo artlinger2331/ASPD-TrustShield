@@ -4,7 +4,7 @@ Handles scan submission, status polling, telemetry reporting, and pre-flight URL
 """
 
 import uuid
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 from typing import Optional, List
 from fastapi import APIRouter, Depends, status, BackgroundTasks, Query
 from sqlalchemy import select, desc, func
@@ -155,7 +155,31 @@ async def create_scan(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
         )
 
-    # 2. Persist new Scan in queued status
+    # 2. Check for active concurrent scan for the same normalized URL (last 5 minutes)
+    five_minutes_ago = datetime.now(timezone.utc) - timedelta(minutes=5)
+    existing_scan_stmt = (
+        select(Scan)
+        .where(
+            Scan.normalized_url == norm.normalized_url,
+            Scan.status.in_(["queued", "running"]),
+            Scan.created_at >= five_minutes_ago,
+        )
+        .order_by(desc(Scan.created_at))
+    )
+    existing_res = await db.execute(existing_scan_stmt)
+    existing_scan = existing_res.scalars().first()
+    if existing_scan:
+        return ScanResponse(
+            id=existing_scan.id,
+            input_url=existing_scan.input_url,
+            normalized_url=existing_scan.normalized_url,
+            status=existing_scan.status,
+            current_step=existing_scan.current_step or 0,
+            current_action=existing_scan.current_action,
+            created_at=existing_scan.created_at,
+        )
+
+    # 3. Persist new Scan in queued status
     scan_id = uuid.uuid4()
     now = datetime.now(timezone.utc)
     scan = Scan(
@@ -164,13 +188,15 @@ async def create_scan(
         input_url=payload.url.strip(),
         normalized_url=norm.normalized_url,
         status="queued",
+        current_step=0,
+        current_action="Scan queued in worker pool",
         created_at=now,
         updated_at=now,
     )
     db.add(scan)
     await db.commit()
 
-    # 3. Enqueue background execution via Celery or in-process fallback
+    # 4. Enqueue background execution via Celery or in-process fallback
     dispatch_scan(scan_id=scan.id, background_tasks=background_tasks)
 
     return ScanResponse(
@@ -178,6 +204,8 @@ async def create_scan(
         input_url=scan.input_url,
         normalized_url=scan.normalized_url,
         status="queued",
+        current_step=scan.current_step,
+        current_action=scan.current_action,
         created_at=scan.created_at,
     )
 
@@ -206,13 +234,16 @@ async def get_scan_status(
             status_code=status.HTTP_404_NOT_FOUND,
         )
 
-    step_map = {
-        "queued": 0,
-        "running": 3,
-        "completed": 6,
-        "failed": 0,
-    }
-    current_step = step_map.get(scan.status, 0)
+    if scan.current_step is not None and scan.current_step > 0:
+        current_step = scan.current_step
+    else:
+        step_map = {
+            "queued": 0,
+            "running": 1,
+            "completed": 6,
+            "failed": 0,
+        }
+        current_step = step_map.get(scan.status, 0)
 
     confidence = None
     if scan.confidence is not None:
@@ -222,6 +253,8 @@ async def get_scan_status(
         id=scan.id,
         status=scan.status,
         step=current_step,
+        total_steps=6,
+        current_action=scan.current_action,
         verdict=scan.verdict,
         risk_score=scan.risk_score,
         confidence=confidence,
