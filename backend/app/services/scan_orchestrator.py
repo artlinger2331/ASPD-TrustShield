@@ -327,5 +327,3 @@ def execute_scan_pipeline_sync(
         return None
     finally:
         session.close()
-    finally:
-        session.close()
