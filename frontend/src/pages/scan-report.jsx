@@ -463,142 +463,331 @@ export default function ScanReport() {
           </div>
         </div>
 
-        {/* D. Security Assessment */}
-        <Card className="mb-6">
-          <CardHeader>
-            <CardTitle className="text-sm">D. Website Security Assessment</CardTitle>
-            <CardDescription>HTTP security headers and configuration checks.</CardDescription>
-          </CardHeader>
-          <CardContent>
+        {/* D. Security Assessment with 3D Cyber Border Styling */}
+        <div className="relative rounded-2xl border border-cyan-500/30 bg-gradient-to-b from-slate-900/95 via-navy-900/90 to-navy-950/95 backdrop-blur-2xl shadow-[0_12px_40px_-8px_rgba(0,0,0,0.7),inset_0_1px_1px_rgba(255,255,255,0.15)] mb-6 p-5 sm:p-6 overflow-hidden">
+          {/* Top Specular Edge Highlight */}
+          <div className="absolute top-0 left-6 right-6 h-[1px] bg-gradient-to-r from-transparent via-cyan-400/40 to-transparent pointer-events-none" />
+          
+          {/* Cyber Corner Marks */}
+          <div className="absolute top-2.5 left-2.5 w-2 h-2 border-t border-l border-cyan-400/40 pointer-events-none" />
+          <div className="absolute top-2.5 right-2.5 w-2 h-2 border-t border-r border-cyan-400/40 pointer-events-none" />
+          <div className="absolute bottom-2.5 left-2.5 w-2 h-2 border-b border-l border-cyan-400/30 pointer-events-none" />
+          <div className="absolute bottom-2.5 right-2.5 w-2 h-2 border-b border-r border-cyan-400/30 pointer-events-none" />
+
+          {/* Section Header */}
+          <div className="mb-5 pb-3 border-b border-white/5 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="w-2 h-2 rounded-full bg-cyan-400 animate-pulse shadow-[0_0_8px_#22d3ee]" />
+                <h3 className="text-sm font-bold text-white tracking-wide uppercase font-mono">
+                  D. Website Security Assessment
+                </h3>
+              </div>
+              <p className="text-xs text-slate-400 mt-0.5">HTTP security headers and client protection policy checks.</p>
+            </div>
+            
+            {/* Quick telemetry count pills */}
+            <div className="flex items-center gap-2 self-start sm:self-center font-mono text-[10px]">
+              <span className="px-2.5 py-1 rounded-lg border border-emerald-500/30 bg-emerald-500/10 text-emerald-400 font-bold flex items-center gap-1.5 shadow-[0_0_8px_rgba(16,185,129,0.2)]">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+                PASS: 2
+              </span>
+              <span className="px-2.5 py-1 rounded-lg border border-amber-500/30 bg-amber-500/10 text-amber-400 font-bold flex items-center gap-1.5 shadow-[0_0_8px_rgba(245,158,11,0.2)]">
+                <span className="w-1.5 h-1.5 rounded-full bg-amber-400" />
+                WARN: 2
+              </span>
+              <span className="px-2.5 py-1 rounded-lg border border-red-500/30 bg-red-500/10 text-red-400 font-bold flex items-center gap-1.5 shadow-[0_0_8px_rgba(239,68,68,0.2)]">
+                <span className="w-1.5 h-1.5 rounded-full bg-red-400" />
+                FAIL: 6
+              </span>
+            </div>
+          </div>
+
+          {/* 3D Cyber Diagnostics Grid Table */}
+          <div className="relative rounded-xl border border-white/10 bg-slate-950/70 backdrop-blur-md shadow-[0_6px_24px_-4px_rgba(0,0,0,0.6),inset_0_1px_0_rgba(255,255,255,0.12),inset_0_-1px_2px_rgba(0,0,0,0.4)] overflow-hidden">
             <div className="overflow-x-auto">
-              <table className="w-full text-left border-collapse divide-y divide-white/5">
+              <table className="w-full text-left border-collapse">
                 <thead>
-                  <tr className="border-b border-white/5 bg-white/3">
-                    <th className="px-4 py-3 text-xs font-semibold text-slate-400 uppercase">Check</th>
-                    <th className="px-4 py-3 text-xs font-semibold text-slate-400 uppercase">Status</th>
-                    <th className="px-4 py-3 text-xs font-semibold text-slate-400 uppercase">Details</th>
+                  <tr className="border-b border-cyan-500/20 bg-slate-900/90 text-cyan-300 font-mono text-[11px] uppercase tracking-wider">
+                    <th className="px-4 py-3 font-semibold">Security Policy / Header</th>
+                    <th className="px-4 py-3 font-semibold text-center w-28">Status</th>
+                    <th className="px-4 py-3 font-semibold">Telemetry &amp; Findings</th>
                   </tr>
                 </thead>
-                <tbody>
-                  {MOCK_SECURITY_HEADERS.map((h, i) => (
-                    <tr key={i} className="hover:bg-white/3 transition-colors">
-                      <td className="px-4 py-3 text-sm text-slate-200">{h.name}</td>
-                      <td className="px-4 py-3">
-                        <HeaderCheck status={h.status} />
-                      </td>
-                      <td className="px-4 py-3 text-sm text-slate-400">{h.detail}</td>
-                    </tr>
-                  ))}
+                <tbody className="divide-y divide-white/5 font-mono text-xs">
+                  {MOCK_SECURITY_HEADERS.map((h, i) => {
+                    const isPass = h.status === "pass";
+                    const isWarn = h.status === "warning";
+                    const isFail = h.status === "fail";
+
+                    const rowGlow = isPass
+                      ? "hover:bg-emerald-500/[0.04]"
+                      : isWarn
+                      ? "hover:bg-amber-500/[0.04]"
+                      : "hover:bg-red-500/[0.04]";
+
+                    const pillarColor = isPass
+                      ? "bg-emerald-500/80 shadow-[0_0_6px_#10b981]"
+                      : isWarn
+                      ? "bg-amber-500/80 shadow-[0_0_6px_#f59e0b]"
+                      : "bg-red-500/80 shadow-[0_0_6px_#ef4444]";
+
+                    return (
+                      <tr key={i} className={cn("transition-colors relative group", rowGlow)}>
+                        {/* Policy Name with 3D edge notch */}
+                        <td className="px-4 py-3 font-medium text-slate-100 relative">
+                          <div className={cn("absolute left-0 top-1 bottom-1 w-0.5 rounded-r", pillarColor)} />
+                          <div className="flex items-center gap-2 pl-1">
+                            {isPass ? (
+                              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+                            ) : isWarn ? (
+                              <AlertTriangle className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+                            ) : (
+                              <ShieldAlert className="w-3.5 h-3.5 text-red-400 shrink-0" />
+                            )}
+                            <span className="font-semibold text-slate-100 font-sans">{h.name}</span>
+                          </div>
+                        </td>
+
+                        {/* Status Badge */}
+                        <td className="px-4 py-3 text-center">
+                          <span
+                            className={cn(
+                              "inline-flex items-center justify-center px-2.5 py-0.5 rounded-full text-[10px] font-bold font-mono tracking-wider border shadow-sm",
+                              isPass
+                                ? "bg-emerald-500/15 text-emerald-300 border-emerald-500/40 shadow-[0_0_8px_rgba(16,185,129,0.25)]"
+                                : isWarn
+                                ? "bg-amber-500/15 text-amber-300 border-amber-500/40 shadow-[0_0_8px_rgba(245,158,11,0.25)]"
+                                : "bg-red-500/15 text-red-300 border-red-500/40 shadow-[0_0_8px_rgba(239,68,68,0.25)]"
+                            )}
+                          >
+                            {h.status.toUpperCase()}
+                          </span>
+                        </td>
+
+                        {/* Details */}
+                        <td className="px-4 py-3 text-slate-300 font-sans text-xs leading-relaxed">
+                          {h.detail}
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>
-            <p className="mt-4 text-xs text-slate-500">
-              Pass = no issue found &nbsp;•&nbsp; Warning = minor concern &nbsp;•&nbsp; Fail = action needed
-            </p>
-          </CardContent>
-        </Card>
+          </div>
 
-        {/* E. Threat Intelligence */}
-        <Card className="mb-6">
-          <CardHeader>
-            <CardTitle className="text-sm">E. Threat Intelligence</CardTitle>
-            <CardDescription>Matches from public threat feeds and community data.</CardDescription>
-          </CardHeader>
-          <CardContent className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="bg-white/3 rounded-xl p-4 border border-white/5">
-              <div className="text-xs text-slate-500 uppercase mb-2">Feed matches</div>
+          {/* Cyber Legend Bar */}
+          <div className="mt-3.5 pt-3 border-t border-white/5 flex flex-wrap items-center justify-between gap-2 text-[11px] font-mono text-slate-400">
+            <div className="flex items-center gap-4">
+              <span className="flex items-center gap-1.5 text-emerald-400">
+                <span className="w-2 h-2 rounded-full bg-emerald-400" /> Pass = Zero issue found
+              </span>
+              <span className="flex items-center gap-1.5 text-amber-400">
+                <span className="w-2 h-2 rounded-full bg-amber-400" /> Warning = Policy concern
+              </span>
+              <span className="flex items-center gap-1.5 text-red-400">
+                <span className="w-2 h-2 rounded-full bg-red-400" /> Fail = Strict violation
+              </span>
+            </div>
+            <span className="text-slate-500 text-[10px] hidden sm:inline">
+              Security Policy Standard: OWASP ASVS v4.0
+            </span>
+          </div>
+        </div>
+
+        {/* E. Threat Intelligence with 3D Cyber Border Styling */}
+        <div className="relative rounded-2xl border border-cyan-500/30 bg-gradient-to-b from-slate-900/95 via-navy-900/90 to-navy-950/95 backdrop-blur-2xl shadow-[0_12px_40px_-8px_rgba(0,0,0,0.7),inset_0_1px_1px_rgba(255,255,255,0.15)] mb-6 p-5 sm:p-6 overflow-hidden">
+          {/* Top Specular Edge Highlight */}
+          <div className="absolute top-0 left-6 right-6 h-[1px] bg-gradient-to-r from-transparent via-cyan-400/40 to-transparent pointer-events-none" />
+          
+          {/* Cyber Corner Marks */}
+          <div className="absolute top-2.5 left-2.5 w-2 h-2 border-t border-l border-cyan-400/40 pointer-events-none" />
+          <div className="absolute top-2.5 right-2.5 w-2 h-2 border-t border-r border-cyan-400/40 pointer-events-none" />
+          <div className="absolute bottom-2.5 left-2.5 w-2 h-2 border-b border-l border-cyan-400/30 pointer-events-none" />
+          <div className="absolute bottom-2.5 right-2.5 w-2 h-2 border-b border-r border-cyan-400/30 pointer-events-none" />
+
+          {/* Section Header */}
+          <div className="mb-5 pb-3 border-b border-white/5 flex items-center justify-between">
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="w-2 h-2 rounded-full bg-cyan-400 animate-pulse shadow-[0_0_8px_#22d3ee]" />
+                <h3 className="text-sm font-bold text-white tracking-wide uppercase font-mono">
+                  E. Threat Intelligence
+                </h3>
+              </div>
+              <p className="text-xs text-slate-400 mt-0.5">Global feeds, autonomous ASN reputation, and crowdsourced telemetry.</p>
+            </div>
+            <span className="text-[10px] font-mono px-2 py-0.5 rounded border border-cyan-500/20 bg-cyan-500/10 text-cyan-400 hidden sm:inline-block">
+              DECENTRALIZED IOC NETWORK
+            </span>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3.5">
+            {/* Feed Matches Pod */}
+            <div className="relative rounded-xl border border-white/10 hover:border-cyan-500/40 bg-gradient-to-b from-white/[0.06] via-slate-900/80 to-slate-950/90 backdrop-blur-md p-4 shadow-[0_6px_18px_-2px_rgba(0,0,0,0.5),inset_0_1px_0_rgba(255,255,255,0.12),inset_0_-1px_2px_rgba(0,0,0,0.4)] transition-all overflow-hidden group">
+              <div className="absolute top-1.5 right-1.5 w-1 h-1 border-t border-r border-white/20 group-hover:border-cyan-400 transition-colors pointer-events-none" />
+              <div className="text-[10px] font-mono uppercase text-slate-400 tracking-wider mb-2.5 flex items-center gap-1.5">
+                <span className="w-1 h-1 rounded-full bg-cyan-400" />
+                Feed matches
+              </div>
               {MOCK_THREAT_INTEL.feedMatches.map((m, i) => (
-                <div key={i} className="flex items-center justify-between mb-2">
-                  <span className="text-xs text-slate-400">{m.source}</span>
+                <div key={i} className="flex items-center justify-between mb-2 p-1.5 rounded-lg bg-black/20 border border-white/5">
+                  <span className="text-xs font-mono text-slate-300">{m.source}</span>
                   <Badge variant={m.confidence === "High" ? "high" : "medium"}>{m.confidence}</Badge>
                 </div>
               ))}
             </div>
-            <div className="bg-white/3 rounded-xl p-4 border border-white/5">
-              <div className="text-xs text-slate-500 uppercase mb-2">Domain age</div>
-              <div className="text-lg font-bold text-slate-200">{MOCK_THREAT_INTEL.domainAge}</div>
-            </div>
-            <div className="bg-white/3 rounded-xl p-4 border border-white/5">
-              <div className="text-xs text-slate-500 uppercase mb-2">Community reports</div>
-              <div className="text-lg font-bold text-slate-200">{MOCK_THREAT_INTEL.communityReports}</div>
-            </div>
-            <div className="md:col-span-3 bg-white/3 rounded-xl p-4 border border-white/5">
-              <div className="flex justify-between mb-2">
-                <span className="text-xs text-slate-500 uppercase">Hosting / IP reputation</span>
-                <span className="text-xs text-red-400 font-medium">Poor</span>
-              </div>
-              <p className="text-xs text-slate-400">{MOCK_THREAT_INTEL.hosting.provider}</p>
-            </div>
-            <div className="md:col-span-3 bg-white/3 rounded-xl p-4 border border-white/5">
-              <div className="flex justify-between mb-2">
-                <span className="text-xs text-slate-500 uppercase">DNS records</span>
-              </div>
-              <div className="text-xs font-mono text-slate-400 space-y-1">
-                <div>A: {MOCK_THREAT_INTEL.dns.a}</div>
-                <div>NS: {MOCK_THREAT_INTEL.dns.ns}</div>
-                <div>MX: {MOCK_THREAT_INTEL.dns.mx}</div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
 
-        {/* F. Evidence */}
-        <Card className="mb-6">
-          <CardHeader className="flex items-center justify-between">
-            <div>
-              <CardTitle className="text-sm">F. Evidence &amp; Technical Findings</CardTitle>
-              <CardDescription>Screenshot, detected forms, scripts, and raw data.</CardDescription>
+            {/* Domain Age Pod */}
+            <div className="relative rounded-xl border border-white/10 hover:border-cyan-500/40 bg-gradient-to-b from-white/[0.06] via-slate-900/80 to-slate-950/90 backdrop-blur-md p-4 shadow-[0_6px_18px_-2px_rgba(0,0,0,0.5),inset_0_1px_0_rgba(255,255,255,0.12),inset_0_-1px_2px_rgba(0,0,0,0.4)] transition-all overflow-hidden group">
+              <div className="absolute top-1.5 right-1.5 w-1 h-1 border-t border-r border-white/20 group-hover:border-cyan-400 transition-colors pointer-events-none" />
+              <div className="text-[10px] font-mono uppercase text-slate-400 tracking-wider mb-2.5 flex items-center gap-1.5">
+                <span className="w-1 h-1 rounded-full bg-cyan-400" />
+                Domain age
+              </div>
+              <div className="text-xl font-bold font-mono text-slate-100 mt-2">
+                {MOCK_THREAT_INTEL.domainAge}
+              </div>
+              <p className="text-[11px] text-amber-400 font-mono mt-1">EPHEMERAL TARGET // RECENT REGISTRATION</p>
             </div>
-          </CardHeader>
-          <CardContent className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <div className="space-y-4">
-              <div className="aspect-video rounded-xl overflow-hidden border border-white/10 bg-white/5 relative">
-                <img src={MOCK_EVIDENCE.screenshot} alt="Page screenshot" className="w-full h-full object-cover" />
-                <div className="absolute bottom-0 left-0 right-0 p-2 bg-gradient-to-t from-black/80 via-transparent text-xs text-slate-300">
-                  Page screenshot (placeholder)
+
+            {/* Community Reports Pod */}
+            <div className="relative rounded-xl border border-white/10 hover:border-cyan-500/40 bg-gradient-to-b from-white/[0.06] via-slate-900/80 to-slate-950/90 backdrop-blur-md p-4 shadow-[0_6px_18px_-2px_rgba(0,0,0,0.5),inset_0_1px_0_rgba(255,255,255,0.12),inset_0_-1px_2px_rgba(0,0,0,0.4)] transition-all overflow-hidden group">
+              <div className="absolute top-1.5 right-1.5 w-1 h-1 border-t border-r border-white/20 group-hover:border-cyan-400 transition-colors pointer-events-none" />
+              <div className="text-[10px] font-mono uppercase text-slate-400 tracking-wider mb-2.5 flex items-center gap-1.5">
+                <span className="w-1 h-1 rounded-full bg-cyan-400" />
+                Community reports
+              </div>
+              <div className="text-xl font-bold font-mono text-red-400 mt-2">
+                {MOCK_THREAT_INTEL.communityReports} reports
+              </div>
+              <p className="text-[11px] text-red-400/80 font-mono mt-1">CONFIRMED HOSTILE INCIDENTS</p>
+            </div>
+
+            {/* Hosting / IP reputation */}
+            <div className="md:col-span-3 relative rounded-xl border border-red-500/35 bg-gradient-to-b from-red-950/20 via-slate-900/80 to-slate-950/90 backdrop-blur-md p-4 shadow-[0_6px_18px_-2px_rgba(239,68,68,0.2),inset_0_1px_0_rgba(255,255,255,0.12)] overflow-hidden">
+              <div className="absolute left-0 top-0 bottom-0 w-1 bg-red-500 shadow-[0_0_8px_#ef4444]" />
+              <div className="pl-1.5 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                <div>
+                  <div className="text-[10px] font-mono uppercase text-slate-400 tracking-wider mb-1">Hosting / ASN Provider</div>
+                  <p className="text-xs font-mono text-slate-200">{MOCK_THREAT_INTEL.hosting.provider}</p>
+                </div>
+                <span className="px-2.5 py-1 rounded-full font-mono text-[10px] font-bold bg-red-500/10 text-red-400 border border-red-500/30 self-start sm:self-center">
+                  REPUTATION: POOR
+                </span>
+              </div>
+            </div>
+
+            {/* DNS records */}
+            <div className="md:col-span-3 relative rounded-xl border border-white/10 hover:border-cyan-500/40 bg-gradient-to-b from-white/[0.05] via-slate-900/80 to-slate-950/90 backdrop-blur-md p-4 shadow-[0_6px_18px_-2px_rgba(0,0,0,0.5),inset_0_1px_0_rgba(255,255,255,0.12)] overflow-hidden">
+              <div className="text-[10px] font-mono uppercase text-slate-400 tracking-wider mb-2 flex items-center gap-1.5">
+                <span className="w-1 h-1 rounded-full bg-cyan-400" />
+                DNS Records Telemetry
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-xs font-mono">
+                <div className="p-2 rounded-lg bg-black/20 border border-white/5">
+                  <span className="text-cyan-400 font-bold">A:</span> <span className="text-slate-300">{MOCK_THREAT_INTEL.dns.a}</span>
+                </div>
+                <div className="p-2 rounded-lg bg-black/20 border border-white/5">
+                  <span className="text-cyan-400 font-bold">NS:</span> <span className="text-slate-300">{MOCK_THREAT_INTEL.dns.ns}</span>
+                </div>
+                <div className="p-2 rounded-lg bg-black/20 border border-white/5">
+                  <span className="text-cyan-400 font-bold">MX:</span> <span className="text-slate-300">{MOCK_THREAT_INTEL.dns.mx}</span>
                 </div>
               </div>
-              <div className="bg-white/3 rounded-xl p-4 border border-white/5">
-                <div className="text-xs text-slate-500 uppercase mb-2">Page title</div>
-                <div className="text-sm text-slate-200 font-mono">{MOCK_EVIDENCE.pageTitle}</div>
+            </div>
+          </div>
+        </div>
+
+        {/* F. Evidence with 3D Cyber Border Styling */}
+        <div className="relative rounded-2xl border border-cyan-500/30 bg-gradient-to-b from-slate-900/95 via-navy-900/90 to-navy-950/95 backdrop-blur-2xl shadow-[0_12px_40px_-8px_rgba(0,0,0,0.7),inset_0_1px_1px_rgba(255,255,255,0.15)] mb-6 p-5 sm:p-6 overflow-hidden">
+          {/* Top Specular Edge Highlight */}
+          <div className="absolute top-0 left-6 right-6 h-[1px] bg-gradient-to-r from-transparent via-cyan-400/40 to-transparent pointer-events-none" />
+          
+          {/* Cyber Corner Marks */}
+          <div className="absolute top-2.5 left-2.5 w-2 h-2 border-t border-l border-cyan-400/40 pointer-events-none" />
+          <div className="absolute top-2.5 right-2.5 w-2 h-2 border-t border-r border-cyan-400/40 pointer-events-none" />
+
+          {/* Section Header */}
+          <div className="mb-5 pb-3 border-b border-white/5 flex items-center justify-between">
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="w-2 h-2 rounded-full bg-cyan-400 animate-pulse shadow-[0_0_8px_#22d3ee]" />
+                <h3 className="text-sm font-bold text-white tracking-wide uppercase font-mono">
+                  F. Evidence &amp; Technical Findings
+                </h3>
+              </div>
+              <p className="text-xs text-slate-400 mt-0.5">Rendered viewport screenshot, credential harvest targets, and raw payload data.</p>
+            </div>
+            <span className="text-[10px] font-mono px-2 py-0.5 rounded border border-cyan-500/20 bg-cyan-500/10 text-cyan-400 hidden sm:inline-block">
+              FORENSIC DOSSIER
+            </span>
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div className="space-y-4">
+              <div className="aspect-video rounded-xl overflow-hidden border border-white/10 bg-slate-950 relative shadow-2xl">
+                <img src={MOCK_EVIDENCE.screenshot} alt="Page screenshot" className="w-full h-full object-cover" />
+                <div className="absolute bottom-0 left-0 right-0 p-2.5 bg-gradient-to-t from-black/90 via-black/50 to-transparent text-xs font-mono text-cyan-300 flex items-center justify-between">
+                  <span>Rendered Viewport Capture</span>
+                  <span className="text-[10px] text-slate-400 font-sans">1920x1080 Headless DOM</span>
+                </div>
+              </div>
+              <div className="relative rounded-xl border border-white/10 bg-slate-950/70 p-3.5">
+                <div className="text-[10px] font-mono text-slate-400 uppercase mb-1">Page Title Tag</div>
+                <div className="text-sm font-semibold text-slate-100 font-mono">{MOCK_EVIDENCE.pageTitle}</div>
               </div>
             </div>
+
             <div className="space-y-4">
-              <div className="bg-white/3 rounded-xl p-4 border border-white/5">
-                <div className="text-xs text-slate-500 uppercase mb-2">Detected forms</div>
+              {/* Detected Forms */}
+              <div className="relative rounded-xl border border-red-500/30 bg-gradient-to-b from-red-950/20 to-slate-950/80 p-3.5 shadow-md">
+                <div className="text-[10px] font-mono text-red-300 uppercase mb-2 font-bold flex items-center gap-1.5">
+                  <span className="w-1.5 h-1.5 rounded-full bg-red-400" />
+                  Detected Input Targets &amp; Forms
+                </div>
                 {MOCK_EVIDENCE.forms.map((f, i) => (
-                  <div key={i} className="text-xs font-mono text-slate-400 mb-1">
-                    <form action={f.action} method={f.method}>{f.fields.join(", ")}</form>
+                  <div key={i} className="text-xs font-mono text-slate-300 p-2 rounded-lg bg-black/40 border border-white/5">
+                    <span className="text-amber-400 font-bold">{f.method.toUpperCase()}</span> &rarr; {f.action}
+                    <div className="text-[10px] text-slate-400 mt-1">Captured fields: {f.fields.join(", ")}</div>
                   </div>
                 ))}
               </div>
-              <div className="bg-white/3 rounded-xl p-4 border border-white/5">
-                <div className="text-xs text-slate-500 uppercase mb-2">External scripts / domains</div>
-                <ul className="text-xs text-slate-400 space-y-1 list-disc list-inside">
+
+              {/* External Scripts */}
+              <div className="relative rounded-xl border border-white/10 bg-slate-950/70 p-3.5">
+                <div className="text-[10px] font-mono text-slate-400 uppercase mb-2">External Scripts &amp; CDN Assets</div>
+                <ul className="text-xs font-mono text-slate-300 space-y-1 list-disc list-inside">
                   {MOCK_EVIDENCE.externalScripts.map((s, i) => (
                     <li key={i} className="truncate">{s}</li>
                   ))}
                 </ul>
               </div>
-              <div className="bg-white/3 rounded-xl p-4 border border-white/5">
-                <div className="text-xs text-slate-500 uppercase mb-2">Redirect path</div>
-                <div className="text-xs text-slate-400 space-y-1 font-mono">
+
+              {/* Redirect Path */}
+              <div className="relative rounded-xl border border-white/10 bg-slate-950/70 p-3.5">
+                <div className="text-[10px] font-mono text-slate-400 uppercase mb-2">Redirect Path Hops</div>
+                <div className="text-xs text-slate-300 space-y-1 font-mono">
                   {MOCK_EVIDENCE.redirectPath.map((p, i) => (
-                    <div key={i} className="flex items-center gap-1">
-                      <span className="text-slate-600">{i + 1}.</span> {p}
+                    <div key={i} className="flex items-center gap-1.5">
+                      <span className="text-cyan-400 font-bold">[{i + 1}]</span> {p}
                     </div>
                   ))}
                 </div>
               </div>
             </div>
-          </CardContent>
-          <CardContent className="mt-4 border-t border-white/5 pt-4">
+          </div>
+
+          {/* Raw findings expandable */}
+          <div className="mt-5 border-t border-white/5 pt-4">
             <details className="group">
-              <summary className="flex items-center gap-2 cursor-pointer text-xs font-medium text-slate-400 hover:text-white">
-                <Terminal className="w-3 h-3" /> Raw technical findings
+              <summary className="flex items-center gap-2 cursor-pointer text-xs font-mono font-medium text-slate-400 hover:text-cyan-300 transition-colors">
+                <Terminal className="w-3.5 h-3.5 text-cyan-400" />
+                Raw Machine-Readable Findings (JSON)
               </summary>
-              <div className="mt-3 p-3 rounded-lg bg-white/5 border border-white/5 overflow-x-auto">
-                <pre className="text-xs text-slate-400 font-mono overflow-x-auto whitespace-pre-wrap">
+              <div className="mt-3 p-3.5 rounded-xl bg-slate-950 border border-white/10 overflow-x-auto shadow-inner">
+                <pre className="text-xs text-cyan-300 font-mono overflow-x-auto whitespace-pre-wrap">
                   {JSON.stringify(
                     {
                       url: scan.url,
@@ -615,16 +804,21 @@ export default function ScanReport() {
                 </pre>
               </div>
             </details>
-          </CardContent>
-          <CardFooter>
-            <div className="flex gap-3">
-              <Button onClick={() => toast({ title: "Report shared", type: "success" })}>
-                <LinkIcon className="w-4 h-4 mr-2" /> Share report
-              </Button>
-              <Button variant="outline">Close</Button>
-            </div>
-          </CardFooter>
-        </Card>
+          </div>
+
+          {/* Footer CTAs */}
+          <div className="mt-5 pt-4 border-t border-white/5 flex gap-3">
+            <Button
+              onClick={() => toast({ title: "Report Shared", description: "Telemetry dossier link saved to clipboard.", type: "success" })}
+              className="bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-500 hover:to-cyan-500 text-white shadow-lg shadow-cyan-500/20"
+            >
+              <LinkIcon className="w-4 h-4 mr-2" /> Share Telemetry Dossier
+            </Button>
+            <Button variant="outline" onClick={() => navigate("/scan")}>
+              Scan Another URL
+            </Button>
+          </div>
+        </div>
       </div>
     </div>
   );
