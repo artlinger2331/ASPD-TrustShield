@@ -11,6 +11,14 @@ class Settings(BaseSettings):
     # Database & Cache
     DATABASE_URL: str = "postgresql://trustshield:trustshield@localhost:5432/trustshield"
     REDIS_URL: str = "redis://localhost:6379/0"
+    REDIS_CACHE_ENABLED: bool = True
+    DOMAIN_INTEL_CACHE_TTL: int = 86400  # 24 hours
+    DNS_ANALYSIS_CACHE_TTL: int = 3600    # 1 hour
+
+    # Domain & DNS Intelligence Providers
+    WHOIS_PROVIDER: str = "rdap"         # 'rdap', 'whois', or 'mock'
+    WHOIS_TIMEOUT: float = 3.5
+    DNS_TIMEOUT: float = 2.0
 
     # Security & Tokens
     JWT_SECRET_KEY: str = "change-this-secret"
