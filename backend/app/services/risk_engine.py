@@ -50,7 +50,7 @@ def evaluate_risk(
     content_findings = [f for f in findings if f.category in CONTENT_CATEGORIES]
     domain_findings = [f for f in findings if f.category in ("domain_infrastructure", "dns_security", "url_heuristics", "url_syntax")]
     cert_findings = [f for f in findings if f.category == "tls_certificate"]
-    header_findings = [f for f in findings if f.category == "security_headers"]
+    header_findings = [f for f in findings if f.category in ("security_headers", "web_security")]
     ml_findings = [f for f in findings if f.category == "ml_classifier"]
 
     # 1. Threat Intel Layer

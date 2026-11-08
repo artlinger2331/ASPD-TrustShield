@@ -167,7 +167,7 @@ def analyze_web_security(
         )
         findings.append(
             ContentFindingSchema(
-                category="web_security",
+                category="security_headers",
                 title="Missing HTTP to HTTPS Redirection (Plain HTTP)",
                 severity="high",
                 confidence=0.98,
