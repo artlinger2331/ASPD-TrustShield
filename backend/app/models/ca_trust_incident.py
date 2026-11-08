@@ -52,3 +52,4 @@ class CATrustIncident(Base):
 
     def __repr__(self) -> str:
         return f"<CATrustIncident id={self.id} ca_name={self.ca_name} incident_type={self.incident_type}>"
+

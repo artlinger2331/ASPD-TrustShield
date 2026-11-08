@@ -312,3 +312,4 @@ def get_all_distrusted_and_incident_cas() -> List[Dict[str, Any]]:
             "advisory_url": v["advisory"],
         })
     return records
+

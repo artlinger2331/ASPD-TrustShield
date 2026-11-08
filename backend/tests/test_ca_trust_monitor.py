@@ -168,3 +168,4 @@ def test_get_all_distrusted_and_incident_cas():
     assert any("WoSign" in name for name in ca_names)
     assert any("DigiNotar" in name for name in ca_names)
     assert any("TrustCor" in name for name in ca_names)
+
