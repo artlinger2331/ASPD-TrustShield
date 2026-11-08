@@ -176,7 +176,8 @@ export default function App() {
   return (
     <AuthProvider>
       <ToastProvider>
-        <Routes>
+        <ErrorBoundary>
+          <Routes>
           {/* Public standalone pages */}
           <Route path="/" element={<Landing />} />
           <Route path="/login" element={<Login />} />
@@ -204,7 +205,8 @@ export default function App() {
           {/* Fallback */}
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
-      </ToastProvider>
+      </ErrorBoundary>
+    </ToastProvider>
     </AuthProvider>
   );
 }
