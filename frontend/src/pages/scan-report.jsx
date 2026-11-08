@@ -299,10 +299,57 @@ export default function ScanReport() {
                     </button>
                   </div>
                   <p className="text-sm text-slate-300 leading-relaxed">{finding.description}</p>
-                  {(isExpanded(finding.id) || isExpanded("all")) && finding.recommendation && (
-                    <div className="mt-3 p-3 rounded-lg bg-white/5 border border-white/5">
-                      <div className="text-xs font-semibold text-slate-400 mb-1 uppercase">Remediation</div>
-                      <p className="text-xs text-slate-300">{finding.recommendation}</p>
+                  {(isExpanded(finding.id) || isExpanded("all")) && (
+                    <div className="mt-3 space-y-2">
+                      {finding.evidence && Object.keys(finding.evidence).length > 0 && (
+                        <div className="p-3 rounded-lg bg-black/40 border border-white/5 font-mono text-xs">
+                          <div className="text-[10px] font-semibold text-cyan-400 mb-1.5 uppercase tracking-wider">
+                            Captured Forensic Evidence
+                          </div>
+                          {finding.evidence.input_fields && (
+                            <div className="mb-1 text-slate-300">
+                              <span className="text-slate-500">Harvested Fields: </span>
+                              <span className="text-amber-300 font-semibold">{finding.evidence.input_fields.join(", ")}</span>
+                            </div>
+                          )}
+                          {finding.evidence.claimed_brand && (
+                            <div className="mb-1 text-slate-300">
+                              <span className="text-slate-500">Impersonated Brand: </span>
+                              <span className="text-red-400 font-bold">{finding.evidence.claimed_brand}</span>
+                              <span className="text-slate-500"> (Actual Host: {finding.evidence.actual_domain})</span>
+                            </div>
+                          )}
+                          {finding.evidence.matched_phrase && (
+                            <div className="mb-1 text-slate-300">
+                              <span className="text-slate-500">Social Engineering Phrase: </span>
+                              <span className="text-red-300 italic">"{finding.evidence.matched_phrase}"</span>
+                            </div>
+                          )}
+                          {finding.evidence.button_text && (
+                            <div className="mb-1 text-slate-300">
+                              <span className="text-slate-500">Deceptive Action Button: </span>
+                              <span className="text-orange-300 font-bold">"{finding.evidence.button_text}"</span>
+                            </div>
+                          )}
+                          {finding.evidence.script_src && (
+                            <div className="mb-1 text-slate-300 break-all">
+                              <span className="text-slate-500">Suspicious Script Source: </span>
+                              <span className="text-red-400">{finding.evidence.script_src}</span>
+                            </div>
+                          )}
+                          {finding.evidence.detector_type && (
+                            <div className="text-[10px] text-slate-500 mt-1 border-t border-white/5 pt-1">
+                              Vector Type: {finding.evidence.detector_type} &bull; Risk Points: +{finding.risk_points || 0} pts
+                            </div>
+                          )}
+                        </div>
+                      )}
+                      {finding.recommendation && (
+                        <div className="p-3 rounded-lg bg-white/5 border border-white/5">
+                          <div className="text-xs font-semibold text-slate-400 mb-1 uppercase">Remediation</div>
+                          <p className="text-xs text-slate-300">{finding.recommendation}</p>
+                        </div>
+                      )}
                     </div>
                   )}
                 </Card>
