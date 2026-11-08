@@ -1,11 +1,26 @@
-import { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { Search, Clipboard, Copy, AlertTriangle, ShieldAlert, Link as LinkIcon, RefreshCw } from "lucide-react";
-import { ProgressStepper } from "@/components/ui/progress-stepper";
+import {
+  Search,
+  Clipboard,
+  Copy,
+  AlertTriangle,
+  ShieldAlert,
+  ShieldCheck,
+  CheckCircle,
+  ExternalLink,
+  Zap,
+  Terminal,
+  RotateCw,
+  X,
+  Radio,
+  FileText,
+  Activity,
+  ArrowRight,
+} from "lucide-react";
+import { ThreeDLayerStack } from "@/components/ui/three-d-layer-stack";
 import { RiskGauge } from "@/components/ui/gauge";
-import { Button } from "@/components/ui/button";
-import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@/components/ui/card";
-import { VerdictBadge, SeverityBadge } from "@/components/ui/badge";
+import { VerdictBadge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/useAuth";
 import { cn } from "@/utils/cn";
 import { verdictLabel, riskColor, shortenUrl } from "@/utils/formatters";
@@ -19,8 +34,10 @@ export default function UrlScan() {
   const [url, setUrl] = useState(searchParams.get("url") || "");
   const [scanning, setScanning] = useState(false);
   const [activeStep, setActiveStep] = useState(0);
+  const [logs, setLogs] = useState([]);
   const [result, setResult] = useState(null);
   const [completed, setCompleted] = useState(false);
+  const terminalBottomRef = useRef(null);
 
   useEffect(() => {
     const paramUrl = searchParams.get("url");
@@ -29,7 +46,11 @@ export default function UrlScan() {
     }
   }, [searchParams]);
 
-  const STEPS = 7;
+  useEffect(() => {
+    if (terminalBottomRef.current) {
+      terminalBottomRef.current.scrollIntoView({ behavior: "smooth" });
+    }
+  }, [logs]);
 
   const handleScan = async () => {
     if (!url.trim()) return;
@@ -91,148 +112,399 @@ export default function UrlScan() {
   const handleClipboard = async () => {
     try {
       const text = await navigator.clipboard.readText();
-      setUrl(text);
-      toast({ title: "Pasted from clipboard", description: "URL ready to scan", type: "info" });
+      if (text) {
+        setUrl(text);
+        toast({ title: "Pasted from clipboard", description: text, type: "info" });
+      }
     } catch {
       toast({ title: "Clipboard access denied", type: "error" });
     }
   };
 
-  const scoreColor = result ? riskColor(result.score) : "text-slate-500";
+  const handleClear = () => {
+    setUrl("");
+    setLogs([]);
+    setResult(null);
+    setCompleted(false);
+    setActiveStep(0);
+  };
 
   return (
-    <div className="min-h-screen flex flex-col">
-      <div className="flex-1 overflow-y-auto py-8 px-4 sm:px-6 lg:px-8 max-w-4xl mx-auto">
-        <div className="max-w-2xl mx-auto mb-8">
-          <div className="flex items-center gap-2 mb-2">
-            <div className="w-2 h-2 rounded-full bg-blue-500" />
-            <h2 className="text-lg font-semibold text-slate-200">URL Scanner</h2>
+    <div className="w-full space-y-6 max-w-7xl mx-auto pb-12">
+      {/* Page Title & Status Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2 border-b border-white/5">
+        <div>
+          <div className="flex items-center gap-2 mb-1">
+            <span className="w-2 h-2 rounded-full bg-cyan-400 animate-pulse shadow-[0_0_8px_#22d3ee]" />
+            <span className="text-xs font-mono tracking-widest uppercase text-cyan-400">
+              Autonomous Threat Interceptor
+            </span>
           </div>
-          <p className="text-sm text-slate-500">Paste a website address to check if it's safe.</p>
+          <h1 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">
+            Deep URL Forensics Console
+          </h1>
+          <p className="text-sm text-slate-400 mt-1">
+            Inspect hostile homographs, evasive redirects, short-lived SSL certs, and DOM credential harvesters.
+          </p>
         </div>
 
-        <Card className="mx-auto max-w-xl">
-          <CardContent className="pt-0">
-            <div className="relative">
-              <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
-              <input
-                type="url"
-                placeholder="https://example.com"
-                value={url}
-                onChange={(e) => setUrl(e.target.value)}
-                disabled={scanning}
-                className="w-full rounded-xl border border-white/10 bg-white/5 pl-10 pr-10 py-3.5 text-sm text-slate-200 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500/50 disabled:opacity-50"
-              />
-              <div className="absolute right-2 top-1/2 -translate-y-1/2 flex gap-1">
-                <button
-                  onClick={handleClipboard}
-                  disabled={scanning}
-                  className="p-2 rounded-lg text-slate-400 hover:bg-white/10 hover:text-slate-300 transition-colors disabled:opacity-50"
-                  aria-label="Paste from clipboard"
-                  title="Paste from clipboard"
-                >
-                  <Clipboard className="w-4 h-4" />
-                </button>
-                <button
-                  onClick={handleScan}
-                  disabled={scanning || !url}
-                  className="ml-1 px-3.5 py-2.5 rounded-xl bg-blue-600 text-white text-sm font-semibold hover:bg-blue-500 disabled:opacity-60 disabled:cursor-not-allowed transition-colors"
-                >
-                  {scanning ? "Scanning…" : "Scan website"}
-                </button>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        {scanning || completed ? (
-          <div className="mt-8 max-w-lg mx-auto">
-            {scanning ? (
-              <ProgressStepper activeStep={activeStep} />
-            ) : (
-              <div className="flex items-center gap-2 text-emerald-400 text-sm font-medium mb-4">
-                <svg className="w-4 h-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
-                </svg>
-                Scan complete — view results below
-              </div>
-            )}
+        <div className="flex items-center gap-2 self-start sm:self-center font-mono text-xs">
+          <div className="px-3 py-1.5 rounded-xl border border-cyan-500/20 bg-cyan-500/10 text-cyan-300 flex items-center gap-2">
+            <Radio className="w-3.5 h-3.5 animate-pulse text-cyan-400" />
+            <span>RADAR: ONLINE</span>
           </div>
-        ) : null}
+          <div className="px-3 py-1.5 rounded-xl border border-white/10 bg-white/5 text-slate-300 flex items-center gap-1.5">
+            <Activity className="w-3.5 h-3.5 text-emerald-400" />
+            <span>0-DAY ENGINE</span>
+          </div>
+        </div>
+      </div>
 
-        {result && (
-          <div className="mt-8 max-w-lg mx-auto space-y-4">
-            <div
-              className={cn(
-                "rounded-2xl p-6 border flex items-start gap-4",
-                result.verdict === "dangerous"
-                  ? "bg-red-500/5 border-red-500/20"
-                  : result.verdict === "high-risk"
-                  ? "bg-orange-500/5 border-orange-500/20"
-                  : result.verdict === "suspicious"
-                  ? "bg-amber-500/5 border-amber-500/20"
-                  : "bg-emerald-500/5 border-emerald-500/20"
-              )}
-            >
-              <div className="flex-shrink-0 w-10 h-10 rounded-xl flex items-center justify-center">
-                {result.verdict === "dangerous" ? (
-                  <ShieldAlert className="w-5 h-5 text-red-400 bg-red-500/10" />
-                ) : result.verdict === "high-risk" ? (
-                  <AlertTriangle className="w-5 h-5 text-orange-400 bg-orange-500/10" />
-                ) : result.verdict === "suspicious" ? (
-                  <AlertTriangle className="w-5 h-5 text-amber-400 bg-amber-500/10" />
-                ) : (
-                  <ShieldAlert className="w-5 h-5 text-emerald-400 bg-emerald-500/10" />
+      {/* Main Grid: Left Column (Command Deck & Terminal) | Right Column (3D Layer Stack & Risk HUD) */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+        {/* LEFT COLUMN: URL Inspector & Real-time Terminal (7 cols) */}
+        <div className="lg:col-span-7 space-y-5">
+          {/* High-Tech Cyber URL Bar Card */}
+          <div className="relative rounded-2xl border border-cyan-500/30 bg-navy-800/80 backdrop-blur-xl p-4 sm:p-5 shadow-2xl overflow-hidden">
+            <div className="absolute top-0 right-0 w-48 h-48 bg-cyan-500/10 rounded-full blur-3xl pointer-events-none" />
+
+            {/* Terminal Window Header Bar */}
+            <div className="flex items-center justify-between mb-3 pb-2 border-b border-white/5 text-xs text-slate-400 font-mono">
+              <div className="flex items-center gap-2">
+                <span className="w-2.5 h-2.5 rounded-full bg-red-500/80 inline-block" />
+                <span className="w-2.5 h-2.5 rounded-full bg-amber-500/80 inline-block" />
+                <span className="w-2.5 h-2.5 rounded-full bg-emerald-500/80 inline-block" />
+                <span className="ml-2 text-slate-300 font-medium">INSPECTION_TARGET // SEC_INPUT</span>
+              </div>
+              <span className="text-[11px] text-cyan-400 hidden sm:inline-block">
+                TLS 1.3 / HTTP 2.0 PROTOCOL
+              </span>
+            </div>
+
+            {/* Input Element with Responsive Wrapped Buttons */}
+            <div className="relative flex flex-col sm:flex-row items-stretch sm:items-center gap-2 p-1.5 sm:p-2 rounded-xl bg-slate-950/70 border border-white/10 focus-within:border-cyan-400 focus-within:shadow-[0_0_20px_rgba(34,211,238,0.2)] transition-all">
+              <div className="flex items-center flex-1 min-w-0 px-2 py-1">
+                <Search className="w-4 h-4 text-cyan-400 shrink-0 mr-2.5" />
+                <input
+                  type="url"
+                  placeholder="https://domain-to-inspect.com/path"
+                  value={url}
+                  onChange={(e) => setUrl(e.target.value)}
+                  onKeyDown={(e) => e.key === "Enter" && !scanning && handleScan()}
+                  disabled={scanning}
+                  className="w-full bg-transparent text-sm text-slate-100 placeholder-slate-500 focus:outline-none font-mono py-1.5"
+                />
+                {url && !scanning && (
+                  <button
+                    onClick={handleClear}
+                    className="p-1 text-slate-400 hover:text-slate-200 transition-colors ml-1"
+                    title="Clear input"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
                 )}
               </div>
-              <div className="flex-1">
-                <div className="flex items-center gap-2 mb-1">
-                  <VerdictBadge verdict={result.verdict} />
-                  <span className="text-xs text-slate-500">Confidence: {result.confidence}</span>
-                </div>
-                <p className="text-sm font-semibold text-slate-200">{result.verdictLabel}</p>
+
+              {/* Action Buttons: Cleanly integrated without any text clipping */}
+              <div className="flex items-center gap-1.5 shrink-0 pt-1 sm:pt-0 border-t sm:border-t-0 border-white/5">
+                <button
+                  type="button"
+                  onClick={handleClipboard}
+                  disabled={scanning}
+                  className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg bg-white/5 hover:bg-white/10 text-slate-300 text-xs font-mono font-medium border border-white/10 transition-colors disabled:opacity-50"
+                  title="Paste from clipboard"
+                >
+                  <Clipboard className="w-3.5 h-3.5 text-cyan-400" />
+                  <span>Paste</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={handleScan}
+                  disabled={scanning || !url}
+                  className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 py-2 rounded-lg bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white text-xs font-semibold shadow-lg shadow-cyan-500/25 transition-all disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                >
+                  {scanning ? (
+                    <>
+                      <RotateCw className="w-3.5 h-3.5 animate-spin" />
+                      <span>Inspecting...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Zap className="w-3.5 h-3.5 fill-current" />
+                      <span>Inspect Target</span>
+                    </>
+                  )}
+                </button>
               </div>
             </div>
 
-            <RiskGauge score={result.score} size={200} className="mx-auto" />
+            {/* Preset Target Quick-Pills */}
+            <div className="mt-3.5 pt-3 border-t border-white/5">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-[11px] font-mono uppercase text-slate-400">
+                  Quick Attack Vectors:
+                </span>
+                <span className="text-[10px] text-slate-500">Click to autofill</span>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {QUICK_PRESETS.map((p, idx) => (
+                  <button
+                    key={idx}
+                    type="button"
+                    onClick={() => {
+                      setUrl(p.url);
+                    }}
+                    disabled={scanning}
+                    className={cn(
+                      "px-2.5 py-1 rounded-lg text-xs font-mono border transition-all text-left flex items-center gap-1.5 hover:scale-[1.02]",
+                      p.color
+                    )}
+                  >
+                    <span>{p.label}</span>
+                    <span className="text-[10px] opacity-70">({p.risk})</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
 
-            <Card className="mt-6">
-              <CardHeader>
-                <CardTitle className="text-sm">Recommendation</CardTitle>
-                <CardDescription>
-                  Plain-language guidance for non-technical users.
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <p className="text-sm text-slate-200">{result.recommendedAction}</p>
-              </CardContent>
-              <CardContent className="mt-4 flex gap-2">
-                <Button
-                  variant="outline"
-                  onClick={() => navigate(`/report/${result.id || "scan"}`)}
-                  className="flex-1"
-                >
-                  View full report
-                </Button>
+          {/* Real-Time Cyber Terminal Output Stream */}
+          <div className="rounded-2xl border border-white/10 bg-slate-950/90 backdrop-blur-xl shadow-2xl overflow-hidden flex flex-col font-mono text-xs">
+            {/* Terminal Top Bar */}
+            <div className="bg-slate-900/90 px-4 py-2.5 border-b border-white/10 flex items-center justify-between text-slate-400">
+              <div className="flex items-center gap-2">
+                <Terminal className="w-3.5 h-3.5 text-cyan-400" />
+                <span className="text-slate-200 font-semibold text-[11px] tracking-wide">
+                  LIVE TELEMETRY STREAM
+                </span>
+                <span className="text-[10px] text-slate-500 hidden sm:inline">
+                  (/dev/sec_telemetry.sock)
+                </span>
+              </div>
+
+              <div className="flex items-center gap-2">
+                {scanning && (
+                  <span className="flex items-center gap-1 text-[10px] text-cyan-400 animate-pulse">
+                    <span className="w-1.5 h-1.5 rounded-full bg-cyan-400" />
+                    STREAMING
+                  </span>
+                )}
+                {completed && (
+                  <span className="flex items-center gap-1 text-[10px] text-emerald-400">
+                    <CheckCircle className="w-3 h-3" /> PIPELINE_DONE
+                  </span>
+                )}
+                {!scanning && !completed && (
+                  <span className="text-[10px] text-slate-500">IDLE</span>
+                )}
+              </div>
+            </div>
+
+            {/* Terminal Console Body */}
+            <div className="p-4 h-[240px] sm:h-[260px] overflow-y-auto space-y-2 select-text scrollbar-thin scrollbar-thumb-white/10">
+              {logs.length === 0 ? (
+                <div className="h-full flex flex-col items-center justify-center text-center text-slate-600 space-y-2">
+                  <Terminal className="w-8 h-8 opacity-40 text-cyan-500" />
+                  <p className="text-xs text-slate-400">
+                    Waiting for target URL to initialize diagnostic probe.
+                  </p>
+                  <p className="text-[11px] text-slate-600">
+                    Paste a link above or select a quick attack vector to begin telemetry capture.
+                  </p>
+                </div>
+              ) : (
+                <>
+                  {logs.map((log, i) => (
+                    <div
+                      key={i}
+                      className={cn(
+                        "leading-relaxed flex items-start gap-2",
+                        log.level === "warn"
+                          ? "text-amber-300"
+                          : log.level === "error"
+                          ? "text-red-400"
+                          : "text-slate-300"
+                      )}
+                    >
+                      <span className="text-slate-600 shrink-0 select-none">[{log.timestamp}]</span>
+                      <span
+                        className={cn(
+                          "px-1.5 py-0.2 rounded text-[10px] font-bold shrink-0",
+                          log.tag === "SCORE_SYNTHESIS"
+                            ? "bg-red-500/20 text-red-400 border border-red-500/30"
+                            : "bg-cyan-500/10 text-cyan-300 border border-cyan-500/20"
+                        )}
+                      >
+                        {log.tag}
+                      </span>
+                      <span className="flex-1 break-all">{log.text}</span>
+                    </div>
+                  ))}
+                  {scanning && (
+                    <div className="flex items-center gap-1 text-cyan-400 text-xs animate-pulse">
+                      <span>&gt; Processing next neural layer</span>
+                      <span className="w-2 h-3 bg-cyan-400 inline-block ml-1" />
+                    </div>
+                  )}
+                  <div ref={terminalBottomRef} />
+                </>
+              )}
+            </div>
+
+            {/* Terminal Footer */}
+            <div className="bg-slate-900/60 px-4 py-2 border-t border-white/5 flex items-center justify-between text-[11px] text-slate-500">
+              <span>Encrypted pipe // Zero data persistence</span>
+              <span>7 Diagnostic Stages</span>
+            </div>
+          </div>
+        </div>
+
+        {/* RIGHT COLUMN: 3D Isometric Layer Stack & Risk Assessment (5 cols) */}
+        <div className="lg:col-span-5 space-y-5">
+          {/* 3D Isometric Layer Stack Component */}
+          <ThreeDLayerStack
+            activeStep={activeStep}
+            isScanning={scanning}
+            isCompleted={completed}
+            result={result}
+          />
+
+          {/* Assessment / Score HUD Card */}
+          {result ? (
+            <div
+              className={cn(
+                "rounded-2xl border p-5 sm:p-6 backdrop-blur-xl shadow-2xl transition-all duration-300",
+                result.verdict === "dangerous"
+                  ? "bg-red-950/40 border-red-500/40 shadow-red-500/10"
+                  : result.verdict === "high-risk"
+                  ? "bg-orange-950/40 border-orange-500/40 shadow-orange-500/10"
+                  : result.verdict === "suspicious"
+                  ? "bg-amber-950/40 border-amber-500/40 shadow-amber-500/10"
+                  : "bg-emerald-950/40 border-emerald-500/40 shadow-emerald-500/10"
+              )}
+            >
+              {/* Verdict Header */}
+              <div className="flex items-start justify-between gap-3 mb-4 pb-3 border-b border-white/10">
+                <div className="flex items-center gap-3">
+                  <div
+                    className={cn(
+                      "w-10 h-10 rounded-xl flex items-center justify-center border shadow-inner",
+                      result.verdict === "dangerous"
+                        ? "bg-red-500/20 text-red-400 border-red-500/40"
+                        : "bg-emerald-500/20 text-emerald-400 border-emerald-500/40"
+                    )}
+                  >
+                    {result.verdict === "dangerous" ? (
+                      <ShieldAlert className="w-5 h-5" />
+                    ) : (
+                      <ShieldCheck className="w-5 h-5" />
+                    )}
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <VerdictBadge verdict={result.verdict} />
+                      <span className="text-[11px] font-mono text-slate-400">
+                        Confidence: {result.confidence}
+                      </span>
+                    </div>
+                    <h3 className="text-base font-bold text-white mt-1">
+                      {result.verdictLabel}
+                    </h3>
+                  </div>
+                </div>
+              </div>
+
+              {/* Risk Gauge Visual */}
+              <div className="my-2 flex justify-center">
+                <RiskGauge score={result.score} size={190} />
+              </div>
+
+              {/* Primary Reason / Recommendation */}
+              <div className="space-y-3 mt-4 pt-3 border-t border-white/10 text-xs">
+                <div>
+                  <span className="font-mono uppercase text-slate-400 text-[11px] block mb-1">
+                    Threat Breakdown:
+                  </span>
+                  <p className="text-slate-200 leading-relaxed bg-black/20 p-2.5 rounded-xl border border-white/5">
+                    {result.mainReason}
+                  </p>
+                </div>
+
+                <div>
+                  <span className="font-mono uppercase text-slate-400 text-[11px] block mb-1">
+                    Recommended Action:
+                  </span>
+                  <p
+                    className={cn(
+                      "font-medium leading-relaxed p-2.5 rounded-xl border",
+                      result.verdict === "dangerous"
+                        ? "bg-red-500/10 border-red-500/30 text-red-200"
+                        : "bg-emerald-500/10 border-emerald-500/30 text-emerald-200"
+                    )}
+                  >
+                    {result.recommendedAction}
+                  </p>
+                </div>
+              </div>
+
+              {/* Action Buttons */}
+              <div className="mt-5 pt-3 border-t border-white/10 flex flex-col sm:flex-row gap-2">
                 <button
+                  type="button"
+                  onClick={() => navigate(`/report/scan`)}
+                  className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-500 hover:to-cyan-500 text-white text-xs font-semibold shadow-lg shadow-cyan-500/20 transition-all cursor-pointer"
+                >
+                  <FileText className="w-3.5 h-3.5" />
+                  <span>View Full Forensics Report</span>
+                  <ArrowRight className="w-3 h-3" />
+                </button>
+
+                <button
+                  type="button"
                   onClick={() => {
                     navigator.clipboard.writeText(window.location.href);
-                    toast({ title: "Report link copied", type: "success" });
+                    toast({ title: "Report Link Copied", description: "Shareable dossier link saved to clipboard.", type: "success" });
                   }}
-                  className="flex-1 bg-white/5 text-slate-300 hover:bg-white/10 text-sm font-semibold px-4 py-2.5 rounded-xl transition-colors"
+                  className="px-3 py-2.5 rounded-xl bg-white/5 hover:bg-white/10 text-slate-300 text-xs font-medium border border-white/10 transition-colors flex items-center justify-center gap-1.5"
+                  title="Copy report link"
                 >
-                  <Copy className="w-4 h-4 mr-2" /> Copy report link
+                  <Copy className="w-3.5 h-3.5 text-cyan-400" />
+                  <span>Share</span>
                 </button>
-              </CardContent>
-            </Card>
-          </div>
-        )}
+              </div>
+            </div>
+          ) : (
+            /* Standby Sensors Card */
+            <div className="rounded-2xl border border-white/10 bg-navy-800/60 backdrop-blur-xl p-5 shadow-xl space-y-3">
+              <div className="flex items-center justify-between text-xs pb-2 border-b border-white/5">
+                <span className="font-mono text-slate-400 uppercase">Sensory Array Telemetry</span>
+                <span className="text-[11px] font-mono text-emerald-400 flex items-center gap-1">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" /> ACTIVE
+                </span>
+              </div>
 
-        {!scanning && !completed && result === null && (
-          <div className="mt-12 text-center text-slate-500 text-sm">
-            Enter a URL above to begin scanning.
-          </div>
-        )}
+              <div className="space-y-2 text-xs">
+                <div className="flex items-center justify-between p-2 rounded-lg bg-white/[0.03] border border-white/5">
+                  <span className="text-slate-300">Punycode & Homoglyph Engine</span>
+                  <span className="font-mono text-[10px] text-cyan-400">READY</span>
+                </div>
+                <div className="flex items-center justify-between p-2 rounded-lg bg-white/[0.03] border border-white/5">
+                  <span className="text-slate-300">X.509 SSL Certificate Chain Auditor</span>
+                  <span className="font-mono text-[10px] text-cyan-400">READY</span>
+                </div>
+                <div className="flex items-center justify-between p-2 rounded-lg bg-white/[0.03] border border-white/5">
+                  <span className="text-slate-300">Evasive Redirect & HSTS Tracer</span>
+                  <span className="font-mono text-[10px] text-cyan-400">READY</span>
+                </div>
+                <div className="flex items-center justify-between p-2 rounded-lg bg-white/[0.03] border border-white/5">
+                  <span className="text-slate-300">Decentralized Threat Intelligence Sync</span>
+                  <span className="font-mono text-[10px] text-emerald-400">LIVE (80+ NODES)</span>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );

@@ -1,18 +1,20 @@
 import { useState, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import { Percent, Hash, Info, CheckCircle2, AlertTriangle, ShieldAlert } from "lucide-react";
 
 export function ThreeDBarChart({
   data = [],
   title = "Risk-Score Distribution",
   subtitle = "Target URLs categorized by heuristic risk range",
-  height = 280,
+  height = 300,
 }) {
   const containerRef = useRef(null);
-  const [tilt, setTilt] = useState({ x: 10, y: -6 });
+  const [tilt, setTilt] = useState({ x: 12, y: -6 });
   const [hoveredIdx, setHoveredIdx] = useState(null);
-  const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
+  const [selectedIdx, setSelectedIdx] = useState(0); // Default to first (Safe) so HUD is always filled
+  const [viewMode, setViewMode] = useState("count"); // "count" | "percent"
 
-  const total = data.reduce((acc, curr) => acc + curr.count, 0);
+  const total = data.reduce((acc, curr) => acc + curr.count, 0) || 1;
   const maxCount = Math.max(...data.map((d) => d.count), 1);
 
   const handleMouseMove = (e) => {
@@ -20,12 +22,11 @@ export function ThreeDBarChart({
     const rect = containerRef.current.getBoundingClientRect();
     const x = (e.clientX - rect.left) / rect.width - 0.5;
     const y = (e.clientY - rect.top) / rect.height - 0.5;
-    setTilt({ x: -y * 22 + 8, y: x * 22 - 4 });
-    setMousePos({ x: e.clientX - rect.left, y: e.clientY - rect.top });
+    setTilt({ x: -y * 20 + 8, y: x * 20 - 4 });
   };
 
   const handleMouseLeave = () => {
-    setTilt({ x: 10, y: -6 });
+    setTilt({ x: 12, y: -6 });
     setHoveredIdx(null);
   };
 
@@ -36,9 +37,10 @@ export function ThreeDBarChart({
       color: "#10b981",
       topColor: "#34d399",
       sideColor: "#059669",
-      glowColor: "rgba(16, 185, 129, 0.45)",
+      glowColor: "rgba(16, 185, 129, 0.5)",
       bgGradient: "from-emerald-500/20 to-emerald-950/40",
-      description: "Verified legitimate domains with trusted SSL chains & zero threat signals.",
+      status: "VERIFIED SECURE",
+      description: "Legitimate canonical targets with trusted EV SSL chains and zero deceptive homoglyphs.",
     },
     {
       label: "Suspicious",
@@ -46,9 +48,10 @@ export function ThreeDBarChart({
       color: "#06b6d4",
       topColor: "#67e8f9",
       sideColor: "#0891b2",
-      glowColor: "rgba(6, 182, 212, 0.45)",
+      glowColor: "rgba(6, 182, 212, 0.5)",
       bgGradient: "from-cyan-500/20 to-cyan-950/40",
-      description: "Low-reputation domains with missing security headers or redirect hops.",
+      status: "LOW REPUTATION",
+      description: "Anomalous targets with missing HSTS/CSP headers, recent DNS changes, or open redirects.",
     },
     {
       label: "High Risk",
@@ -56,9 +59,10 @@ export function ThreeDBarChart({
       color: "#f59e0b",
       topColor: "#fbbf24",
       sideColor: "#d97706",
-      glowColor: "rgba(245, 158, 11, 0.45)",
+      glowColor: "rgba(245, 158, 11, 0.5)",
       bgGradient: "from-amber-500/20 to-amber-950/40",
-      description: "Anomalous patterns, short-lived certs (<24h), and credential harvest traps.",
+      status: "POTENTIAL PHISH",
+      description: "Disposable SSL certificates (<24h old), keyword spoofing, or obfuscated login forms.",
     },
     {
       label: "Dangerous",
@@ -66,84 +70,85 @@ export function ThreeDBarChart({
       color: "#ef4444",
       topColor: "#f87171",
       sideColor: "#b91c1c",
-      glowColor: "rgba(239, 68, 68, 0.5)",
+      glowColor: "rgba(239, 68, 68, 0.55)",
       bgGradient: "from-red-500/20 to-red-950/40",
-      description: "Confirmed zero-day homograph phishing clones, credential drainers & malware.",
+      status: "CRITICAL THREAT",
+      description: "Active homograph phishing, weaponized credential drainers, or malicious payload hosts.",
     },
   ];
 
+  // Active item determined by hover or selection
+  const activeIdx = hoveredIdx !== null ? hoveredIdx : selectedIdx !== null ? selectedIdx : 0;
+  const activeItem = data[activeIdx] || data[0];
+  const activeTheme = BUCKET_THEMES[activeIdx] || BUCKET_THEMES[0];
+  const activePercent = total > 0 ? ((activeItem.count / total) * 100).toFixed(1) : "0";
+
   // SVG dimensions for 3D Isometric Projection
   const svgWidth = 460;
-  const svgHeight = 220;
-  const baseY = 180;
+  const svgHeight = 210;
+  const baseY = 168;
   const barWidth = 62;
-  const depthX = 18;
-  const depthY = 12;
-  const maxBarH = 125;
+  const depthX = 16;
+  const depthY = 10;
+  const maxBarH = 115;
   const gap = 38;
   const startX = 36;
 
-  const activeItem = hoveredIdx !== null ? data[hoveredIdx] : null;
-  const activeTheme = hoveredIdx !== null ? BUCKET_THEMES[hoveredIdx] : null;
+  const handlePillClick = (idx) => {
+    setSelectedIdx(idx);
+    setHoveredIdx(idx);
+  };
+
+  const toggleViewMode = (mode) => {
+    setViewMode(mode);
+  };
 
   return (
     <div className="flex flex-col w-full select-none">
-      {/* 3D Perspective Stage Container */}
+      
+      {/* Top Interactive Mode Toggle Strip */}
+      <div className="flex items-center justify-between w-full px-2 mb-2 pb-2 border-b border-white/5">
+        <div className="flex items-center gap-2">
+          <span className="text-[11px] font-mono text-slate-400">Display Metric:</span>
+          <div className="flex items-center p-0.5 rounded-lg bg-black/40 border border-white/10">
+            <button
+              onClick={() => toggleViewMode("count")}
+              className={`flex items-center gap-1 px-2.5 py-1 rounded-md text-[10px] font-mono font-bold transition-all cursor-pointer ${
+                viewMode === "count"
+                  ? "bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 shadow-[0_0_10px_rgba(6,182,212,0.3)]"
+                  : "text-slate-400 hover:text-slate-200"
+              }`}
+            >
+              <Hash className="w-3 h-3" />
+              <span>Counts</span>
+            </button>
+            <button
+              onClick={() => toggleViewMode("percent")}
+              className={`flex items-center gap-1 px-2.5 py-1 rounded-md text-[10px] font-mono font-bold transition-all cursor-pointer ${
+                viewMode === "percent"
+                  ? "bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 shadow-[0_0_10px_rgba(6,182,212,0.3)]"
+                  : "text-slate-400 hover:text-slate-200"
+              }`}
+            >
+              <Percent className="w-3 h-3" />
+              <span>Percentage (%)</span>
+            </button>
+          </div>
+        </div>
+
+        <span className="text-[10px] font-mono text-slate-500">
+          Click any bar or pill to isolate
+        </span>
+      </div>
+
+      {/* 3D Perspective Stage Container - completely clear, no tooltip overlay blocking bars! */}
       <div
         ref={containerRef}
         onMouseMove={handleMouseMove}
         onMouseLeave={handleMouseLeave}
-        className="relative w-full flex items-center justify-center cursor-pointer overflow-visible"
-        style={{ height, perspective: 1000 }}
+        className="relative w-full flex items-center justify-center cursor-pointer overflow-visible py-2"
+        style={{ perspective: 1000 }}
       >
-        {/* Floating Cyber Tooltip */}
-        <AnimatePresence>
-          {activeItem && activeTheme && (
-            <motion.div
-              initial={{ opacity: 0, scale: 0.88, y: -8 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.88 }}
-              transition={{ duration: 0.15 }}
-              className="absolute z-50 pointer-events-none p-3.5 rounded-2xl liquid-glass border shadow-2xl backdrop-blur-2xl max-w-xs"
-              style={{
-                left: Math.min(Math.max(mousePos.x - 70, 16), 310),
-                top: Math.max(mousePos.y - 100, 10),
-                borderColor: `${activeTheme.color}88`,
-                boxShadow: `0 12px 30px -4px ${activeTheme.glowColor}`,
-              }}
-            >
-              <div className="flex items-center justify-between gap-3 mb-1">
-                <div className="flex items-center gap-2">
-                  <span
-                    className="w-2.5 h-2.5 rounded-full animate-pulse"
-                    style={{ backgroundColor: activeTheme.color }}
-                  />
-                  <span className="text-xs font-bold text-slate-100 font-mono">
-                    {activeItem.range}
-                  </span>
-                </div>
-                <span
-                  className="text-[10px] font-mono font-bold px-2 py-0.5 rounded uppercase"
-                  style={{ backgroundColor: `${activeTheme.color}25`, color: activeTheme.color }}
-                >
-                  {activeTheme.label}
-                </span>
-              </div>
-
-              <div className="flex items-baseline justify-between gap-4 my-1.5 font-mono">
-                <span className="text-lg font-black text-white">{activeItem.count} URLs</span>
-                <span className="text-xs font-bold" style={{ color: activeTheme.color }}>
-                  {total > 0 ? ((activeItem.count / total) * 100).toFixed(1) : 0}% of scans
-                </span>
-              </div>
-
-              <p className="text-[10px] text-slate-300 leading-relaxed border-t border-white/10 pt-1.5">
-                {activeTheme.description}
-              </p>
-            </motion.div>
-          )}
-        </AnimatePresence>
-
         {/* 3D Isometric Transform Wrapper */}
         <motion.div
           animate={{
@@ -158,84 +163,105 @@ export function ThreeDBarChart({
           }}
           className="relative flex items-center justify-center"
         >
-          {/* Isometric Ground Cyber Grid Platform */}
           <svg
             viewBox={`0 0 ${svgWidth} ${svgHeight}`}
             className="w-full h-auto overflow-visible"
-            style={{ transform: "translateZ(-15px)" }}
+            style={{ transform: "translateZ(-10px)" }}
           >
             <defs>
-              {/* Floor ambient radial glow */}
-              <radialGradient id="floorGlow" cx="50%" cy="50%" r="50%">
-                <stop offset="0%" stopColor="#06b6d4" stopOpacity="0.18" />
-                <stop offset="100%" stopColor="#06b6d4" stopOpacity="0" />
-              </radialGradient>
-
-              {/* Individual Pillar Gradients */}
+              {/* Gradients for Front Faces */}
               {BUCKET_THEMES.map((theme, idx) => (
-                <linearGradient key={`grad-front-${idx}`} id={`grad-front-${idx}`} x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor={theme.topColor} stopOpacity="0.95" />
-                  <stop offset="100%" stopColor={theme.color} stopOpacity="0.8" />
+                <linearGradient key={`bar-front-${idx}`} id={`bar-front-${idx}`} x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor={theme.topColor} stopOpacity="1" />
+                  <stop offset="100%" stopColor={theme.color} stopOpacity="0.85" />
                 </linearGradient>
               ))}
 
+              {/* Gradients for Right Side Shadow Extrusions */}
               {BUCKET_THEMES.map((theme, idx) => (
-                <linearGradient key={`grad-side-${idx}`} id={`grad-side-${idx}`} x1="0" y1="0" x2="1" y2="1">
+                <linearGradient key={`bar-side-${idx}`} id={`bar-side-${idx}`} x1="0" y1="0" x2="1" y2="1">
                   <stop offset="0%" stopColor={theme.sideColor} stopOpacity="0.95" />
-                  <stop offset="100%" stopColor="#040813" stopOpacity="0.9" />
+                  <stop offset="100%" stopColor="#040711" stopOpacity="0.95" />
                 </linearGradient>
               ))}
             </defs>
 
-            {/* Base Grid Lines */}
+            {/* Base Grid Guidelines */}
             <line x1="20" y1={baseY} x2={svgWidth - 20} y2={baseY} stroke="rgba(255,255,255,0.08)" strokeDasharray="3 3" />
-            <line x1="20 + depthX" y1={baseY - depthY} x2={svgWidth - 20 + depthX} y2={baseY - depthY} stroke="rgba(255,255,255,0.04)" strokeDasharray="3 3" />
+            <line x1={20 + depthX} y1={baseY - depthY} x2={svgWidth - 20 + depthX} y2={baseY - depthY} stroke="rgba(255,255,255,0.04)" strokeDasharray="3 3" />
 
-            {/* 3D Isometric Pillars */}
+            {/* Render Each 3D Isometric Pillar */}
             {data.map((item, idx) => {
               const theme = BUCKET_THEMES[idx % BUCKET_THEMES.length];
+              const isSelected = selectedIdx === idx;
               const isHovered = hoveredIdx === idx;
+              const isActive = isSelected || isHovered;
+
               const x = startX + idx * (barWidth + gap);
 
-              // Calculate volumetric height
-              const rawH = (item.count / maxCount) * maxBarH;
-              const h = Math.max(22, rawH);
-              const topY = baseY - h;
+              // Calculate volumetric height based on current viewMode
+              const fraction = item.count / maxCount;
+              const rawH = fraction * maxBarH;
+              const h = Math.max(26, rawH);
+
+              // Elevation shift when selected/hovered (bounces up in 3D!)
+              const elevation = isActive ? 12 : 0;
+              const currentBaseY = baseY - elevation;
+              const topY = currentBaseY - h;
+
+              // Display string based on viewMode
+              const percentVal = total > 0 ? ((item.count / total) * 100).toFixed(1) : 0;
+              const displayVal = viewMode === "percent" ? `${percentVal}%` : item.count;
 
               return (
                 <g
                   key={idx}
+                  onClick={() => handlePillClick(idx)}
                   onMouseEnter={() => setHoveredIdx(idx)}
-                  className="cursor-pointer transition-all duration-200"
+                  className="cursor-pointer transition-all duration-300"
                   style={{
-                    filter: isHovered
-                      ? `drop-shadow(0 0 15px ${theme.color}) brightness(1.2)`
-                      : `drop-shadow(0 0 4px ${theme.color}66)`,
-                    opacity: hoveredIdx !== null && !isHovered ? 0.45 : 1,
+                    filter: isActive
+                      ? `drop-shadow(0 0 16px ${theme.color}) brightness(1.25)`
+                      : `drop-shadow(0 0 4px ${theme.color}55)`,
+                    opacity: activeIdx !== null && activeIdx !== idx ? 0.45 : 1,
                   }}
                 >
-                  {/* Floor Ambient Glow Shadow */}
+                  {/* Floor Pedestal Glow & Ring */}
                   <ellipse
                     cx={x + barWidth / 2 + depthX / 2}
                     cy={baseY + 4}
-                    rx={barWidth / 2 + 8}
-                    ry={depthY + 4}
+                    rx={barWidth / 2 + (isActive ? 12 : 6)}
+                    ry={depthY + (isActive ? 6 : 3)}
                     fill={theme.glowColor}
-                    className="opacity-70 blur-[3px]"
+                    className={isActive ? "opacity-90 blur-[4px]" : "opacity-40 blur-[2px]"}
                   />
+
+                  {/* Active Pillar Pedestal Ring */}
+                  {isActive && (
+                    <ellipse
+                      cx={x + barWidth / 2 + depthX / 2}
+                      cy={baseY + 4}
+                      rx={barWidth / 2 + 10}
+                      ry={depthY + 4}
+                      fill="none"
+                      stroke={theme.topColor}
+                      strokeWidth="1.5"
+                      strokeDasharray="4 2"
+                    />
+                  )}
 
                   {/* 1. FRONT FACE */}
                   <polygon
                     points={`
                       ${x},${topY}
                       ${x + barWidth},${topY}
-                      ${x + barWidth},${baseY}
-                      ${x},${baseY}
+                      ${x + barWidth},${currentBaseY}
+                      ${x},${currentBaseY}
                     `}
-                    fill={`url(#grad-front-${idx})`}
+                    fill={`url(#bar-front-${idx})`}
                     stroke={theme.topColor}
-                    strokeWidth={isHovered ? 1.5 : 0.8}
-                    strokeOpacity="0.6"
+                    strokeWidth={isActive ? 1.5 : 0.8}
+                    strokeOpacity="0.8"
                   />
 
                   {/* 2. TOP FACE (Isometric Diamond Cap) */}
@@ -248,25 +274,25 @@ export function ThreeDBarChart({
                     `}
                     fill={theme.topColor}
                     stroke="#ffffff"
-                    strokeWidth={isHovered ? 1.5 : 0.8}
-                    strokeOpacity="0.8"
+                    strokeWidth={isActive ? 1.8 : 1}
+                    strokeOpacity="0.9"
                   />
 
-                  {/* 3. RIGHT SIDE FACE (Depth/Shadow extrusion) */}
+                  {/* 3. RIGHT SIDE FACE (Depth Extrusion) */}
                   <polygon
                     points={`
                       ${x + barWidth},${topY}
                       ${x + barWidth + depthX},${topY - depthY}
-                      ${x + barWidth + depthX},${baseY - depthY}
-                      ${x + barWidth},${baseY}
+                      ${x + barWidth + depthX},${currentBaseY - depthY}
+                      ${x + barWidth},${currentBaseY}
                     `}
-                    fill={`url(#grad-side-${idx})`}
+                    fill={`url(#bar-side-${idx})`}
                     stroke={theme.sideColor}
                     strokeWidth={0.8}
                     strokeOpacity="0.6"
                   />
 
-                  {/* Subtle Inner Highlight Lines for Metallic 3D Edge */}
+                  {/* Specular Edge Highlights */}
                   <line
                     x1={x}
                     y1={topY}
@@ -280,46 +306,46 @@ export function ThreeDBarChart({
                     x1={x + barWidth}
                     y1={topY}
                     x2={x + barWidth}
-                    y2={baseY}
+                    y2={currentBaseY}
                     stroke="#ffffff"
-                    strokeWidth="0.8"
-                    strokeOpacity="0.5"
+                    strokeWidth="1"
+                    strokeOpacity="0.6"
                   />
 
-                  {/* Floating Metric Badge Above Pillar */}
-                  <g style={{ transform: isHovered ? "translateY(-6px)" : "translateY(0)", transition: "transform 0.2s" }}>
+                  {/* Floating Metric Badge Above Pillar (Smoothly displays Count or %) */}
+                  <g style={{ transform: isActive ? "translateY(-8px)" : "translateY(0)", transition: "transform 0.25s ease-out" }}>
                     <rect
-                      x={x + barWidth / 2 - 20}
-                      y={topY - depthY - 24}
-                      width="40"
-                      height="18"
-                      rx="6"
-                      fill="#070c18"
-                      stroke={isHovered ? theme.topColor : "rgba(255,255,255,0.15)"}
-                      strokeWidth="1"
+                      x={x + barWidth / 2 - 24}
+                      y={topY - depthY - 26}
+                      width="48"
+                      height="20"
+                      rx="7"
+                      fill="#060b17"
+                      stroke={isActive ? theme.topColor : "rgba(255,255,255,0.2)"}
+                      strokeWidth={isActive ? "1.5" : "1"}
                     />
                     <text
                       x={x + barWidth / 2}
                       y={topY - depthY - 12}
                       textAnchor="middle"
-                      fill="#ffffff"
-                      fontSize="10"
+                      fill={isActive ? "#ffffff" : theme.topColor}
+                      fontSize="10.5"
                       fontWeight="bold"
                       fontFamily="monospace"
                     >
-                      {item.count}
+                      {displayVal}
                     </text>
                   </g>
 
-                  {/* X-Axis Range Label Below */}
+                  {/* X-Axis Range Label Below Ground */}
                   <text
                     x={x + barWidth / 2}
                     y={baseY + 22}
                     textAnchor="middle"
-                    fill={isHovered ? theme.topColor : "#94a3b8"}
+                    fill={isActive ? theme.topColor : "#94a3b8"}
                     fontSize="10"
                     fontFamily="monospace"
-                    fontWeight={isHovered ? "bold" : "normal"}
+                    fontWeight={isActive ? "bold" : "normal"}
                   >
                     {theme.range}
                   </text>
@@ -327,7 +353,7 @@ export function ThreeDBarChart({
                     x={x + barWidth / 2}
                     y={baseY + 34}
                     textAnchor="middle"
-                    fill={isHovered ? "#ffffff" : "#64748b"}
+                    fill={isActive ? "#ffffff" : "#64748b"}
                     fontSize="9"
                     fontFamily="monospace"
                   >
@@ -340,35 +366,88 @@ export function ThreeDBarChart({
         </motion.div>
       </div>
 
-      {/* COMPACT MINI-SUMMARY PILL BAR BELOW */}
-      <div className="flex flex-wrap items-center justify-center gap-1.5 mt-2 pt-3 border-t border-white/5 w-full">
+      {/* ========================================================================= */}
+      {/* DEDICATED TELEMETRY HUD (Guaranteed to NEVER block the 3D bars)            */}
+      {/* ========================================================================= */}
+      <div className="w-full mt-2 p-3 rounded-2xl bg-black/40 border border-white/10 backdrop-blur-md">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-white/5 pb-2 mb-2">
+          <div className="flex items-center gap-2">
+            <span
+              className="w-3 h-3 rounded-full animate-pulse"
+              style={{ backgroundColor: activeTheme.color }}
+            />
+            <span className="text-xs font-bold font-mono text-white">
+              {activeTheme.range} Risk Score: {activeTheme.label}
+            </span>
+            <span
+              className="text-[9px] font-mono font-bold px-2 py-0.5 rounded uppercase"
+              style={{ backgroundColor: `${activeTheme.color}25`, color: activeTheme.color }}
+            >
+              {activeTheme.status}
+            </span>
+          </div>
+
+          <div className="flex items-center gap-3 font-mono text-xs">
+            <span className="text-slate-400">
+              Total Count: <strong className="text-white">{activeItem.count} URLs</strong>
+            </span>
+            <span className="text-slate-600">|</span>
+            <span className="font-bold" style={{ color: activeTheme.color }}>
+              Share: {activePercent}%
+            </span>
+          </div>
+        </div>
+
+        <p className="text-[11px] text-slate-300 leading-relaxed font-mono">
+          {activeTheme.description}
+        </p>
+      </div>
+
+      {/* ========================================================================= */}
+      {/* INTERACTIVE PILL BAR (Clicking updates selected bar & switches view)      */}
+      {/* ========================================================================= */}
+      <div className="flex flex-wrap items-center justify-center gap-1.5 mt-2 pt-2 border-t border-white/5 w-full">
         {data.map((item, idx) => {
           const theme = BUCKET_THEMES[idx % BUCKET_THEMES.length];
-          const isHovered = hoveredIdx === idx;
-          const percent = total > 0 ? Math.round((item.count / total) * 100) : 0;
+          const isSelected = selectedIdx === idx;
+          const percentVal = total > 0 ? ((item.count / total) * 100).toFixed(0) : 0;
 
           return (
             <button
               key={idx}
+              onClick={() => handlePillClick(idx)}
               onMouseEnter={() => setHoveredIdx(idx)}
               onMouseLeave={() => setHoveredIdx(null)}
-              className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11px] font-mono transition-all cursor-pointer border ${
-                isHovered
-                  ? "bg-white/10 border-cyan-400/50 shadow-[0_0_12px_rgba(6,182,212,0.3)] scale-105"
-                  : "bg-white/[0.02] border-white/5 text-slate-400 hover:text-slate-200 hover:bg-white/5"
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[11px] font-mono transition-all cursor-pointer border ${
+                isSelected
+                  ? "bg-white/15 border-cyan-400 text-white shadow-[0_0_15px_rgba(6,182,212,0.4)] scale-105"
+                  : "bg-white/[0.03] border-white/10 text-slate-400 hover:text-slate-200 hover:bg-white/5"
               }`}
             >
               <span
                 className="w-2 h-2 rounded-full shrink-0"
-                style={{ backgroundColor: theme.color, boxShadow: isHovered ? `0 0 8px ${theme.color}` : "none" }}
+                style={{ backgroundColor: theme.color, boxShadow: isSelected ? `0 0 10px ${theme.color}` : "none" }}
               />
               <span className="font-semibold text-slate-200">{theme.label}</span>
               <span className="text-slate-400 font-bold">{item.count}</span>
-              <span className="text-[10px] text-slate-500">({percent}%)</span>
+              <span
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setViewMode("percent");
+                  handlePillClick(idx);
+                }}
+                className={`text-[10px] px-1 py-0.2 rounded font-bold transition-colors hover:text-cyan-300 ${
+                  viewMode === "percent" ? "text-cyan-300 bg-cyan-500/20" : "text-slate-400"
+                }`}
+                title="Click to view percentages"
+              >
+                ({percentVal}%)
+              </span>
             </button>
           );
         })}
       </div>
+
     </div>
   );
 }
