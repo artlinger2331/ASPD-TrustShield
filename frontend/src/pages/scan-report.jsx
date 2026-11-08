@@ -124,7 +124,7 @@ export default function ScanReport() {
         <div className="relative rounded-2xl border border-cyan-500/30 bg-gradient-to-b from-slate-900/95 via-navy-900/90 to-navy-950/95 backdrop-blur-2xl shadow-[0_12px_40px_-8px_rgba(0,0,0,0.7),inset_0_1px_1px_rgba(255,255,255,0.15)] mb-6 p-5 sm:p-6 overflow-hidden">
           {/* Top Specular Edge Highlight */}
           <div className="absolute top-0 left-6 right-6 h-[1px] bg-gradient-to-r from-transparent via-cyan-400/40 to-transparent pointer-events-none" />
-          
+
           {/* Cyber Corner Marks */}
           <div className="absolute top-2.5 left-2.5 w-2 h-2 border-t border-l border-cyan-400/40 pointer-events-none" />
           <div className="absolute top-2.5 right-2.5 w-2 h-2 border-t border-r border-cyan-400/40 pointer-events-none" />
@@ -275,19 +275,19 @@ export default function ScanReport() {
                 sev === "Critical"
                   ? "border-red-500/50 hover:border-red-400 bg-gradient-to-b from-red-950/30 via-slate-900/90 to-navy-950/90 shadow-[0_8px_24px_-4px_rgba(239,68,68,0.3),inset_0_1px_1px_rgba(255,255,255,0.2),inset_0_-2px_4px_rgba(0,0,0,0.6)]"
                   : sev === "High"
-                  ? "border-orange-500/50 hover:border-orange-400 bg-gradient-to-b from-orange-950/25 via-slate-900/90 to-navy-950/90 shadow-[0_8px_24px_-4px_rgba(249,115,22,0.3),inset_0_1px_1px_rgba(255,255,255,0.2),inset_0_-2px_4px_rgba(0,0,0,0.6)]"
-                  : sev === "Medium"
-                  ? "border-amber-500/40 hover:border-amber-400 bg-gradient-to-b from-amber-950/20 via-slate-900/90 to-navy-950/90 shadow-[0_8px_24px_-4px_rgba(245,158,11,0.25),inset_0_1px_1px_rgba(255,255,255,0.18),inset_0_-2px_4px_rgba(0,0,0,0.6)]"
-                  : "border-cyan-500/40 hover:border-cyan-400 bg-gradient-to-b from-cyan-950/20 via-slate-900/90 to-navy-950/90 shadow-[0_8px_24px_-4px_rgba(6,182,212,0.25),inset_0_1px_1px_rgba(255,255,255,0.18),inset_0_-2px_4px_rgba(0,0,0,0.6)]";
+                    ? "border-orange-500/50 hover:border-orange-400 bg-gradient-to-b from-orange-950/25 via-slate-900/90 to-navy-950/90 shadow-[0_8px_24px_-4px_rgba(249,115,22,0.3),inset_0_1px_1px_rgba(255,255,255,0.2),inset_0_-2px_4px_rgba(0,0,0,0.6)]"
+                    : sev === "Medium"
+                      ? "border-amber-500/40 hover:border-amber-400 bg-gradient-to-b from-amber-950/20 via-slate-900/90 to-navy-950/90 shadow-[0_8px_24px_-4px_rgba(245,158,11,0.25),inset_0_1px_1px_rgba(255,255,255,0.18),inset_0_-2px_4px_rgba(0,0,0,0.6)]"
+                      : "border-cyan-500/40 hover:border-cyan-400 bg-gradient-to-b from-cyan-950/20 via-slate-900/90 to-navy-950/90 shadow-[0_8px_24px_-4px_rgba(6,182,212,0.25),inset_0_1px_1px_rgba(255,255,255,0.18),inset_0_-2px_4px_rgba(0,0,0,0.6)]";
 
               const pillarGlow =
                 sev === "Critical"
                   ? "bg-red-500 shadow-[0_0_12px_#ef4444]"
                   : sev === "High"
-                  ? "bg-orange-500 shadow-[0_0_12px_#f97316]"
-                  : sev === "Medium"
-                  ? "bg-amber-500 shadow-[0_0_12px_#f59e0b]"
-                  : "bg-cyan-500 shadow-[0_0_12px_#06b6d4]";
+                    ? "bg-orange-500 shadow-[0_0_12px_#f97316]"
+                    : sev === "Medium"
+                      ? "bg-amber-500 shadow-[0_0_12px_#f59e0b]"
+                      : "bg-cyan-500 shadow-[0_0_12px_#06b6d4]";
 
               return (
                 <div
