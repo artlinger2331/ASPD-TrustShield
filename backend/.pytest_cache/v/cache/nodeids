@@ -1,4 +1,5 @@
 [
+  "tests/test_async_scan_pipeline.py::test_scan_timeout_graceful_handling",
   "tests/test_auth.py::test_get_current_user_me",
   "tests/test_auth.py::test_get_current_user_unauthorized",
   "tests/test_auth.py::test_login_invalid_password",
