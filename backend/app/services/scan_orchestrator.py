@@ -306,18 +306,21 @@ def execute_scan_pipeline_sync(
 
                 # Evaluate preliminary score from partial findings if available
                 if findings or cert or threat_results:
-                    evaluation = evaluate_risk(
-                        findings=findings,
-                        certificate=cert,
-                        threat_intel_results=threat_results,
-                        ml_result=None,
-                        domain=getattr(scan, "normalized_url", None) or "unknown",
-                    )
-                    scan.verdict = evaluation.verdict
-                    scan.risk_score = evaluation.risk_score
-                    scan.confidence = evaluation.confidence
-                    scan.summary = f"Partial scan completed with error: {str(exc)}"
-                    scan.recommendation = evaluation.recommendation
+                    try:
+                        evaluation = evaluate_risk(
+                            findings=findings,
+                            certificate=cert,
+                            threat_intel_results=threat_results,
+                            ml_result=None,
+                            domain=getattr(scan, "normalized_url", None) or "unknown",
+                        )
+                        scan.verdict = evaluation.verdict
+                        scan.risk_score = evaluation.risk_score
+                        scan.confidence = evaluation.confidence
+                        scan.summary = f"Partial scan completed with error: {str(exc)}"
+                        scan.recommendation = evaluation.recommendation
+                    except Exception as eval_err:
+                        logger.warning(f"Preliminary risk evaluation failed: {eval_err}")
 
                 session.commit()
                 return scan
