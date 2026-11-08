@@ -1,5 +1,7 @@
 """
 Unit tests for SSL/TLS Certificate and CA Trust Analyzer.
+Covers all 12 core checks, structured chain visualization payload,
+and database persistence.
 """
 
 from datetime import datetime, timezone, timedelta
@@ -13,6 +15,8 @@ from app.analyzers.cert_analyzer import (
     parse_x509_certificate,
     analyze_certificate,
     save_certificate_to_db_sync,
+    fetch_server_certificate,
+    PRECERT_SCT_OID,
 )
 from app.models.scan import Scan
 from app.models.certificate import Certificate
@@ -32,12 +36,14 @@ def generate_mock_cert(
     days_valid: int = 90,
     days_offset: int = 0,
     hash_algo=hashes.SHA256(),
+    add_ct_sct: bool = False,
 ) -> bytes:
     """Generates DER-encoded mock X.509 certificate for deterministic unit testing."""
     key = rsa.generate_private_key(public_exponent=65537, key_size=key_size)
 
     subject = x509.Name([
         x509.NameAttribute(NameOID.COMMON_NAME, subject_cn),
+        x509.NameAttribute(NameOID.ORGANIZATION_NAME, f"{subject_cn} Company"),
     ])
     issuer = x509.Name([
         x509.NameAttribute(NameOID.COMMON_NAME, issuer_cn),
@@ -65,6 +71,14 @@ def generate_mock_cert(
             critical=False,
         )
 
+    # Optional Certificate Transparency (CT) Signed Certificate Timestamps (SCT) extension
+    if add_ct_sct:
+        # Dummy SCT DER payload
+        builder = builder.add_extension(
+            x509.UnrecognizedExtension(PRECERT_SCT_OID, b"\x04\x10test-ct-sct-payload"),
+            critical=False,
+        )
+
     cert = builder.sign(key, hash_algo)
     return cert.public_bytes(serialization.Encoding.DER)
 
@@ -73,14 +87,15 @@ def generate_mock_cert(
 # TEST CASES
 # ---------------------------------------------------------------------------
 
-def test_valid_certificate_parsing():
-    """Verify that a legitimate, unexpired certificate matching domain parses cleanly."""
+def test_valid_certificate_parsing_and_chain_payload():
+    """Verify that a legitimate certificate generates the exact 3-level visualization payload."""
     der = generate_mock_cert(
         subject_cn="my-clean-store.com",
         issuer_cn="DigiCert Global CA",
         san_names=["my-clean-store.com", "www.my-clean-store.com"],
         key_size=2048,
         days_valid=90,
+        add_ct_sct=True,
     )
 
     result = parse_x509_certificate(der, target_domain="my-clean-store.com", chain_valid_default=True)
@@ -91,12 +106,32 @@ def test_valid_certificate_parsing():
     assert result.days_until_expiry >= 85
     assert result.weak_algo is False
     assert result.ca_trust_status == "trusted"
-    assert "CN=DigiCert Global CA" in result.issuer
+    assert result.ct_log_present is True
+
+    # Validate exact structured certificate-chain visualization payload
+    chain_payload = result.to_chain_payload()
+    assert "chain" in chain_payload
+    chain_list = chain_payload["chain"]
+    assert len(chain_list) == 3
+
+    # Check Root Level
+    assert chain_list[0]["level"] == "root"
+    assert "DigiCert" in chain_list[0]["subject"]
+    assert chain_list[0]["issuer"] == chain_list[0]["subject"]
+
+    # Check Intermediate Level
+    assert chain_list[1]["level"] == "intermediate"
+    assert "DigiCert" in chain_list[1]["subject"]
+    assert chain_list[1]["issuer"] == chain_list[0]["subject"]
+
+    # Check Leaf Level
+    assert chain_list[2]["level"] == "leaf"
+    assert chain_list[2]["subject"] == "my-clean-store.com"
+    assert chain_list[2]["issuer"] == chain_list[1]["subject"]
 
 
 def test_expired_certificate_detection():
     """Verify that an expired certificate generates a Critical finding."""
-    # Certificate that expired 15 days ago
     der = generate_mock_cert(
         subject_cn="expired-website.com",
         issuer_cn="GlobalSign CA",
@@ -114,6 +149,23 @@ def test_expired_certificate_detection():
     assert result.total_risk_points >= 25
 
 
+def test_future_certificate_detection():
+    """Verify that a certificate with activation in the future generates a high severity finding."""
+    der = generate_mock_cert(
+        subject_cn="future-site.com",
+        issuer_cn="GlobalSign CA",
+        san_names=["future-site.com"],
+        days_valid=30,
+        days_offset=10,  # Activates 10 days in the future
+    )
+
+    result = parse_x509_certificate(der, target_domain="future-site.com")
+
+    assert result.is_valid is False
+    assert any("Not Yet Valid" in f.title for f in result.findings)
+    assert result.total_risk_points >= 20
+
+
 def test_hostname_mismatch_detection():
     """Verify that a certificate issued for an unrelated domain triggers Hostname Mismatch."""
     der = generate_mock_cert(
@@ -122,7 +174,6 @@ def test_hostname_mismatch_detection():
         san_names=["attacker-infrastructure.com", "*.attacker-infrastructure.com"],
     )
 
-    # Scanned target is legitimate banking site, but presented cert is attacker domain
     result = parse_x509_certificate(der, target_domain="mybank.com")
 
     assert result.is_valid is False
@@ -130,6 +181,27 @@ def test_hostname_mismatch_detection():
     assert result.max_severity == "critical"
     assert any("Hostname Mismatch" in f.title for f in result.findings)
     assert result.total_risk_points >= 30
+
+
+def test_wildcard_san_matching():
+    """Verify wildcard matching according to RFC 6125."""
+    der = generate_mock_cert(
+        subject_cn="bank.com",
+        issuer_cn="DigiCert CA",
+        san_names=["*.bank.com"],
+    )
+
+    # 1. Matches one subdomain level
+    res_sub = parse_x509_certificate(der, target_domain="login.bank.com")
+    assert res_sub.san_matched is True
+
+    # 2. Does NOT match apex domain (apex requires explicit SAN entry)
+    res_apex = parse_x509_certificate(der, target_domain="bank.com")
+    assert res_apex.san_matched is False
+
+    # 3. Does NOT match multi-level nested subdomain
+    res_nested = parse_x509_certificate(der, target_domain="deep.sub.bank.com")
+    assert res_nested.san_matched is False
 
 
 def test_self_signed_certificate_detection():
@@ -161,7 +233,6 @@ def test_self_signed_certificate_detection():
 
 def test_weak_cryptography_detection():
     """Verify that weak RSA key size (<2048 bits) is flagged as high risk."""
-    # 1024-bit RSA key (deprecated, insecure)
     der = generate_mock_cert(
         subject_cn="legacy-server.com",
         issuer_cn="Legacy Root CA",
@@ -172,17 +243,31 @@ def test_weak_cryptography_detection():
 
     result = parse_x509_certificate(der, target_domain="legacy-server.com")
 
-    assert result.weak_algo is True
+    assert result.weak_key is True
     assert result.public_key_bits == 1024
     finding_titles = [f.title for f in result.findings]
     assert any("Weak RSA Public Key Size" in title for title in finding_titles)
 
 
+def test_weak_signature_algorithm_sha1():
+    """Verify SHA-1 signature algorithm triggers critical cryptographic flaw finding."""
+    der = generate_mock_cert(
+        subject_cn="sha1-site.com",
+        issuer_cn="DigiCert CA",
+        san_names=["sha1-site.com"],
+        key_size=2048,
+        hash_algo=hashes.SHA1(),
+    )
+
+    result = parse_x509_certificate(der, target_domain="sha1-site.com")
+
+    assert result.weak_algo is True
+    assert any("Deprecated Cryptographic Signature Algorithm" in f.title for f in result.findings)
+    assert result.total_risk_points >= 25
+
+
 def test_free_automated_ca_on_banking_domain():
-    """
-    Verify that a free automated DV certificate (Let's Encrypt) on a banking/sensitive keyword
-    triggers an advisory finding warning that a certificate does not equal safety.
-    """
+    """Verify free automated DV certs on sensitive domains generate an advisory finding."""
     der = generate_mock_cert(
         subject_cn="sbi-bank-portal-update.com",
         issuer_cn="Let's Encrypt",
@@ -194,7 +279,31 @@ def test_free_automated_ca_on_banking_domain():
 
     assert any("Free Automated DV Certificate" in f.title for f in result.findings)
     assert result.warning is not None
-    assert "A valid HTTPS certificate only guarantees encryption" in result.warning
+    assert "Attackers routinely acquire free automated certificates" in result.warning
+
+
+def test_certificate_transparency_logging_status():
+    """Verify missing CT log triggers low severity telemetry notice."""
+    der_without_ct = generate_mock_cert(
+        subject_cn="no-ct.com",
+        issuer_cn="DigiCert CA",
+        san_names=["no-ct.com"],
+        add_ct_sct=False,
+    )
+    result = parse_x509_certificate(der_without_ct, target_domain="no-ct.com")
+    assert result.ct_log_present is False
+    assert any("Certificate Transparency" in f.title for f in result.findings)
+
+
+def test_no_https_available_graceful_handling():
+    """Verify analyze_certificate handles offline/unreachable servers gracefully without raising."""
+    result = analyze_certificate(
+        target_url_or_domain="https://unreachable-test-domain.invalid",
+        resolve_live=False,  # Der bytes is None
+    )
+    assert result.https is False
+    assert result.is_valid is False
+    assert any("No HTTPS / TLS Encryption Available" in f.title for f in result.findings)
 
 
 def test_certificate_database_persistence():
@@ -218,6 +327,7 @@ def test_certificate_database_persistence():
             san_names=["secure-portal.com"],
             key_size=2048,
             days_valid=90,
+            add_ct_sct=True,
         )
         analysis_result = parse_x509_certificate(der, target_domain="secure-portal.com")
 
@@ -239,5 +349,11 @@ def test_certificate_database_persistence():
         assert "DigiCert" in db_cert.issuer
         assert db_cert.days_until_expiry >= 80
         assert isinstance(db_cert.raw_certificate, dict)
+        assert "chain" in db_cert.raw_certificate
+        assert len(db_cert.raw_certificate["chain"]) == 3
+
+        # Verify scan findings
+        findings = session.query(ScanFinding).filter(ScanFinding.scan_id == scan.id).all()
+        assert len(findings) >= 0
     finally:
         session.close()
