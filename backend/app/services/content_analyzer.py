@@ -414,52 +414,140 @@ def analyze_html(html: str, target_url: str) -> ContentAnalysisResult:
     page_text_lower = soup.get_text(" ", strip=True).lower()
     html_raw_lower = html.lower()
 
-    # Pre-check: Determine if any known brand is claimed on page
+    # Pre-check: Scan for brand indicators across title, meta, images, and headings
+    brand_occurrences: Dict[str, Dict[str, Any]] = {}
+    title_or_heading_brands: Set[str] = set()
+
     for brand_key, brand_info in KNOWN_BRANDS.items():
         brand_name = brand_info["name"]
         patterns = brand_info["patterns"]
-        legit_domains = [get_base_domain(d) for d in brand_info["domains"]]
-
-        brand_detected_on_page = False
         evidence_snippets = []
+        is_logo_or_meta = False
 
         # Check title
         if any(re.search(pat, page_title.lower()) for pat in patterns):
-            brand_detected_on_page = True
             evidence_snippets.append(f"Title contains '{page_title}'")
+            title_or_heading_brands.add(brand_name)
 
         # Check OpenGraph / Meta headers
         for meta in soup.find_all("meta"):
             content_val = (meta.get("content") or "").lower()
+            prop_val = (meta.get("property") or meta.get("name") or "").lower()
             if any(re.search(pat, content_val) for pat in patterns):
-                brand_detected_on_page = True
                 evidence_snippets.append(f"Meta tag: {content_val[:60]}")
+                if "site_name" in prop_val or "title" in prop_val:
+                    is_logo_or_meta = True
                 break
 
-        # Check images alt/src or headings
-        if not brand_detected_on_page:
-            for img in soup.find_all("img"):
-                alt_val = (img.get("alt") or "").lower()
-                src_val = (img.get("src") or "").lower()
-                if any(re.search(pat, f"{alt_val} {src_val}") for pat in patterns):
-                    brand_detected_on_page = True
-                    evidence_snippets.append(f"Logo/Image: {alt_val or src_val[:40]}")
-                    break
+        # Check images alt/src (Logos)
+        for img in soup.find_all("img"):
+            alt_val = (img.get("alt") or "").lower()
+            src_val = (img.get("src") or "").lower()
+            if any(re.search(pat, f"{alt_val} {src_val}") for pat in patterns):
+                evidence_snippets.append(f"Logo/Image: {alt_val or src_val[:40]}")
+                is_logo_or_meta = True
+                break
 
         # Check main headings (h1, h2)
-        if not brand_detected_on_page:
-            for heading in soup.find_all(["h1", "h2"]):
-                h_text = heading.get_text().lower()
-                if any(re.search(pat, h_text) for pat in patterns):
-                    brand_detected_on_page = True
-                    evidence_snippets.append(f"Heading: {h_text[:60]}")
-                    break
+        for heading in soup.find_all(["h1", "h2"]):
+            h_text = heading.get_text().lower()
+            if any(re.search(pat, h_text) for pat in patterns):
+                evidence_snippets.append(f"Heading: {h_text[:60]}")
+                title_or_heading_brands.add(brand_name)
+                break
 
-        if brand_detected_on_page:
-            detected_brands.add(brand_name)
-            is_legit_domain = any(target_domain == ld or target_domain.endswith(f".{ld}") for ld in legit_domains)
+        if evidence_snippets:
+            brand_occurrences[brand_key] = {
+                "name": brand_name,
+                "info": brand_info,
+                "evidence": evidence_snippets,
+                "is_logo_or_meta": is_logo_or_meta,
+            }
 
-            if not is_legit_domain:
+    # Identify if page is an editorial, news, or multi-brand discussion article
+    is_editorial_discussion = (
+        any(term in page_title.lower() for term in ("review", "analysis", "trends", "guide", "news", "blog", "article", "history", "vs", "comparing"))
+        or len(title_or_heading_brands) >= 2  # Discusses multiple competing brands simultaneously
+    )
+
+    # Inspect forms first so we know if authentication/credentials exist on the page
+    forms = soup.find_all("form")
+    has_login_form = False
+    has_credential_harvesting = False
+    all_harvested_inputs: List[str] = []
+    form_analysis_records = []
+
+    for idx, form in enumerate(forms, start=1):
+        inputs = form.find_all("input")
+        input_types = [inp.get("type", "text").lower() for inp in inputs]
+        input_names = [inp.get("name", "").lower() for inp in inputs if inp.get("name")]
+        input_ids = [inp.get("id", "").lower() for inp in inputs if inp.get("id")]
+        input_placeholders = [inp.get("placeholder", "").lower() for inp in inputs if inp.get("placeholder")]
+        all_field_identifiers = input_names + input_ids
+
+        has_password = (
+            "password" in input_types
+            or any("password" in ident or "pwd" in ident or "passcode" in ident for ident in all_field_identifiers)
+            or any("password" in ph for ph in input_placeholders)
+        )
+        is_auth_action = any(
+            term in f"{form.get('action', '')} {form.get('id', '')} {' '.join(form.get('class', []))}".lower()
+            for term in ("login", "signin", "auth", "session", "authenticate", "verify", "netbanking")
+        )
+        has_user_identifier = any(
+            t in ("text", "email", "tel") for t in input_types
+        ) and any(
+            term in ident for ident in all_field_identifiers for term in ("user", "email", "login", "uname", "account", "phone", "mobile", "cust_id")
+        )
+
+        # True login form requires a password field, OR username with explicit auth action/id
+        is_login = has_password or (has_user_identifier and is_auth_action)
+        if is_login:
+            has_login_form = True
+
+        action_raw = (form.get("action") or "").strip()
+        form_method = (form.get("method") or "GET").upper()
+        action_resolved = urljoin(target_url, action_raw) if action_raw else target_url
+        action_domain = get_base_domain(action_resolved)
+
+        is_external_action = bool(action_domain and target_domain and action_domain != target_domain)
+        is_insecure_http = action_resolved.startswith("http://") and target_url.startswith("https://")
+        is_suspicious_endpoint = any(
+            hook in action_resolved.lower()
+            for hook in ("api.telegram.org", "discord.com/api/webhooks", "formspree.io", "google.com/forms", "mailto:", "webhook.site", "pastebin.com")
+        )
+
+        form_analysis_records.append({
+            "idx": idx,
+            "form": form,
+            "inputs": inputs,
+            "is_login": is_login,
+            "has_password": has_password,
+            "has_user_identifier": has_user_identifier,
+            "action_raw": action_raw,
+            "form_method": form_method,
+            "action_resolved": action_resolved,
+            "action_domain": action_domain,
+            "is_external_action": is_external_action,
+            "is_insecure_http": is_insecure_http,
+            "is_suspicious_endpoint": is_suspicious_endpoint,
+        })
+
+    # Evaluate Brand Mismatches
+    for brand_key, b_data in brand_occurrences.items():
+        brand_name = b_data["name"]
+        brand_info = b_data["info"]
+        legit_domains = [get_base_domain(d) for d in brand_info["domains"]]
+        is_legit_domain = any(target_domain == ld or target_domain.endswith(f".{ld}") for ld in legit_domains)
+
+        detected_brands.add(brand_name)
+
+        if not is_legit_domain:
+            # Check if this is an authentic brand claim or an ambiguous discussion
+            # Flag mismatch if: has logo/site_name, or page has login form/lures, or not an editorial multi-brand review
+            is_actionable_brand_claim = b_data["is_logo_or_meta"] or has_login_form or not is_editorial_discussion
+
+            if is_actionable_brand_claim:
                 brand_mismatches.append(brand_name)
                 # Finding Vector 11: Brand Domain Mismatch
                 findings.append(
@@ -477,7 +565,7 @@ def analyze_html(html: str, target_url: str) -> ContentAnalysisResult:
                             "claimed_brand": brand_name,
                             "actual_domain": target_domain,
                             "authorized_domains": brand_info["domains"],
-                            "brand_indicators": evidence_snippets,
+                            "brand_indicators": b_data["evidence"],
                         },
                         recommendation=f"Do NOT enter credentials or trust this website. It is an unauthorized impersonation of {brand_name}.",
                         risk_points=35,
@@ -487,115 +575,83 @@ def analyze_html(html: str, target_url: str) -> ContentAnalysisResult:
     has_brand_mismatch = len(brand_mismatches) > 0
 
     # =========================================================================
-    # 1. LOGIN FORMS & 2. PASSWORD FIELDS & 12. CREDENTIAL-HARVESTING PATTERNS
+    # 1. PROCESS FORM FINDINGS
     # =========================================================================
-    forms = soup.find_all("form")
-    has_login_form = False
-    has_credential_harvesting = False
-    all_harvested_inputs: List[str] = []
+    for rec in form_analysis_records:
+        if not rec["is_login"]:
+            continue
 
-    for idx, form in enumerate(forms, start=1):
-        inputs = form.find_all("input")
-        input_types = [inp.get("type", "text").lower() for inp in inputs]
-        input_names = [inp.get("name", "").lower() for inp in inputs if inp.get("name")]
-        input_ids = [inp.get("id", "").lower() for inp in inputs if inp.get("id")]
-        input_placeholders = [inp.get("placeholder", "").lower() for inp in inputs if inp.get("placeholder")]
-        all_field_identifiers = input_names + input_ids
+        idx = rec["idx"]
+        form = rec["form"]
+        inputs = rec["inputs"]
+        input_field_summary = [inp.get("name") or inp.get("id") or inp.get("type", "text") for inp in inputs]
+        all_harvested_inputs.extend(input_field_summary)
 
-        has_password = (
-            "password" in input_types
-            or any("password" in ident or "pwd" in ident or "passcode" in ident for ident in all_field_identifiers)
-            or any("password" in ph for ph in input_placeholders)
-        )
-        has_user_identifier = any(
-            t in ("text", "email", "tel") for t in input_types
-        ) and any(
-            term in ident for ident in all_field_identifiers for term in ("user", "email", "login", "uname", "account", "phone", "mobile", "cust_id")
-        )
+        evidence_data = {
+            "detector_type": "credential_harvesting" if (has_brand_mismatch or rec["is_external_action"] or rec["is_suspicious_endpoint"]) else "login_form",
+            "form_index": idx,
+            "method": rec["form_method"],
+            "action": rec["action_raw"] or "(empty/same-page)",
+            "resolved_action": rec["action_resolved"],
+            "input_fields": input_field_summary[:10],
+            "has_username_field": rec["has_user_identifier"],
+            "has_password_field": rec["has_password"],
+            "is_external_action": rec["is_external_action"],
+            "is_insecure_http": rec["is_insecure_http"],
+        }
 
-        action_raw = (form.get("action") or "").strip()
-        form_method = (form.get("method") or "GET").upper()
-        action_resolved = urljoin(target_url, action_raw) if action_raw else target_url
-        action_domain = get_base_domain(action_resolved)
-
-        is_external_action = bool(action_domain and target_domain and action_domain != target_domain)
-        is_insecure_http = action_resolved.startswith("http://") and target_url.startswith("https://")
-        is_suspicious_endpoint = any(
-            hook in action_resolved.lower()
-            for hook in ("api.telegram.org", "discord.com/api/webhooks", "formspree.io", "google.com/forms", "mailto:", "webhook.site", "pastebin.com")
-        )
-
-        if has_password or (has_user_identifier and form_method == "POST"):
-            has_login_form = True
-
-            input_field_summary = [inp.get("name") or inp.get("id") or inp.get("type", "text") for inp in inputs]
-            all_harvested_inputs.extend(input_field_summary)
-
-            evidence_data = {
-                "detector_type": "credential_harvesting" if (has_brand_mismatch or is_external_action or is_suspicious_endpoint) else "login_form",
-                "form_index": idx,
-                "method": form_method,
-                "action": action_raw or "(empty/same-page)",
-                "resolved_action": action_resolved,
-                "input_fields": input_field_summary[:10],
-                "has_username_field": has_user_identifier,
-                "has_password_field": has_password,
-                "is_external_action": is_external_action,
-                "is_insecure_http": is_insecure_http,
-            }
-
-            # Vector 12: Credential-Harvesting Pattern (Brand mismatch + Login Form OR External Exfiltration)
-            if is_suspicious_endpoint or is_external_action or has_brand_mismatch:
-                has_credential_harvesting = True
-                findings.append(
-                    ContentFindingSchema(
-                        category="phishing",
-                        title="Credential-harvesting form detected",
-                        severity="critical" if (has_brand_mismatch or is_suspicious_endpoint) else "high",
-                        confidence=0.92,
-                        description=(
-                            f"The page contains an authentication form requesting credentials that either submits "
-                            f"to an unauthorized external destination ('{action_domain or action_resolved}') "
-                            f"or is hosted on an unverified brand impersonation portal."
-                        ),
-                        evidence=evidence_data,
-                        recommendation="Do not enter credentials on this website. The login form forwards authentication data to an untrusted endpoint.",
-                        risk_points=35 if has_brand_mismatch else 25,
-                        raw_data={"form_html": str(form)[:500]},
-                    )
+        # Vector 12: Credential-Harvesting Pattern (Brand mismatch + Login Form OR External Exfiltration)
+        if rec["is_suspicious_endpoint"] or rec["is_external_action"] or has_brand_mismatch:
+            has_credential_harvesting = True
+            findings.append(
+                ContentFindingSchema(
+                    category="phishing",
+                    title="Credential-harvesting form detected",
+                    severity="critical" if (has_brand_mismatch or rec["is_suspicious_endpoint"]) else "high",
+                    confidence=0.92,
+                    description=(
+                        f"The page contains an authentication form requesting credentials that either submits "
+                        f"to an unauthorized external destination ('{rec['action_domain'] or rec['action_resolved']}') "
+                        f"or is hosted on an unverified brand impersonation portal."
+                    ),
+                    evidence=evidence_data,
+                    recommendation="Do not enter credentials on this website. The login form forwards authentication data to an untrusted endpoint.",
+                    risk_points=35 if has_brand_mismatch else 25,
+                    raw_data={"form_html": str(form)[:500]},
                 )
-            elif is_insecure_http:
-                findings.append(
-                    ContentFindingSchema(
-                        category="phishing",
-                        title="Insecure HTTP credential submission detected",
-                        severity="high",
-                        confidence=0.90,
-                        description=f"Form #{idx} submits login credentials over an unencrypted cleartext HTTP channel ('{action_resolved}').",
-                        evidence=evidence_data,
-                        recommendation="Never submit credentials over unencrypted HTTP. Interceptors can capture passwords in transit.",
-                        risk_points=20,
-                        raw_data={"form_html": str(form)[:500]},
-                    )
+            )
+        elif rec["is_insecure_http"]:
+            findings.append(
+                ContentFindingSchema(
+                    category="phishing",
+                    title="Insecure HTTP credential submission detected",
+                    severity="high",
+                    confidence=0.90,
+                    description=f"Form #{idx} submits login credentials over an unencrypted cleartext HTTP channel ('{rec['action_resolved']}').",
+                    evidence=evidence_data,
+                    recommendation="Never submit credentials over unencrypted HTTP. Interceptors can capture passwords in transit.",
+                    risk_points=20,
+                    raw_data={"form_html": str(form)[:500]},
                 )
-            else:
-                # Vector 1: Standard Login Form on legitimate/neutral domain
-                findings.append(
-                    ContentFindingSchema(
-                        category="phishing",
-                        title="Login form detected",
-                        severity="info",
-                        confidence=0.85,
-                        description="The page presents a user login form requesting authentication credentials.",
-                        evidence=evidence_data,
-                        recommendation="Verify that the address bar matches the authentic official domain before logging in.",
-                        risk_points=5,
-                        raw_data={"form_html": str(form)[:500]},
-                    )
+            )
+        else:
+            # Vector 1: Standard Login Form on legitimate/neutral domain
+            findings.append(
+                ContentFindingSchema(
+                    category="phishing",
+                    title="Login form detected",
+                    severity="info",
+                    confidence=0.85,
+                    description="The page presents a user login form requesting authentication credentials.",
+                    evidence=evidence_data,
+                    recommendation="Verify that the address bar matches the authentic official domain before logging in.",
+                    risk_points=5,
+                    raw_data={"form_html": str(form)[:500]},
                 )
+            )
 
-        # Vector 2: Standalone Password Field Finding (if password detected outside or inside form)
-        if has_password and (has_brand_mismatch or is_external_action):
+        # Vector 2: Standalone Password Field Finding (if password on suspicious page)
+        if rec["has_password"] and (has_brand_mismatch or rec["is_external_action"]):
             findings.append(
                 ContentFindingSchema(
                     category="phishing",

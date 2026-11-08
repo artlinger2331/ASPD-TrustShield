@@ -259,7 +259,6 @@ def test_database_persistence_of_findings():
             id=scan_id,
             input_url="https://paypa1-security.xyz/login",
             normalized_url="https://paypa1-security.xyz/login",
-            domain="paypa1-security.xyz",
             status="running",
         )
         session.add(scan)
