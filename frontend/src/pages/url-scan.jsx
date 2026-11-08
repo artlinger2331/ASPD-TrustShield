@@ -26,6 +26,27 @@ import { cn } from "@/utils/cn";
 import { verdictLabel, riskColor, shortenUrl } from "@/utils/formatters";
 import { scanApi } from "@/utils/api";
 
+const QUICK_PRESETS = [
+  {
+    label: "Suspicious Bank Portal",
+    url: "https://paypa1-security-verification.com/login",
+    risk: "High Phish",
+    color: "border-red-500/30 bg-red-500/10 text-red-300 hover:border-red-500/50",
+  },
+  {
+    label: "Unicode Lookalike",
+    url: "https://xn--pple-43d.com/support/id",
+    risk: "Homoglyph",
+    color: "border-amber-500/30 bg-amber-500/10 text-amber-300 hover:border-amber-500/50",
+  },
+  {
+    label: "Safe Verified Tech",
+    url: "https://github.com",
+    risk: "Safe",
+    color: "border-emerald-500/30 bg-emerald-500/10 text-emerald-300 hover:border-emerald-500/50",
+  },
+];
+
 export default function UrlScan() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
