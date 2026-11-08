@@ -51,63 +51,79 @@ MOCK_PHISHING_HTML = """
 """
 
 
+def run_coro(coro):
+    """
+    Executes a coroutine that wraps synchronous/fallback database operations
+    without requiring an event loop that creates loopback sockets.
+    """
+    try:
+        while True:
+            coro.send(None)
+    except StopIteration as e:
+        return e.value
+
+
 @pytest.fixture(autouse=True)
 def mock_background_dispatch():
     with patch("app.api.v1.scans.dispatch_scan") as mock:
         yield mock
 
 
-@pytest.mark.asyncio
-async def test_successful_scan_end_to_end(mock_background_dispatch):
+def test_successful_scan_end_to_end(mock_background_dispatch):
     """
     Test end-to-end flow:
     1. Submit create_scan (POST /api/v1/scans)
-    2. Verify queued record with step 0
+    2. Verify queued record with step 0 and initial status
     3. Run pipeline synchronously with mock HTML
     4. Poll get_scan_status (GET /api/v1/scans/{id}) to verify completion (step 6, score, verdict)
     5. Call get_scan_report (GET /api/v1/scans/{id}/report) for full telemetry dossier
     """
-    db = AsyncSessionFallback(local_session_factory())
+    session = local_session_factory()
+    db = AsyncSessionFallback(session)
     bg = BackgroundTasks()
     target_url = "https://safe-enterprise-platform.com/portal"
 
-    # 1. Submit scan request
-    post_data = await create_scan(ScanCreate(url=target_url), bg, None, db)
-    scan_id = post_data.id
-    assert post_data.status == "queued"
-    assert post_data.current_step == 0
-    assert mock_background_dispatch.called
+    try:
+        # 1. Submit scan request
+        post_data = run_coro(create_scan(ScanCreate(url=target_url), bg, None, db))
+        scan_id = post_data.id
+        assert post_data.status == "queued"
+        assert post_data.current_step == 0
+        assert mock_background_dispatch.called
 
-    # 2. Check initial status polling
-    poll_data1 = await get_scan_status(scan_id, db)
-    assert poll_data1.status == "queued"
-    assert poll_data1.step == 0
-    assert poll_data1.total_steps == 6
+        # 2. Check initial status polling
+        poll_data1 = run_coro(get_scan_status(scan_id, db))
+        assert poll_data1.status == "queued"
+        assert poll_data1.step == 0
+        assert poll_data1.total_steps == 6
+        assert poll_data1.current_action == "Scan queued in worker pool"
 
-    # 3. Execute scan pipeline (simulating worker execution offline)
-    completed_scan = execute_scan_pipeline_sync(
-        scan_id=scan_id,
-        resolve_network=False,
-        mock_html=MOCK_SAFE_HTML,
-    )
-    assert completed_scan is not None
-    assert completed_scan.status == "completed"
-    assert completed_scan.current_step == 6
+        # 3. Execute scan pipeline (simulating worker execution offline)
+        completed_scan = execute_scan_pipeline_sync(
+            scan_id=scan_id,
+            resolve_network=False,
+            mock_html=MOCK_SAFE_HTML,
+        )
+        assert completed_scan is not None
+        assert completed_scan.status == "completed"
+        assert completed_scan.current_step == 6
 
-    # 4. Check completed status polling
-    poll_data2 = await get_scan_status(scan_id, db)
-    assert poll_data2.status == "completed"
-    assert poll_data2.step == 6
-    assert poll_data2.verdict is not None
-    assert poll_data2.risk_score is not None
-    assert poll_data2.current_action == "Scan completed successfully"
+        # 4. Check completed status polling
+        poll_data2 = run_coro(get_scan_status(scan_id, db))
+        assert poll_data2.status == "completed"
+        assert poll_data2.step == 6
+        assert poll_data2.verdict is not None
+        assert poll_data2.risk_score is not None
+        assert poll_data2.current_action == "Scan completed successfully"
 
-    # 5. Retrieve full report
-    report_data = await get_scan_report(scan_id, db)
-    assert report_data.id == scan_id
-    assert report_data.status == "completed"
-    assert len(report_data.findings) > 0
-    assert report_data.verdict is not None
+        # 5. Retrieve full report dossier
+        report_data = run_coro(get_scan_report(scan_id, db))
+        assert report_data.id == scan_id
+        assert report_data.status == "completed"
+        assert len(report_data.findings) > 0
+        assert report_data.verdict is not None
+    finally:
+        session.close()
 
 
 def test_failed_scan_saves_partial_findings():
@@ -232,69 +248,75 @@ def test_scan_timeout_graceful_handling():
         verify_session.close()
 
 
-@pytest.mark.asyncio
-async def test_invalid_url_rejection():
+def test_invalid_url_rejection():
     """
     Test validation layer rejects malformed URLs and SSRF targets with AppException(code='INVALID_URL', status_code=422).
     """
-    db = AsyncSessionFallback(local_session_factory())
+    session = local_session_factory()
+    db = AsyncSessionFallback(session)
     bg = BackgroundTasks()
 
-    # 1. Non-HTTP scheme
-    with pytest.raises(AppException) as exc1:
-        await create_scan(ScanCreate(url="ftp://files.example.com/data"), bg, None, db)
-    assert exc1.value.code == "INVALID_URL"
-    assert exc1.value.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
+    try:
+        # 1. Non-HTTP scheme
+        with pytest.raises(AppException) as exc1:
+            run_coro(create_scan(ScanCreate(url="ftp://files.example.com/data"), bg, None, db))
+        assert exc1.value.code == "INVALID_URL"
+        assert exc1.value.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
 
-    # 2. Localhost SSRF loopback
-    with pytest.raises(AppException) as exc2:
-        await create_scan(ScanCreate(url="http://127.0.0.1:8000/internal"), bg, None, db)
-    assert exc2.value.code == "INVALID_URL"
-    assert exc2.value.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
+        # 2. Localhost SSRF loopback
+        with pytest.raises(AppException) as exc2:
+            run_coro(create_scan(ScanCreate(url="http://127.0.0.1:8000/internal"), bg, None, db))
+        assert exc2.value.code == "INVALID_URL"
+        assert exc2.value.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
 
-    # 3. Cloud metadata IP SSRF
-    with pytest.raises(AppException) as exc3:
-        await create_scan(ScanCreate(url="http://169.254.169.254/latest/meta-data"), bg, None, db)
-    assert exc3.value.code == "INVALID_URL"
-    assert exc3.value.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
+        # 3. Cloud metadata IP SSRF
+        with pytest.raises(AppException) as exc3:
+            run_coro(create_scan(ScanCreate(url="http://169.254.169.254/latest/meta-data"), bg, None, db))
+        assert exc3.value.code == "INVALID_URL"
+        assert exc3.value.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
 
-    # 4. Empty or missing host structure
-    with pytest.raises(AppException) as exc4:
-        await create_scan(ScanCreate(url="http://"), bg, None, db)
-    assert exc4.value.code == "INVALID_URL"
-    assert exc4.value.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
+        # 4. Empty or missing host structure
+        with pytest.raises(AppException) as exc4:
+            run_coro(create_scan(ScanCreate(url="http://"), bg, None, db))
+        assert exc4.value.code == "INVALID_URL"
+        assert exc4.value.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
+    finally:
+        session.close()
 
 
-@pytest.mark.asyncio
-async def test_concurrent_duplicate_scan_prevention(mock_background_dispatch):
+def test_concurrent_duplicate_scan_prevention(mock_background_dispatch):
     """
     Test duplicate scan deduplication:
     When a scan for the same URL is already 'queued' or 'running' within 5 minutes,
     the API returns the existing scan ID rather than launching redundant background work.
     """
-    db = AsyncSessionFallback(local_session_factory())
+    session = local_session_factory()
+    db = AsyncSessionFallback(session)
     bg = BackgroundTasks()
     target_url = "https://duplicate-check-portal.org/login"
 
-    # Reset mock call count
-    mock_background_dispatch.reset_mock()
+    try:
+        # Reset mock call count
+        mock_background_dispatch.reset_mock()
 
-    # First submission
-    res1 = await create_scan(ScanCreate(url=target_url), bg, None, db)
-    scan_id_1 = res1.id
+        # First submission
+        res1 = run_coro(create_scan(ScanCreate(url=target_url), bg, None, db))
+        scan_id_1 = res1.id
 
-    # Immediate second submission with identical URL
-    res2 = await create_scan(ScanCreate(url=target_url), bg, None, db)
-    scan_id_2 = res2.id
+        # Immediate second submission with identical URL
+        res2 = run_coro(create_scan(ScanCreate(url=target_url), bg, None, db))
+        scan_id_2 = res2.id
 
-    assert scan_id_1 == scan_id_2, "Concurrent duplicate scan should reuse the existing in-flight scan ID"
+        assert scan_id_1 == scan_id_2, "Concurrent duplicate scan should reuse the existing in-flight scan ID"
 
-    # Immediate third submission with slight formatting differences (trailing slash / whitespace)
-    res3 = await create_scan(ScanCreate(url="  https://duplicate-check-portal.org/login/  "), bg, None, db)
-    assert res3.id == scan_id_1, "Normalized URL match should deduplicate formatting variants"
+        # Immediate third submission with slight formatting differences (trailing slash / whitespace)
+        res3 = run_coro(create_scan(ScanCreate(url="  https://duplicate-check-portal.org/login/  "), bg, None, db))
+        assert res3.id == scan_id_1, "Normalized URL match should deduplicate formatting variants"
 
-    # mock_background_dispatch should have been called only once for the first submission, not for the duplicates!
-    assert mock_background_dispatch.call_count == 1
+        # mock_background_dispatch should have been called only once for the first submission, not for the duplicates!
+        assert mock_background_dispatch.call_count == 1
+    finally:
+        session.close()
 
 
 def test_real_time_step_and_action_progress():
