@@ -45,10 +45,13 @@ app = FastAPI(
     redoc_url="/redoc",
 )
 
-# 1. CORS Middleware configuration for frontend integration (http://localhost:5173)
+# 1. CORS Middleware configuration for frontend integration
+_cors_origins = settings.cors_origins_list
+_has_wildcard = "*" in _cors_origins
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=settings.cors_origins_list,
+    allow_origins=[] if _has_wildcard else _cors_origins,
+    allow_origin_regex=r".*" if _has_wildcard else None,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
