@@ -133,6 +133,34 @@ def execute_scan_pipeline_sync(
         except Exception as e:
             logger.warning(f"Domain analysis failed for {norm.host}: {e}")
 
+        # =====================================================================
+        # ML URL Classification (After URL & Domain Analysis)
+        # =====================================================================
+        ml_result = None
+        try:
+            domain_context = {}
+            if "domain_result" in locals() and domain_result:
+                if getattr(domain_result, "domain_age_days", None) is not None:
+                    domain_context["domain_age_days"] = domain_result.domain_age_days
+                if getattr(domain_result, "dns_records", None):
+                    domain_context["num_dns_records"] = len(domain_result.dns_records)
+                if getattr(domain_result, "has_mx", False):
+                    domain_context["has_mx_records"] = 1
+                if getattr(domain_result, "has_txt", False):
+                    domain_context["has_txt_records"] = 1
+                if getattr(domain_result, "min_ttl", None) is not None:
+                    domain_context["ttl_value"] = domain_result.min_ttl
+
+            ml_result = classify_url(norm.normalized_url, metadata=domain_context)
+            if ml_result:
+                save_ml_classification_to_db_sync(
+                    scan_id=scan.id,
+                    result=ml_result,
+                    db=session,
+                )
+        except Exception as e:
+            logger.warning(f"ML classification failed for {norm.normalized_url}: {e} (continuing scan)")
+
         # Transition to Step 2: SSL/TLS
         scan.current_step = 2
         scan.current_action = "Inspecting X.509 certificate chain, SAN domains & TLS cipher suites..."
