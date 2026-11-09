@@ -34,6 +34,11 @@ class Settings(BaseSettings):
     URLHAUS_AUTH_KEY: Optional[str] = ""
     VIRUSTOTAL_API_KEY: Optional[str] = ""
 
+    # Machine Learning URL Classification Subsystem
+    ENABLE_ML_CLASSIFICATION: bool = True
+    ML_RISK_WEIGHT: float = 0.10
+    ML_CACHE_TTL_SECONDS: int = 3600
+
     # OAuth2 Providers (Google & GitHub)
     GOOGLE_CLIENT_ID: Optional[str] = ""
     GOOGLE_CLIENT_SECRET: Optional[str] = ""
