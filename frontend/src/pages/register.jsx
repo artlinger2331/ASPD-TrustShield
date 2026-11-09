@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { Input, Label } from "@/components/ui/input";
 import { useAuth, useToast } from "@/hooks/useAuth";
-import { authApi } from "@/utils/api";
+import { authApi, getApiBaseUrl } from "@/utils/api";
 import OAuthSetupModal from "@/components/auth/OAuthSetupModal";
 
 function GoogleIcon({ className = "w-4 h-4 mr-2" }) {
@@ -134,18 +134,19 @@ export default function Register() {
   const handleOAuthLogin = async (provider) => {
     const dest = getRedirectTarget();
     sessionStorage.setItem("ts_redirect_after_auth", dest);
+    const apiBase = getApiBaseUrl();
 
     try {
       const statusRes = await authApi.getOAuthStatus();
       if (statusRes[provider] && statusRes[provider].configured) {
         // Direct redirect to live provider!
-        window.location.href = `http://localhost:8000/api/v1/auth/oauth/${provider}`;
+        window.location.href = `${apiBase}/api/v1/auth/oauth/${provider}`;
       } else {
         // Open setup modal
         setSetupProvider(provider);
       }
     } catch (_) {
-      window.location.href = `http://localhost:8000/api/v1/auth/oauth/${provider}`;
+      window.location.href = `${apiBase}/api/v1/auth/oauth/${provider}`;
     }
   };
 
