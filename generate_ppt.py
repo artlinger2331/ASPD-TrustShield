@@ -179,13 +179,15 @@ def create_deck(output_path: str):
         tf.word_wrap = True
 
         p = tf.paragraphs[0]
-        r1 = p.add_run(f"Step {idx+1}: {step_title} — ")
+        r1 = p.add_run()
+        r1.text = f"Step {idx+1}: {step_title} — "
         r1.font.bold = True
         r1.font.size = Pt(13)
         r1.font.color.rgb = CYAN if idx < 5 else (AMBER if idx == 5 else GREEN)
         r1.font.name = "Calibri"
 
-        r2 = p.add_run(step_desc)
+        r2 = p.add_run()
+        r2.text = step_desc
         r2.font.size = Pt(12)
         r2.font.color.rgb = WHITE
         r2.font.name = "Calibri"
