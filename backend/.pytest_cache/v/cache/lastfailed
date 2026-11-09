@@ -3,7 +3,5 @@
   "tests/test_url_validation_api.py::test_api_validate_ssrf_blocked_urls": true,
   "tests/test_url_validation_api.py::test_api_validate_heuristic_findings_extraction": true,
   "tests/test_url_validation_api.py::test_api_validate_embedded_credentials": true,
-  "tests/test_ml_classifier.py::test_ml_classification_database_persistence": true,
-  "tests/test_scans_api.py::test_pipeline_execution_mocked": true,
-  "tests/test_scans_api.py::test_scans_api_endpoints_sync": true
+  "tests/test_ml_pipeline_integration.py": true
 }
