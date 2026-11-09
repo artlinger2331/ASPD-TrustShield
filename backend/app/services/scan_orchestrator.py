@@ -134,6 +134,7 @@ def execute_scan_pipeline_sync(
                 )
         except Exception as e:
             logger.warning(f"Domain analysis failed for {norm.host}: {e}")
+<<<<<<< HEAD
 
         # =====================================================================
         # ML URL Classification (After URL & Domain Analysis)
@@ -170,6 +171,15 @@ def execute_scan_pipeline_sync(
         session.commit()
 
         # =====================================================================
+=======
+
+        # Transition to Step 2: SSL/TLS
+        scan.current_step = 2
+        scan.current_action = "Inspecting X.509 certificate chain, SAN domains & TLS cipher suites..."
+        session.commit()
+
+        # =====================================================================
+>>>>>>> 9b735eb99fcfab11611f7f8da03c77f43357eb91
         # STAGE 2: SSL/TLS Certificate & CA Trust Validation
         # =====================================================================
         try:
@@ -315,7 +325,7 @@ def execute_scan_pipeline_sync(
             findings=findings,
             certificate=cert,
             threat_intel_results=threat_results,
-            ml_result=ml_result,
+            ml_result=None,
             domain=norm.host,
             redirect_hops=redirect_hops,
             community_reports=community_reports,
@@ -374,6 +384,7 @@ def execute_scan_pipeline_sync(
                         scan.confidence = evaluation.confidence
                         scan.summary = f"Partial scan completed with error: {str(exc)}"
                         scan.recommendation = evaluation.recommendation
+<<<<<<< HEAD
                         scan.explanation = {
                             "risk_score": evaluation.risk_score,
                             "verdict": evaluation.verdict,
@@ -384,6 +395,8 @@ def execute_scan_pipeline_sync(
                             "category_scores": evaluation.category_scores,
                             "evidence": evaluation.evidence,
                         }
+=======
+>>>>>>> 9b735eb99fcfab11611f7f8da03c77f43357eb91
                     except Exception as eval_err:
                         logger.warning(f"Preliminary risk evaluation failed: {eval_err}")
 
