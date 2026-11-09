@@ -4,7 +4,7 @@
  */
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { scanApi } from "@/utils/api";
+import { scanApi, dashboardApi } from "@/utils/api";
 
 /**
  * Mutation to initiate or deduplicate a website security scan.
@@ -99,6 +99,21 @@ export function useRecentScans({ limit = 10, offset = 0 } = {}, options = {}) {
       return await scanApi.getRecentScans(limit, offset);
     },
     staleTime: 10000,
+    ...options,
+  });
+}
+
+/**
+ * Query to fetch aggregated SecOps dashboard telemetry stats.
+ * Calls GET /api/v1/dashboard/stats
+ */
+export function useDashboardStats(options = {}) {
+  return useQuery({
+    queryKey: ["dashboardStats"],
+    queryFn: async () => {
+      return await dashboardApi.getStats();
+    },
+    staleTime: 5000,
     ...options,
   });
 }
