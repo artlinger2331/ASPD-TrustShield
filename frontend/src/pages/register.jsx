@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
-import { Link, useNavigate, useSearchParams } from "react-router-dom";
-import { Mail, Lock, Eye, EyeOff, ArrowRight, User } from "lucide-react";
+import { Link, useNavigate, useLocation, useSearchParams } from "react-router-dom";
+import { Mail, Lock, Eye, EyeOff, ArrowRight, User, ShieldAlert } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { Input, Label } from "@/components/ui/input";
@@ -43,6 +43,7 @@ export default function Register() {
   const { register } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
+  const location = useLocation();
   const [searchParams] = useSearchParams();
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -50,6 +51,28 @@ export default function Register() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [setupProvider, setSetupProvider] = useState(null);
+
+  const targetUrl =
+    searchParams.get("targetUrl") ||
+    (typeof window !== "undefined" ? sessionStorage.getItem("ts_pending_scan_url") : null);
+
+  const getRedirectTarget = () => {
+    const redirectParam = searchParams.get("redirect");
+    if (redirectParam) return redirectParam;
+
+    const storedRedirect = sessionStorage.getItem("ts_redirect_after_auth");
+    if (storedRedirect) return storedRedirect;
+
+    if (location.state?.from?.pathname) {
+      return `${location.state.from.pathname}${location.state.from.search || ""}`;
+    }
+
+    if (targetUrl) {
+      return `/scan?url=${encodeURIComponent(targetUrl)}`;
+    }
+
+    return "/dashboard";
+  };
 
   useEffect(() => {
     const errorMsg = searchParams.get("error");
@@ -93,7 +116,10 @@ export default function Register() {
         description: "Welcome to TrustShield Security Platform.",
         type: "success",
       });
-      navigate("/dashboard");
+      const dest = getRedirectTarget();
+      sessionStorage.removeItem("ts_pending_scan_url");
+      sessionStorage.removeItem("ts_redirect_after_auth");
+      navigate(dest);
     } catch (err) {
       toast({
         title: "Registration Failed",
@@ -106,6 +132,9 @@ export default function Register() {
   };
 
   const handleOAuthLogin = async (provider) => {
+    const dest = getRedirectTarget();
+    sessionStorage.setItem("ts_redirect_after_auth", dest);
+
     try {
       const statusRes = await authApi.getOAuthStatus();
       if (statusRes[provider] && statusRes[provider].configured) {
@@ -133,6 +162,32 @@ export default function Register() {
         </CardHeader>
 
         <CardContent className="space-y-5 pt-4">
+          {/* Target Scan Notice Banner */}
+          {targetUrl && (
+            <div className="p-3.5 rounded-xl bg-cyan-950/60 border border-cyan-500/35 text-xs flex items-start gap-3 backdrop-blur-md shadow-lg shadow-cyan-500/10">
+              <div className="p-1.5 rounded-lg bg-cyan-500/20 text-cyan-400 shrink-0 mt-0.5">
+                <ShieldAlert className="w-4 h-4" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="font-semibold text-cyan-300 flex items-center justify-between">
+                  <span>Registration Required</span>
+                  <span className="text-[10px] font-mono uppercase bg-cyan-500/20 px-1.5 py-0.5 rounded text-cyan-300">
+                    Target Locked
+                  </span>
+                </div>
+                <p className="text-[11px] text-slate-300 mt-1">
+                  Create your analyst account to inspect this target:
+                </p>
+                <div className="mt-1.5 px-2.5 py-1 rounded bg-[#040812]/95 border border-cyan-500/30 text-cyan-300 font-mono text-[11px] truncate select-all">
+                  {targetUrl}
+                </div>
+                <p className="text-[10px] text-cyan-400/80 mt-1 font-mono">
+                  ✓ Automatically redirects to live scanner once registered.
+                </p>
+              </div>
+            </div>
+          )}
+
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="relative">
               <Label className="text-xs font-semibold text-slate-300">Full name</Label>
