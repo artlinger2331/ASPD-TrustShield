@@ -49,7 +49,7 @@ def run_coro(coro):
 @pytest.fixture
 def mock_phishing_prediction():
     return URLPredictionResult(
-        url="http://192.168.1.1/paypal/login-verification",
+        url="https://secure-pay-verification-alert.xyz/auth",
         label="phishing",
         is_phishing=True,
         probability=0.94,
@@ -114,8 +114,8 @@ def test_scan_pipeline_executes_with_mocked_ml_prediction(mock_phishing_predicti
     session = local_session_factory()
     try:
         scan = Scan(
-            input_url="http://192.168.1.1/paypal/login-verification",
-            normalized_url="http://192.168.1.1/paypal/login-verification",
+            input_url="https://secure-pay-verification-alert.xyz/auth",
+            normalized_url="https://secure-pay-verification-alert.xyz/auth",
             status="queued",
             current_step=0,
             current_action="Queued",
