@@ -5,6 +5,7 @@ Unit tests for the TrustShield URL prediction interface and attribution engine.
 from pathlib import Path
 import pytest
 
+from app.ml.feature_extractor import FeatureSchemaV1
 from app.ml.model_registry import ModelRegistry
 from app.ml.predict import URLClassifier, URLPredictionResult
 from app.ml.train_model import train_url_classifier
@@ -60,7 +61,7 @@ def test_predictor_logistic_regression_benign(trained_models):
     assert 0.0 <= result.probability < 0.5
     assert 0.0 <= result.confidence <= 1.0
     assert result.model_version == "v1.0.0-lr"
-    assert result.feature_schema_version == "v1.0.0"
+    assert result.feature_schema_version == FeatureSchemaV1.VERSION
 
     assert len(result.top_contributing_features) > 0
     top = result.top_contributing_features[0]
@@ -84,7 +85,7 @@ def test_predictor_logistic_regression_phishing(trained_models):
     assert result.confidence > 0.0
 
     feature_names = [f.feature_name for f in result.top_contributing_features]
-    assert any(name in feature_names for name in ["suspicious_tld", "sensitive_word_count", "brand_in_subdomain", "is_https", "num_dots"])
+    assert any(name in feature_names for name in ["suspicious_tld", "suspicious_keyword_count", "brand_keyword_count", "uses_https", "num_dots"])
 
 
 def test_predictor_random_forest(trained_models):
@@ -120,4 +121,4 @@ def test_prediction_result_to_dict(trained_models):
     assert "feature_name" in d["top_contributing_features"][0]
     assert "description" in d["top_contributing_features"][0]
     assert "raw_features" in d
-    assert len(d["raw_features"]) == 42
+    assert len(d["raw_features"]) == FeatureSchemaV1.feature_count()
