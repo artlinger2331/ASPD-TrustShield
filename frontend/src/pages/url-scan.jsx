@@ -53,6 +53,7 @@ export default function UrlScan() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { toast } = useToast();
+  const { isAuthenticated } = useAuth();
 
   const [url, setUrl] = useState(searchParams.get("url") || "");
   const [scanId, setScanId] = useState(searchParams.get("id") || null);
