@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 import { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { cn } from "@/utils/cn";
