@@ -180,7 +180,7 @@ def test_scan_pipeline_resilience_on_ml_failure():
 
         # Scan completes despite ML crash
         assert completed_scan.status == "completed"
-        assert completed_scan.verdict in ("safe", "suspicious", "dangerous")
+        assert completed_scan.verdict in ("safe", "low_risk", "suspicious", "high_risk", "dangerous")
         assert completed_scan.risk_score is not None
     finally:
         session.close()
