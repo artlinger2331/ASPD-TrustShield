@@ -417,18 +417,23 @@ async def get_scan_report(
 async def list_recent_scans(
     limit: int = Query(10, ge=1, le=100),
     offset: int = Query(0, ge=0),
+    scope: Optional[str] = Query("all", description="Scope: 'all' for full project history, 'user' for current user"),
     current_user: Optional[User] = Depends(get_optional_current_user),
     db: AsyncSession = Depends(get_db),
 ):
     """
     Returns recent scans ordered by creation time descending with total count envelope.
-    If authenticated, prioritizes the user's scan history; otherwise returns public recent scans.
+    By default returns the full project history.
     """
     count_q = select(func.count(Scan.id))
     query = select(Scan).order_by(desc(Scan.created_at)).limit(limit).offset(offset)
-    if current_user:
-        count_q = count_q.where(Scan.user_id == current_user.id)
-        query = query.where(Scan.user_id == current_user.id)
+    if scope == "user" and current_user:
+        user_count_q = select(func.count(Scan.id)).where(Scan.user_id == current_user.id)
+        user_res = await db.execute(user_count_q)
+        user_count = user_res.scalar() or 0
+        if user_count > 0:
+            count_q = user_count_q
+            query = query.where(Scan.user_id == current_user.id)
 
     count_res = await db.execute(count_q)
     total_count = count_res.scalar() or 0
