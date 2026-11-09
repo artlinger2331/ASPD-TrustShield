@@ -17,6 +17,10 @@ services:
         value: "*"
       - key: ENABLE_ML_CLASSIFICATION
         value: "true"
+      - key: BACKEND_URL
+        value: https://aspd-trustshield.onrender.com
+      - key: FRONTEND_URL
+        value: https://aspd-trust-shield.vercel.app
 
   # ---------------------------------------------------------------------------
   # 2. TrustShield Frontend Static Site (React + Vite) - Free Tier
