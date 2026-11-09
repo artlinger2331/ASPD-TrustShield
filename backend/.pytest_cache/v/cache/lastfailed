@@ -6,10 +6,6 @@
   "tests/test_async_scan_pipeline.py::test_real_time_step_and_action_progress": true,
   "tests/test_threat_intel_analyzer.py::test_threat_intel_database_persistence": true,
   "tests/test_threat_intel_providers.py::test_database_persistence_all_providers": true,
-  "tests/test_ml_pipeline_integration.py::test_scan_pipeline_executes_with_mocked_ml_prediction": true,
-  "tests/test_ml_pipeline_integration.py::test_scan_pipeline_resilience_on_ml_failure": true,
-  "tests/test_ml_pipeline_integration.py::test_feature_flag_disables_ml_classification": true,
-  "tests/test_ml_pipeline_integration.py::test_benign_url_classification": true,
   "tests/test_scans_api.py::test_pipeline_execution_mocked": true,
   "tests/test_scans_api.py::test_scans_api_endpoints_sync": true
 }
