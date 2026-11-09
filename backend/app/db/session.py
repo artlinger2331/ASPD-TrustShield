@@ -6,6 +6,7 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, Session
 from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker, AsyncSession
 from app.core.config import settings
+from app.db.base import Base
 
 # Determine if PostgreSQL host is reachable
 _use_sqlite_fallback = False
@@ -16,7 +17,7 @@ def _check_postgres_reachable() -> bool:
         return False
     try:
         # Extract host and port
-        host = "localhost"
+        host = "127.0.0.1"
         port = 5432
         if "@" in url:
             host_part = url.split("@")[1].split("/")[0]
@@ -26,7 +27,11 @@ def _check_postgres_reachable() -> bool:
             else:
                 host = host_part
 
-        with socket.create_connection((host, port), timeout=0.8):
+        if host in ("db", "postgres"):
+            # In local dev outside Docker, avoid Windows DNS lookup hang on docker service name
+            host = "127.0.0.1"
+
+        with socket.create_connection((host, port), timeout=0.2):
             return True
     except Exception:
         return False
@@ -72,10 +77,22 @@ local_session_factory = sessionmaker(
 )
 
 # Auto-initialize SQLite schema if in fallback mode
+_sqlite_initialized = False
+
+def init_sqlite_db():
+    global _sqlite_initialized
+    if _sqlite_initialized or not _use_sqlite_fallback:
+        return
+    _sqlite_initialized = True
+    try:
+        from app.db.base import Base
+        import app.models  # Load all models
+        Base.metadata.create_all(local_sync_engine)
+    except Exception:
+        pass
+
 if _use_sqlite_fallback:
-    from app.db.base import Base
-    import app.models  # Load all models
-    Base.metadata.create_all(local_sync_engine)
+    init_sqlite_db()
 
 
 class AsyncSessionFallback:

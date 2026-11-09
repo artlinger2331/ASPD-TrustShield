@@ -49,6 +49,15 @@ class Scan(Base, TimestampMixin):
         index=True,
         nullable=False,
     )
+    current_step: Mapped[Optional[int]] = mapped_column(
+        Integer,
+        default=0,
+        nullable=True,
+    )
+    current_action: Mapped[Optional[str]] = mapped_column(
+        String(256),
+        nullable=True,
+    )
     verdict: Mapped[Optional[str]] = mapped_column(
         String(32),
         nullable=True,

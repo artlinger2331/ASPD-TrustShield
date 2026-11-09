@@ -31,13 +31,14 @@ from app.analyzers.cert_analyzer import (
     analyze_certificate,
     save_certificate_to_db_sync,
 )
-from app.analyzers.security_headers_analyzer import (
-    analyze_security_headers,
-    fetch_and_analyze_security_headers,
-    save_security_headers_findings_to_db_sync,
+from app.services.web_security_analyzer import (
+    analyze_web_security,
+    fetch_and_analyze_web_security,
+    save_web_security_findings_to_db_sync,
 )
 from app.analyzers.content_analyzer import (
     analyze_content,
+    analyze_content_sync,
     safe_fetch_html,
     save_findings_to_db_sync,
 )
@@ -79,10 +80,10 @@ def execute_scan_pipeline_sync(
     scan_id: uuid.UUID,
     resolve_network: bool = True,
     mock_html: Optional[str] = None,
-) -> Scan:
+) -> Optional[Scan]:
     """
-    Synchronous pipeline runner coordinating all 7 analysis stages.
-    Executes in background worker or async threadpool.
+    Synchronous pipeline runner coordinating all 6 analysis stages matching the frontend stepper.
+    Commits findings incrementally, preserves partial findings on failure, and updates step/action.
     """
     session = local_session_factory()
     try:
@@ -94,10 +95,12 @@ def execute_scan_pipeline_sync(
 
         scan.status = "running"
         scan.started_at = datetime.now(timezone.utc)
+        scan.current_step = 1
+        scan.current_action = "Resolving DNS records, domain infrastructure & whois..."
         session.commit()
 
         # =====================================================================
-        # STAGE 1: URL Normalization & SSRF Defense
+        # STAGE 1: URL Normalization & SSRF Defense + DNS & Domain Infrastructure
         # =====================================================================
         norm, ssrf_error = normalize_and_validate_url(scan.input_url, resolve_dns=resolve_network)
         if ssrf_error or norm is None:
@@ -106,6 +109,8 @@ def execute_scan_pipeline_sync(
             scan.completed_at = datetime.now(timezone.utc)
             scan.risk_score = 100
             scan.verdict = "dangerous"
+            scan.current_step = 1
+            scan.current_action = f"URL rejected: {ssrf_error}"
             scan.summary = f"Scan rejected: {ssrf_error}"
             scan.recommendation = "Do not attempt to scan restricted private addresses or internal infrastructure."
             session.commit()
@@ -114,20 +119,6 @@ def execute_scan_pipeline_sync(
         scan.normalized_url = norm.normalized_url
         session.commit()
 
-        # Persist URL heuristic findings if detected
-        if getattr(norm, "heuristics", None) and norm.heuristics.findings_list:
-            try:
-                save_url_heuristic_findings_to_db_sync(
-                    scan_id=scan.id,
-                    findings=norm.heuristics.findings_list,
-                    db=session,
-                )
-            except Exception as e:
-                logger.warning(f"Failed to persist URL heuristic findings: {e}")
-
-        # =====================================================================
-        # STAGE 2: Domain & DNS Infrastructure Analysis
-        # =====================================================================
         try:
             domain_result = analyze_domain(
                 domain=norm.host,
@@ -139,20 +130,16 @@ def execute_scan_pipeline_sync(
                     findings=domain_result.findings,
                     db=session,
                 )
-
-            # Check for brand impersonation, homoglyphs, and typosquatting
-            brand_matches = analyze_brand_impersonation(norm.host)
-            if brand_matches:
-                save_brand_impersonation_findings_to_db_sync(
-                    scan_id=scan.id,
-                    matches=brand_matches,
-                    db=session,
-                )
         except Exception as e:
-            logger.warning(f"Domain analysis failed for {norm.host}: {str(e)}")
+            logger.warning(f"Domain analysis failed for {norm.host}: {e}")
+
+        # Transition to Step 2: SSL/TLS
+        scan.current_step = 2
+        scan.current_action = "Inspecting X.509 certificate chain, SAN domains & TLS cipher suites..."
+        session.commit()
 
         # =====================================================================
-        # STAGE 3: SSL/TLS Certificate & CA Trust Validation
+        # STAGE 2: SSL/TLS Certificate & CA Trust Validation
         # =====================================================================
         try:
             cert_result = analyze_certificate(
@@ -166,34 +153,97 @@ def execute_scan_pipeline_sync(
                 db=session,
             )
         except Exception as e:
-            logger.warning(f"Certificate analysis failed for {norm.normalized_url}: {str(e)}")
+            logger.warning(f"Certificate analysis failed for {norm.normalized_url}: {e}")
+
+        # Transition to Step 3: Web Security Headers & Exposed Paths
+        scan.current_step = 3
+        scan.current_action = "Tracing redirects, security headers & exposed paths..."
+        session.commit()
 
         # =====================================================================
-        # STAGE 4: Web Security Headers & Passive Configuration
+        # STAGE 3: Web Security Headers & Exposed Paths
         # =====================================================================
         try:
             if resolve_network:
-                # Passively fetch headers
                 import anyio
-                header_result = anyio.from_thread.run(fetch_and_analyze_security_headers, norm.normalized_url)
+                web_sec_result = anyio.from_thread.run(fetch_and_analyze_web_security, norm.normalized_url)
             else:
-                header_result = analyze_security_headers(
-                    headers={},
+                web_sec_result = analyze_web_security(
                     target_url=norm.normalized_url,
+                    headers={},
                     is_https=norm.scheme == "https",
                 )
 
-            if header_result.findings:
-                save_security_headers_findings_to_db_sync(
+            if web_sec_result.findings:
+                save_web_security_findings_to_db_sync(
                     scan_id=scan.id,
-                    findings=header_result.findings,
+                    findings=web_sec_result.findings,
                     db=session,
                 )
         except Exception as e:
-            logger.warning(f"Security headers analysis failed for {norm.normalized_url}: {str(e)}")
+            logger.warning(f"Web security analysis failed for {norm.normalized_url}: {e}")
+
+        # Transition to Step 4: DOM & Phishing Content
+        scan.current_step = 4
+        scan.current_action = "Safely parsing DOM, checking login forms, password inputs & scripts..."
+        session.commit()
 
         # =====================================================================
-        # STAGE 5: Threat Intelligence Feeds (Google Safe Browsing, URLhaus, VirusTotal)
+        # STAGE 4: Safe Content Fetching & Phishing DOM Analysis
+        # =====================================================================
+        try:
+            html_content = mock_html
+            final_url = norm.normalized_url
+
+            if html_content is None and resolve_network:
+                import anyio
+                html_content, final_url, fetch_err = anyio.from_thread.run(safe_fetch_html, norm.normalized_url)
+
+            if html_content:
+                content_result = analyze_content_sync(
+                    url=final_url or norm.normalized_url,
+                    scan_id=scan.id,
+                    html=html_content,
+                    db=session,
+                )
+                scan.final_url = final_url
+                session.commit()
+        except Exception as e:
+            logger.warning(f"Content analysis failed for {norm.normalized_url}: {e}")
+
+        # Transition to Step 5: Heuristics & Brand Impersonation
+        scan.current_step = 5
+        scan.current_action = "Executing homoglyph detection, brand impersonation & typosquatting..."
+        session.commit()
+
+        # =====================================================================
+        # STAGE 5: Brand Impersonation & URL Heuristics
+        # =====================================================================
+        try:
+            if getattr(norm, "heuristics", None) and norm.heuristics.findings_list:
+                save_url_heuristic_findings_to_db_sync(
+                    scan_id=scan.id,
+                    findings=norm.heuristics.findings_list,
+                    db=session,
+                )
+
+            brand_matches = analyze_brand_impersonation(norm.host)
+            if brand_matches:
+                save_brand_impersonation_findings_to_db_sync(
+                    scan_id=scan.id,
+                    matches=brand_matches,
+                    db=session,
+                )
+        except Exception as e:
+            logger.warning(f"Heuristics/Brand analysis failed for {norm.host}: {e}")
+
+        # Transition to Step 6: Threat Intel Feeds
+        scan.current_step = 6
+        scan.current_action = "Cross-referencing threat intelligence feeds & IOCs..."
+        session.commit()
+
+        # =====================================================================
+        # STAGE 6: Threat Intelligence Feeds
         # =====================================================================
         try:
             intel_result = analyze_threat_intel(
@@ -206,48 +256,14 @@ def execute_scan_pipeline_sync(
                 db=session,
             )
         except Exception as e:
-            logger.warning(f"Threat intelligence query failed for {norm.normalized_url}: {str(e)}")
+            logger.warning(f"Threat intelligence query failed for {norm.normalized_url}: {e}")
 
         # =====================================================================
-        # STAGE 6: Safe Content Fetching & Phishing Heuristics
+        # STAGE 7: Explainable Risk Engine Synthesis & Report Finalization
         # =====================================================================
-        try:
-            html_content = mock_html
-            final_url = norm.normalized_url
+        scan.current_action = "Synthesizing risk score and final report..."
+        session.commit()
 
-            if html_content is None and resolve_network:
-                import anyio
-                html_content, final_url, fetch_err = anyio.from_thread.run(safe_fetch_html, norm.normalized_url)
-
-            if html_content:
-                from app.analyzers.content_analyzer import analyze_content_sync
-                content_result = analyze_content_sync(
-                    url=final_url or norm.normalized_url,
-                    scan_id=scan.id,
-                    html=html_content,
-                    db=session,
-                )
-                scan.final_url = final_url
-        except Exception as e:
-            logger.warning(f"Content analysis failed for {norm.normalized_url}: {str(e)}")
-
-        # =====================================================================
-        # STAGE 7: Machine Learning URL Classifier
-        # =====================================================================
-        ml_result = None
-        try:
-            ml_result = classify_url(norm.normalized_url)
-            save_ml_classification_to_db_sync(
-                scan_id=scan.id,
-                result=ml_result,
-                db=session,
-            )
-        except Exception as e:
-            logger.warning(f"ML classification failed for {norm.normalized_url}: {str(e)}")
-
-        # =====================================================================
-        # STAGE 8: Explainable Risk Engine Synthesis
-        # =====================================================================
         findings = session.query(ScanFinding).filter(ScanFinding.scan_id == scan.id).all()
         cert = session.query(Certificate).filter(Certificate.scan_id == scan.id).first()
         threat_results = session.query(ThreatIntelResult).filter(ThreatIntelResult.scan_id == scan.id).all()
@@ -256,13 +272,10 @@ def execute_scan_pipeline_sync(
             findings=findings,
             certificate=cert,
             threat_intel_results=threat_results,
-            ml_result=ml_result,
+            ml_result=None,
             domain=norm.host,
         )
 
-        # =====================================================================
-        # STAGE 9: Final Completion & Persistence
-        # =====================================================================
         scan.status = "completed"
         scan.verdict = evaluation.verdict
         scan.risk_score = evaluation.risk_score
@@ -270,19 +283,50 @@ def execute_scan_pipeline_sync(
         scan.summary = evaluation.summary
         scan.recommendation = evaluation.recommendation
         scan.completed_at = datetime.now(timezone.utc)
+        scan.current_step = 6
+        scan.current_action = "Scan completed successfully"
         session.commit()
         session.refresh(scan)
 
         return scan
     except Exception as exc:
         logger.exception(f"Unhandled error during scan execution: {str(exc)}")
-        session.rollback()
-        scan = session.query(Scan).filter(Scan.id == scan_id).first()
-        if scan:
-            scan.status = "failed"
-            scan.error_message = f"Analysis pipeline error: {str(exc)}"
-            scan.completed_at = datetime.now(timezone.utc)
-            session.commit()
-        return scan
+        try:
+            # Query whatever findings have already been persisted so they are preserved
+            findings = session.query(ScanFinding).filter(ScanFinding.scan_id == scan_id).all()
+            cert = session.query(Certificate).filter(Certificate.scan_id == scan_id).first()
+            threat_results = session.query(ThreatIntelResult).filter(ThreatIntelResult.scan_id == scan_id).all()
+
+            scan = session.query(Scan).filter(Scan.id == scan_id).first()
+            if scan:
+                scan.status = "failed"
+                scan.error_message = f"Analysis pipeline error: {str(exc)}"
+                scan.completed_at = datetime.now(timezone.utc)
+                scan.current_action = f"Scan failed: {str(exc)}"
+
+                # Evaluate preliminary score from partial findings if available
+                if findings or cert or threat_results:
+                    try:
+                        evaluation = evaluate_risk(
+                            findings=findings,
+                            certificate=cert,
+                            threat_intel_results=threat_results,
+                            ml_result=None,
+                            domain=getattr(scan, "normalized_url", None) or "unknown",
+                        )
+                        scan.verdict = evaluation.verdict
+                        scan.risk_score = evaluation.risk_score
+                        scan.confidence = evaluation.confidence
+                        scan.summary = f"Partial scan completed with error: {str(exc)}"
+                        scan.recommendation = evaluation.recommendation
+                    except Exception as eval_err:
+                        logger.warning(f"Preliminary risk evaluation failed: {eval_err}")
+
+                session.commit()
+                return scan
+        except Exception as recovery_exc:
+            logger.exception(f"Failed to record scan failure state: {recovery_exc}")
+            session.rollback()
+        return None
     finally:
         session.close()

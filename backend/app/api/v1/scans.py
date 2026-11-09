@@ -4,10 +4,10 @@ Handles scan submission, status polling, telemetry reporting, and pre-flight URL
 """
 
 import uuid
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 from typing import Optional, List
 from fastapi import APIRouter, Depends, status, BackgroundTasks, Query
-from sqlalchemy import select, desc, func
+from sqlalchemy import select, desc, func, or_
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
@@ -155,7 +155,36 @@ async def create_scan(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
         )
 
-    # 2. Persist new Scan in queued status
+    # 2. Check for active concurrent scan for the same normalized URL (last 5 minutes)
+    five_minutes_ago = datetime.now(timezone.utc) - timedelta(minutes=5)
+    clean_target = norm.normalized_url.rstrip("/")
+    existing_scan_stmt = (
+        select(Scan)
+        .where(
+            or_(
+                Scan.normalized_url == norm.normalized_url,
+                Scan.normalized_url == clean_target,
+                Scan.normalized_url == f"{clean_target}/",
+            ),
+            Scan.status.in_(["queued", "running"]),
+            Scan.created_at >= five_minutes_ago,
+        )
+        .order_by(desc(Scan.created_at))
+    )
+    existing_res = await db.execute(existing_scan_stmt)
+    existing_scan = existing_res.scalars().first()
+    if existing_scan:
+        return ScanResponse(
+            id=existing_scan.id,
+            input_url=existing_scan.input_url,
+            normalized_url=existing_scan.normalized_url,
+            status=existing_scan.status,
+            current_step=existing_scan.current_step or 0,
+            current_action=existing_scan.current_action,
+            created_at=existing_scan.created_at,
+        )
+
+    # 3. Persist new Scan in queued status
     scan_id = uuid.uuid4()
     now = datetime.now(timezone.utc)
     scan = Scan(
@@ -164,13 +193,15 @@ async def create_scan(
         input_url=payload.url.strip(),
         normalized_url=norm.normalized_url,
         status="queued",
+        current_step=0,
+        current_action="Scan queued in worker pool",
         created_at=now,
         updated_at=now,
     )
     db.add(scan)
     await db.commit()
 
-    # 3. Enqueue background execution via Celery or in-process fallback
+    # 4. Enqueue background execution via Celery or in-process fallback
     dispatch_scan(scan_id=scan.id, background_tasks=background_tasks)
 
     return ScanResponse(
@@ -178,6 +209,8 @@ async def create_scan(
         input_url=scan.input_url,
         normalized_url=scan.normalized_url,
         status="queued",
+        current_step=scan.current_step,
+        current_action=scan.current_action,
         created_at=scan.created_at,
     )
 
@@ -206,13 +239,16 @@ async def get_scan_status(
             status_code=status.HTTP_404_NOT_FOUND,
         )
 
-    step_map = {
-        "queued": 0,
-        "running": 3,
-        "completed": 6,
-        "failed": 0,
-    }
-    current_step = step_map.get(scan.status, 0)
+    if scan.current_step is not None and scan.current_step > 0:
+        current_step = scan.current_step
+    else:
+        step_map = {
+            "queued": 0,
+            "running": 1,
+            "completed": 6,
+            "failed": 0,
+        }
+        current_step = step_map.get(scan.status, 0)
 
     confidence = None
     if scan.confidence is not None:
@@ -222,6 +258,8 @@ async def get_scan_status(
         id=scan.id,
         status=scan.status,
         step=current_step,
+        total_steps=6,
+        current_action=scan.current_action,
         verdict=scan.verdict,
         risk_score=scan.risk_score,
         confidence=confidence,
@@ -275,25 +313,24 @@ async def get_scan_report(
     if scan.certificate:
         c = scan.certificate
         cert_response = CertificateReportResponse(
-            subject_cn=c.subject_cn,
-            issuer_o=c.issuer_o,
-            issuer_cn=c.issuer_cn,
+            subject=c.subject,
+            issuer=c.issuer,
             valid_from=c.valid_from,
             valid_to=c.valid_to,
             days_until_expiry=c.days_until_expiry,
-            key_algorithm=c.key_algorithm,
-            key_size=c.key_size,
-            signature_algorithm=c.signature_algorithm,
             is_valid=c.is_valid,
-            is_expired=c.is_expired,
-            is_self_signed=c.is_self_signed,
-            san_domains=c.san_domains or [],
+            is_revoked=c.is_revoked,
+            chain_valid=c.chain_valid,
+            ct_log_present=c.ct_log_present,
+            ca_trust_status=c.ca_trust_status,
+            raw_certificate=c.raw_certificate or {},
         )
 
     # Format Findings list
     findings_response = [
         ScanFindingResponse(
             id=f.id,
+            scan_id=f.scan_id,
             category=f.category,
             title=f.title,
             severity=f.severity,
@@ -310,12 +347,10 @@ async def get_scan_report(
     # Format Threat Intel results list
     threat_intel_response = [
         ThreatIntelReportResponse(
-            id=t.id,
             source=t.source,
             match_type=t.match_type,
             details=t.details or {},
             confidence=t.confidence,
-            checked_at=t.checked_at,
         )
         for t in (scan.threat_intel_results or [])
     ]
@@ -335,8 +370,8 @@ async def get_scan_report(
         confidence=confidence,
         summary=scan.summary,
         recommendation=scan.recommendation,
-        dns_records=scan.dns_records,
-        security_headers=scan.security_headers,
+        dns_records=getattr(scan, "dns_records", None),
+        security_headers=getattr(scan, "security_headers", None),
         findings=findings_response,
         certificate=cert_response,
         threat_intel=threat_intel_response,

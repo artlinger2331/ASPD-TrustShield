@@ -75,3 +75,4 @@ class URLValidationResponse(BaseModel):
     heuristics: Optional[URLHeuristics] = None
     redirect_chain: List[RedirectHop] = Field(default_factory=list, description="Step-by-step redirect chain")
     findings: List[Dict[str, Any]] = Field(default_factory=list, description="Structured security findings ready for database persistence")
+

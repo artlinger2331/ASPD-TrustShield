@@ -5,7 +5,10 @@ Unit tests for the TrustShield URL model training pipeline.
 from pathlib import Path
 import pytest
 
+<<<<<<< .merge_file_4c6dhP
 from app.ml.feature_extractor import FeatureSchemaV1
+=======
+>>>>>>> .merge_file_mGt7Zr
 from app.ml.model_registry import ModelRegistry
 from app.ml.train_model import (
     load_dataset_from_csv,
@@ -39,8 +42,14 @@ def test_train_logistic_regression(tmp_path: Path):
 
     assert metadata.model_type == "LogisticRegression"
     assert metadata.version == "v1.0.0-test-lr"
+<<<<<<< .merge_file_4c6dhP
     assert metadata.feature_count == FeatureSchemaV1.feature_count()
 
+=======
+    assert metadata.feature_count == 42
+
+    # Check metrics existence
+>>>>>>> .merge_file_mGt7Zr
     for split in ("train", "val", "test"):
         assert split in metadata.metrics
         split_metrics = metadata.metrics[split]
@@ -50,8 +59,14 @@ def test_train_logistic_regression(tmp_path: Path):
         assert "f1_score" in split_metrics
         assert "roc_auc" in split_metrics
         assert "confusion_matrix" in split_metrics
+<<<<<<< .merge_file_4c6dhP
         assert split_metrics["accuracy"] >= 0.7
 
+=======
+        assert split_metrics["accuracy"] >= 0.7  # Clean benchmark performance
+
+    # Verify model is reloadable from registry
+>>>>>>> .merge_file_mGt7Zr
     registry = ModelRegistry(storage_dir=tmp_path)
     loaded_pipe, loaded_meta = registry.load_model(version="v1.0.0-test-lr", model_name="test_url_classifier")
     assert loaded_meta.version == "v1.0.0-test-lr"

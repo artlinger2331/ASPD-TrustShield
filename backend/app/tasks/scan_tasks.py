@@ -5,11 +5,24 @@ Provides distributed asynchronous scanning with automatic in-process fallback.
 
 import uuid
 import logging
+from datetime import datetime, timezone
 from typing import Optional
 from fastapi import BackgroundTasks
 
+try:
+    from celery.exceptions import SoftTimeLimitExceeded
+except ImportError:
+    class SoftTimeLimitExceeded(Exception):
+        pass
+
 from app.core.celery_app import celery_app, is_redis_available
 from app.services.scan_orchestrator import execute_scan_pipeline_sync
+from app.services.risk_engine import evaluate_risk
+from app.db.session import local_session_factory
+from app.models.scan import Scan
+from app.models.scan_finding import ScanFinding
+from app.models.certificate import Certificate
+from app.models.threat_intel import ThreatIntelResult
 
 logger = logging.getLogger("trustshield.tasks")
 
@@ -23,20 +36,65 @@ logger = logging.getLogger("trustshield.tasks")
 def execute_scan_task(self, scan_id_str: str) -> dict:
     """
     Celery task that executes the complete passive scanning pipeline.
+    Handles soft timeout and preserves partial findings.
     """
     try:
         scan_uuid = uuid.UUID(scan_id_str)
         report = execute_scan_pipeline_sync(scan_uuid)
         return {
-            "status": "completed",
+            "status": "completed" if report and report.status == "completed" else "failed",
             "scan_id": scan_id_str,
             "verdict": report.verdict if report else "unknown",
             "risk_score": report.risk_score if report else 0,
         }
+    except SoftTimeLimitExceeded:
+        logger.error(f"Scan {scan_id_str} timed out (SoftTimeLimitExceeded). Preserving partial findings.")
+        session = local_session_factory()
+        try:
+            scan_uuid = uuid.UUID(scan_id_str)
+            scan = session.query(Scan).filter(Scan.id == scan_uuid).first()
+            if scan:
+                scan.status = "failed"
+                scan.error_message = "Scan execution timed out after 90 seconds. Partial findings preserved."
+                scan.current_action = "Scan timed out"
+                scan.completed_at = datetime.now(timezone.utc)
+                findings = session.query(ScanFinding).filter(ScanFinding.scan_id == scan_uuid).all()
+                cert = session.query(Certificate).filter(Certificate.scan_id == scan_uuid).first()
+                threat_results = session.query(ThreatIntelResult).filter(ThreatIntelResult.scan_id == scan_uuid).all()
+                if findings or cert or threat_results:
+                    evaluation = evaluate_risk(
+                        findings=findings,
+                        certificate=cert,
+                        threat_intel_results=threat_results,
+                        ml_result=None,
+                        domain=getattr(scan, "normalized_url", None) or "unknown",
+                    )
+                    scan.verdict = evaluation.verdict
+                    scan.risk_score = evaluation.risk_score
+                    scan.confidence = evaluation.confidence
+                    scan.summary = "Scan timed out. Preliminary risk assessment generated from partial findings."
+                    scan.recommendation = evaluation.recommendation
+                session.commit()
+        except Exception as e:
+            logger.error(f"Error handling timeout for scan {scan_id_str}: {e}")
+            session.rollback()
+        finally:
+            session.close()
+        return {
+            "status": "failed",
+            "scan_id": scan_id_str,
+            "error": "Scan execution timed out after 90 seconds",
+        }
     except Exception as exc:
         logger.error(f"Error executing scan {scan_id_str} in Celery task: {exc}", exc_info=True)
-        # Retry once on unexpected infrastructure/network failure
-        raise self.retry(exc=exc)
+        # Retry once on unexpected infrastructure/network failure if retries left
+        if getattr(self.request, "retries", 0) < self.max_retries:
+            raise self.retry(exc=exc)
+        return {
+            "status": "failed",
+            "scan_id": scan_id_str,
+            "error": str(exc),
+        }
 
 
 def dispatch_scan(
