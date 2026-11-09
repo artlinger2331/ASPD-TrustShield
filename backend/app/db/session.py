@@ -88,6 +88,13 @@ def init_sqlite_db():
         from app.db.base import Base
         import app.models  # Load all models
         Base.metadata.create_all(local_sync_engine)
+
+        with local_sync_engine.connect() as conn:
+            res = conn.exec_driver_sql("PRAGMA table_info(scans)").fetchall()
+            cols = [r[1] for r in res]
+            if "explanation" not in cols and "id" in cols:
+                conn.exec_driver_sql("ALTER TABLE scans ADD COLUMN explanation JSON")
+                conn.commit()
     except Exception:
         pass
 
