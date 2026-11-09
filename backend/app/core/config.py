@@ -77,6 +77,7 @@ class Settings(BaseSettings):
             "http://127.0.0.1:5173",
             "http://localhost:3000",
             "http://127.0.0.1:3000",
+            "https://aspd-trust-shield.vercel.app",
         ]
         if isinstance(self.CORS_ORIGINS, list):
             return list(set(self.CORS_ORIGINS + base_origins))
