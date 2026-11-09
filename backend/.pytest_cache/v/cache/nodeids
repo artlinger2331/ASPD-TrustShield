@@ -1,3 +1,17 @@
+<<<<<<< HEAD
+[
+  "tests/test_risk_engine.py::test_risk_engine_bounded_influence_security_header",
+  "tests/test_risk_engine.py::test_risk_engine_bounded_influence_threat_intel",
+  "tests/test_risk_engine.py::test_risk_engine_community_reports_signal",
+  "tests/test_risk_engine.py::test_risk_engine_conflicting_signals_ev_cert_on_phishing",
+  "tests/test_risk_engine.py::test_risk_engine_exact_schema_output",
+  "tests/test_risk_engine.py::test_risk_engine_high_risk_phishing_portal",
+  "tests/test_risk_engine.py::test_risk_engine_missing_or_failed_telemetry_resilience",
+  "tests/test_risk_engine.py::test_risk_engine_redirect_analysis_signal",
+  "tests/test_risk_engine.py::test_risk_engine_safe_website",
+  "tests/test_risk_engine.py::test_risk_engine_subscore_breakdown",
+  "tests/test_risk_engine.py::test_risk_engine_suspicious_website"
+=======
 [
   "tests/test_async_scan_pipeline.py::test_concurrent_duplicate_scan_prevention",
   "tests/test_async_scan_pipeline.py::test_failed_scan_saves_partial_findings",
@@ -47,4 +61,5 @@
   "tests/test_threat_intel_providers.py::test_urlhaus_malicious_match",
   "tests/test_threat_intel_providers.py::test_virustotal_404_not_in_database",
   "tests/test_threat_intel_providers.py::test_virustotal_malicious_detection"
+>>>>>>> 1f158f59501110666cb1bf973b0047daca5ccaf7
 ]

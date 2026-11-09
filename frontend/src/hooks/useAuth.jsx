@@ -122,7 +122,16 @@ export function AuthProvider({ children }) {
     return localStorage.getItem("ts_token") || null;
   });
 
-  const [user, setUser] = useState(null);
+  const [user, setUser] = useState(() => {
+    if (typeof window === "undefined") return null;
+    if (localStorage.getItem("ts_logged_out") === "true") return null;
+    try {
+      const saved = localStorage.getItem("ts_user");
+      return saved ? JSON.parse(saved) : null;
+    } catch {
+      return null;
+    }
+  });
   const [loading, setLoading] = useState(true);
 
   // Synchronize authenticated user profile from backend
@@ -134,6 +143,7 @@ export function AuthProvider({ children }) {
       if (!currentToken || localStorage.getItem("ts_logged_out") === "true") {
         if (isMounted) {
           setUser(null);
+          localStorage.removeItem("ts_user");
           setLoading(false);
         }
         return;
@@ -141,12 +151,14 @@ export function AuthProvider({ children }) {
 
       if (currentToken.startsWith("ts_mock_")) {
         if (isMounted) {
-          setUser({
+          const demoUser = {
             id: "usr_demo_analyst",
             email: "analyst@trustshield.sec",
             full_name: "Security Analyst",
             role: "admin",
-          });
+          };
+          setUser(demoUser);
+          localStorage.setItem("ts_user", JSON.stringify(demoUser));
           setLoading(false);
         }
         return;
@@ -156,6 +168,7 @@ export function AuthProvider({ children }) {
         const userData = await authApi.getMe();
         if (isMounted) {
           setUser(userData);
+          localStorage.setItem("ts_user", JSON.stringify(userData));
           setLoading(false);
         }
       } catch (err) {
@@ -164,6 +177,7 @@ export function AuthProvider({ children }) {
           setToken(null);
           localStorage.removeItem("ts_token");
           localStorage.removeItem("ts_refresh_token");
+          localStorage.removeItem("ts_user");
           setLoading(false);
         }
       }
@@ -175,6 +189,7 @@ export function AuthProvider({ children }) {
     const handleGlobalLogout = () => {
       setToken(null);
       setUser(null);
+      localStorage.removeItem("ts_user");
     };
     window.addEventListener("ts_auth_logout", handleGlobalLogout);
 
@@ -190,6 +205,9 @@ export function AuthProvider({ children }) {
       localStorage.removeItem("ts_logged_out");
       localStorage.setItem("ts_token", data.access_token);
       localStorage.setItem("ts_refresh_token", data.refresh_token);
+      if (data.user) {
+        localStorage.setItem("ts_user", JSON.stringify(data.user));
+      }
       setToken(data.access_token);
       setUser(data.user);
       return data.user;
@@ -212,6 +230,7 @@ export function AuthProvider({ children }) {
         const demoToken = "ts_mock_analyst_token_v2";
         localStorage.removeItem("ts_logged_out");
         localStorage.setItem("ts_token", demoToken);
+        localStorage.setItem("ts_user", JSON.stringify(demoUser));
         setToken(demoToken);
         setUser(demoUser);
         return demoUser;
@@ -225,6 +244,9 @@ export function AuthProvider({ children }) {
     localStorage.removeItem("ts_logged_out");
     localStorage.setItem("ts_token", data.access_token);
     localStorage.setItem("ts_refresh_token", data.refresh_token);
+    if (data.user) {
+      localStorage.setItem("ts_user", JSON.stringify(data.user));
+    }
     setToken(data.access_token);
     setUser(data.user);
     return data.user;
@@ -239,6 +261,9 @@ export function AuthProvider({ children }) {
     setToken(accessToken);
     try {
       const userData = await authApi.getMe();
+      if (userData) {
+        localStorage.setItem("ts_user", JSON.stringify(userData));
+      }
       setUser(userData);
       return userData;
     } catch (e) {
@@ -256,6 +281,7 @@ export function AuthProvider({ children }) {
       setUser(null);
       localStorage.removeItem("ts_token");
       localStorage.removeItem("ts_refresh_token");
+      localStorage.removeItem("ts_user");
       localStorage.setItem("ts_logged_out", "true");
     }
   }, []);
@@ -270,7 +296,7 @@ export function AuthProvider({ children }) {
         register,
         handleOAuthSuccess,
         logout,
-        isAuthenticated: !!token && !!user,
+        isAuthenticated: Boolean(token && localStorage.getItem("ts_logged_out") !== "true"),
       }}
     >
       {children}

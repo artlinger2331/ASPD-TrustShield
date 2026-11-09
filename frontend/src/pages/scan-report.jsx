@@ -1,3 +1,6 @@
+<<<<<<< HEAD
+import { useState } from "react";
+=======
 import { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { cn } from "@/utils/cn";
@@ -676,6 +679,7 @@ export default function ScanReport() {
 }
 =======
 import { useState, useEffect } from "react";
+>>>>>>> 1f158f59501110666cb1bf973b0047daca5ccaf7
 import { useParams, useNavigate } from "react-router-dom";
 import { cn } from "@/utils/cn";
 import {
@@ -694,6 +698,7 @@ import {
   Lock,
   Terminal,
   Loader2,
+  Cpu,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@/components/ui/card";
@@ -720,14 +725,12 @@ import {
   riskColor,
   verdictLabel,
 } from "@/utils/formatters";
-import { scanApi } from "@/utils/api";
 import {
   MOCK_SCAN_RESULT,
   MOCK_PHISHING_ANALYSIS,
   MOCK_CERT_ANALYSIS,
   MOCK_SECURITY_HEADERS,
   MOCK_THREAT_INTEL,
-  MOCK_EVIDENCE,
 } from "@/data/mockData";
 
 export default function ScanReport() {
@@ -771,7 +774,9 @@ export default function ScanReport() {
 
   // Split findings
   const realFindings = report?.findings || [];
-  const phishingFindings = realFindings.filter((f) => f.category !== "security_headers");
+  const phishingFindings = realFindings.filter(
+    (f) => f.category !== "security_headers" && f.category !== "ml_classifier"
+  );
   const headerFindings = realFindings.filter((f) => f.category === "security_headers");
 
   // Certificate data
@@ -977,6 +982,97 @@ export default function ScanReport() {
           </CardFooter>
         </Card>
 
+        {/* Dedicated Machine Learning URL Classifier Card */}
+        {report?.ml_result && (
+          <Card className="mb-6 border-cyan-500/20 bg-cyan-950/10">
+            <CardHeader className="flex items-center justify-between">
+              <div>
+                <div className="flex items-center gap-2">
+                  <CardTitle className="text-sm flex items-center gap-2">
+                    <Cpu className="w-4 h-4 text-cyan-400" />
+                    Machine Learning URL Classifier
+                  </CardTitle>
+                  <span className="px-2 py-0.5 rounded text-[10px] font-mono bg-cyan-500/20 text-cyan-300 border border-cyan-500/30">
+                    {report.ml_result.model_version || "v1.0.0"}
+                  </span>
+                </div>
+                <CardDescription>
+                  Interpretable ML feature-attribution inference (&lt;5ms latency).
+                </CardDescription>
+              </div>
+              <Badge variant={report.ml_result.is_phishing ? "danger" : "safe"}>
+                {report.ml_result.predicted_label?.toUpperCase() || (report.ml_result.is_phishing ? "PHISHING" : "BENIGN")}
+              </Badge>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="bg-white/3 rounded-xl p-3 border border-white/5">
+                  <div className="text-xs text-slate-500 uppercase mb-1">Phishing Probability</div>
+                  <div className="text-lg font-bold text-slate-100">
+                    {(report.ml_result.phishing_probability * 100).toFixed(1)}%
+                  </div>
+                  <div className="w-full bg-white/5 rounded-full h-1.5 mt-2 overflow-hidden">
+                    <div
+                      className={cn(
+                        "h-full rounded-full transition-all duration-500",
+                        report.ml_result.phishing_probability >= 0.5 ? "bg-rose-500" : "bg-emerald-500"
+                      )}
+                      style={{ width: `${Math.min(100, Math.max(5, report.ml_result.phishing_probability * 100))}%` }}
+                    />
+                  </div>
+                </div>
+                <div className="bg-white/3 rounded-xl p-3 border border-white/5">
+                  <div className="text-xs text-slate-500 uppercase mb-1">ML Confidence</div>
+                  <div className="text-lg font-bold text-slate-100">
+                    {Math.round((report.ml_result.confidence || 0.8) * 100)}%
+                  </div>
+                  <div className="text-xs text-slate-400 mt-1">Calibrated margin</div>
+                </div>
+                <div className="bg-white/3 rounded-xl p-3 border border-white/5">
+                  <div className="text-xs text-slate-500 uppercase mb-1">Verdict Classification</div>
+                  <div className="text-sm font-semibold capitalize text-slate-200">
+                    {report.ml_result.verdict || (report.ml_result.is_phishing ? "Dangerous" : "Safe")}
+                  </div>
+                  <div className="text-xs text-slate-400 mt-1">
+                    Risk Score: {report.ml_result.risk_score}/100
+                  </div>
+                </div>
+              </div>
+
+              {report.ml_result.summary && (
+                <div className="p-3 rounded-xl bg-white/3 border border-white/5 text-xs text-slate-300">
+                  <span className="font-semibold text-cyan-400">Analysis Summary: </span>
+                  {report.ml_result.summary}
+                </div>
+              )}
+
+              {report.ml_result.top_contributing_features && report.ml_result.top_contributing_features.length > 0 && (
+                <div>
+                  <div className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">
+                    Top Contributing Decision Features
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                    {report.ml_result.top_contributing_features.map((feat, idx) => (
+                      <div key={idx} className="flex items-center justify-between p-2.5 rounded-lg bg-white/2 border border-white/5 text-xs">
+                        <div>
+                          <span className="font-mono text-cyan-300">{feat.feature_name || feat.name}</span>
+                          <p className="text-[11px] text-slate-400 mt-0.5">{feat.description}</p>
+                        </div>
+                        <div className="text-right shrink-0 ml-2">
+                          <span className="font-mono text-slate-300 text-xs">{String(feat.feature_value ?? "")}</span>
+                          {feat.weight !== undefined && (
+                            <div className="text-[10px] text-slate-500">wt: {feat.weight}</div>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        )}
+
         {/* B. Phishing & Content Analysis */}
         <Card className="mb-6">
           <CardHeader className="flex items-center justify-between">
@@ -1098,35 +1194,30 @@ export default function ScanReport() {
             <CardTitle className="text-sm">C. Certificate &amp; Trust Analysis</CardTitle>
             <CardDescription>HTTPS status, certificate chain, and trust signals.</CardDescription>
           </CardHeader>
-          <CardContent className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-            <div className="lg:col-span-2 space-y-4">
-              <CertificateChain chain={certData.chain} />
+          <CardContent className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="md:col-span-2 space-y-4">
               <div className="bg-white/3 rounded-xl p-4 border border-white/5">
-                <div className="grid grid-cols-2 gap-4 text-sm">
-                  <div>
-                    <div className="text-xs text-slate-500 uppercase mb-1">HTTPS status</div>
-                    <div className="text-slate-200 font-medium">Secure (TLS 1.3)</div>
-                  </div>
-                  <div>
-                    <div className="text-xs text-slate-500 uppercase mb-1">Issuer</div>
-                    <div className="text-slate-200 font-medium truncate">{certData.issuer}</div>
-                  </div>
-                  <div>
-                    <div className="text-xs text-slate-500 uppercase mb-1">Valid from</div>
-                    <div className="text-slate-200 font-medium">{certData.validFrom}</div>
-                  </div>
-                  <div>
-                    <div className="text-xs text-slate-500 uppercase mb-1">Expires</div>
-                    <div className="text-slate-200 font-medium">{certData.validTo}</div>
-                  </div>
-                  <div>
-                    <div className="text-xs text-slate-500 uppercase mb-1">Days until expiry</div>
-                    <div className="text-slate-200 font-medium">{certData.daysUntilExpiry} days</div>
-                  </div>
-                  <div>
-                    <div className="text-xs text-slate-500 uppercase mb-1">CA trust</div>
-                    <div className="text-slate-200 font-medium">{certData.caTrust}</div>
-                  </div>
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-xs text-slate-500 uppercase">HTTPS</span>
+                  <Badge variant={certData.https ? "safe" : "danger"}>
+                    {certData.https ? "Enabled" : "Disabled"}
+                  </Badge>
+                </div>
+                <div className="text-sm text-slate-300">
+                  Issuer: <span className="text-slate-100 font-medium">{certData.issuer}</span>
+                </div>
+                <div className="text-xs text-slate-500 mt-1">
+                  Valid from {certData.validFrom} to {certData.validTo}
+                </div>
+              </div>
+              <div className="bg-white/3 rounded-xl p-4 border border-white/5">
+                <div className="text-xs text-slate-500 uppercase mb-3">Certificate Chain</div>
+                <CertificateChain chain={certData.chain} />
+              </div>
+              <div className="bg-white/3 rounded-xl p-4 border border-white/5">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs text-slate-500 uppercase">Days until expiration</span>
+                  <span className="text-sm font-semibold text-slate-200">{certData.daysUntilExpiry} days</span>
                 </div>
                 {certData.warning && (
                   <div className="mt-3 p-3 rounded-lg bg-amber-500/5 border border-amber-500/20">
@@ -1226,7 +1317,7 @@ export default function ScanReport() {
         {/* Threat Intelligence Topology Graph */}
         <ThreatIntelGraph scanData={scan} className="mb-6" />
 
-        {/* F. Evidence */}
+        {/* F. Evidence & Raw Telemetry */}
         <Card className="mb-6">
           <CardHeader className="flex items-center justify-between">
             <div>
@@ -1264,4 +1355,3 @@ export default function ScanReport() {
     </div>
   );
 }
->>>>>>> 9b735eb99fcfab11611f7f8da03c77f43357eb91
