@@ -374,7 +374,6 @@ def execute_scan_pipeline_sync(
                         scan.confidence = evaluation.confidence
                         scan.summary = f"Partial scan completed with error: {str(exc)}"
                         scan.recommendation = evaluation.recommendation
-<<<<<<< HEAD
                         scan.explanation = {
                             "risk_score": evaluation.risk_score,
                             "verdict": evaluation.verdict,
@@ -385,8 +384,6 @@ def execute_scan_pipeline_sync(
                             "category_scores": evaluation.category_scores,
                             "evidence": evaluation.evidence,
                         }
-=======
->>>>>>> 9b735eb99fcfab11611f7f8da03c77f43357eb91
                     except Exception as eval_err:
                         logger.warning(f"Preliminary risk evaluation failed: {eval_err}")
 
