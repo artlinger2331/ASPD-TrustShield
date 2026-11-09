@@ -8,6 +8,52 @@ full evaluation metrics, and ModelRegistry persistence.
 import argparse
 import csv
 from dataclasses import asdict, dataclass
+import logging
+from pathlib import Path
+import sys
+from typing import Any, Dict, List, Optional, Tuple, Union
+
+import numpy as np
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.linear_model import LogisticRegression
+from sklearn.metrics import (
+    accuracy_score,
+    confusion_matrix,
+    f1_score,
+    precision_score,
+    recall_score,
+    roc_auc_score,
+)
+from sklearn.model_selection import train_test_split
+from sklearn.pipeline import Pipeline
+from sklearn.preprocessing import StandardScaler
+
+from app.ml.feature_extractor import FeatureSchemaV1, extract_features_vector
+from app.ml.model_registry import ModelMetadata, ModelRegistry
+
+logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
+logger = logging.getLogger(__name__)
+
+
+@dataclass
+class DataHygieneReport:
+    raw_records: int
+    clean_records: int
+    duplicates_removed: int
+    conflicts_dropped: int
+    invalid_dropped: int
+    class_distribution: Dict[str, int]
+
+    def to_dict(self) -> Dict[str, Any]:
+        return asdict(self)
+
+
+def load_dataset_from_csv(
+    csv_path: Union[str, Path],
+) -> Tuple[List[str], np.ndarray, DataHygieneReport]:
+    """
+    Loads, cleans, and deduplicates URLs and binary labels from CSV file.
+    Resolves duplicate URLs and discards conflicting labels.
     """
     path = Path(csv_path)
     if not path.exists():
@@ -28,6 +74,11 @@ from dataclasses import asdict, dataclass
 
         for row_idx, row in enumerate(reader):
             raw_records += 1
+            url_str = (row.get("url") or "").strip()
+            raw_label = (row.get("label") or "").strip().lower()
+
+            if not url_str:
+                invalid_dropped += 1
                 continue
 
             if raw_label in ("0", "benign", "legitimate", "safe"):
@@ -112,9 +163,6 @@ def compute_dataset_metrics(model: Any, X: np.ndarray, y: np.ndarray) -> Dict[st
     f1 = f1_score(y, preds, zero_division=0)
 
     try:
-=======
-        # ROC AUC requires at least two classes in y
->>>>>>> 9b735eb99fcfab11611f7f8da03c77f43357eb91
         if len(np.unique(y)) > 1:
             roc_auc = roc_auc_score(y, probs)
         else:
@@ -151,7 +199,6 @@ def train_url_classifier(
     random_state: int = 42,
     output_dir: Optional[Union[str, Path]] = None,
     hyperparameters: Optional[Dict[str, Any]] = None,
-<<<<<<< HEAD
     set_as_production: bool = False,
 ) -> Tuple[Any, ModelMetadata]:
     """
@@ -174,9 +221,6 @@ def train_url_classifier(
         random_state=random_state,
     )
 
-=======
-    # Relative val size from train_full
->>>>>>> 9b735eb99fcfab11611f7f8da03c77f43357eb91
     rel_val_size = val_size / (1.0 - test_size)
     X_train, X_val, y_train, y_val = train_test_split(
         X_train_full,
@@ -186,7 +230,6 @@ def train_url_classifier(
         random_state=random_state,
     )
 
-<<<<<<< HEAD
     hyperparameters = hyperparameters or {}
     model_type_clean = model_type.lower().replace("-", "_")
 
@@ -195,9 +238,6 @@ def train_url_classifier(
         max_iter = int(hyperparameters.get("max_iter", 1000))
         resolved_params = {
             "C": c_param,
-=======
-            "penalty": "l2",
->>>>>>> 9b735eb99fcfab11611f7f8da03c77f43357eb91
             "solver": "lbfgs",
             "max_iter": max_iter,
             "random_state": random_state,
@@ -228,7 +268,6 @@ def train_url_classifier(
     else:
         raise ValueError(f"Unsupported model_type '{model_type}'. Choose 'logistic_regression' or 'random_forest'.")
 
-<<<<<<< HEAD
     pipeline.fit(X_train, y_train)
 
     metrics = {
@@ -237,16 +276,6 @@ def train_url_classifier(
         "test": compute_dataset_metrics(pipeline, X_test, y_test),
     }
 
-=======
-    logger.info(
-        "Evaluation summary [Test Set] -> Accuracy: %.3f, F1: %.3f, ROC-AUC: %.3f",
-        metrics["test"]["accuracy"],
-        metrics["test"]["f1_score"],
-        metrics["test"]["roc_auc"],
-    )
-
-    # 5. Metadata Creation & Registry Storage
->>>>>>> 9b735eb99fcfab11611f7f8da03c77f43357eb91
     metadata = ModelMetadata(
         model_name=model_name,
         version=version,
@@ -259,8 +288,14 @@ def train_url_classifier(
         decision_threshold=0.5,
         notes=f"Trained on {csv_path} with {resolved_model_type}",
     )
-<<<<<<< HEAD
     metadata.metrics["data_hygiene"] = hygiene_report.to_dict()
+
+    registry = ModelRegistry(storage_dir=output_dir)
+    registry.save_model(pipeline, metadata)
+
+    if set_as_production:
+        registry.set_production_model(version=version, model_name=model_name)
+
     return pipeline, metadata
 
 
@@ -302,6 +337,17 @@ def main():
         action="store_true",
         help="Set this trained model as the active production model",
     )
+
+    args = parser.parse_args()
+
+    try:
+        pipeline, metadata = train_url_classifier(
+            csv_path=args.data,
+            model_type=args.model,
+            version=args.version,
+            model_name=args.model_name,
+            output_dir=args.output_dir,
+            set_as_production=args.production,
         )
         print(f"Successfully trained {metadata.model_name} ({metadata.version})")
         print(f"Test Accuracy: {metadata.metrics['test']['accuracy']}")

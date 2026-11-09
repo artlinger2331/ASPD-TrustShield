@@ -8,6 +8,43 @@ from dataclasses import asdict, dataclass
 import logging
 import threading
 import time
+from typing import Any, Dict, List, Optional, Tuple, Union
+
+import numpy as np
+
+from app.ml.feature_extractor import (
+    FeatureSchemaV1,
+    extract_features,
+    extract_features_vector,
+)
+from app.ml.model_registry import ModelMetadata, ModelRegistry
+
+logger = logging.getLogger(__name__)
+
+
+@dataclass
+class TopFeatureContribution:
+    feature_name: str
+    feature_value: Union[int, float]
+    contribution: float  # Signed attribution score (+ pushes phishing, - pushes benign)
+    description: str
+
+    def to_dict(self) -> Dict[str, Any]:
+        return asdict(self)
+
+
+@dataclass
+class URLPredictionResult:
+    url: str
+    label: str  # "phishing" or "benign"
+    is_phishing: bool
+    probability: float  # Phishing probability in [0.0, 1.0]
+    confidence: float  # Confidence margin in [0.0, 1.0]
+    model_version: str
+    feature_schema_version: str
+    top_contributing_features: List[TopFeatureContribution]
+    raw_features: Dict[str, Union[int, float]]
+    cached: bool = False
 
     def to_dict(self) -> Dict[str, Any]:
         res = asdict(self)
@@ -104,28 +141,47 @@ class URLClassifier:
         registry: Optional[ModelRegistry] = None,
         use_production: bool = True,
         cache: Optional[PredictionCache] = None,
+    ):
+        self.registry = registry or ModelRegistry()
+        if model is not None and metadata is not None:
+            self.model = model
+            self.metadata = metadata
+        elif use_production and version is None:
+            try:
+                self.model, self.metadata = self.registry.load_production_model(model_name=model_name)
+            except FileNotFoundError:
+                self.model, self.metadata = self.registry.load_model(version=None, model_name=model_name)
         else:
             self.model, self.metadata = self.registry.load_model(version=version, model_name=model_name)
 
         self.feature_names = self.metadata.feature_names or FeatureSchemaV1.feature_names()
         self.decision_threshold = float(self.metadata.decision_threshold or 0.5)
         self.cache = cache or GLOBAL_PREDICTION_CACHE
+
+    def _compute_attributions(
+        self,
+        X_vec: np.ndarray,
+        feature_dict: Dict[str, Union[int, float]],
+        is_phishing: bool,
+        top_k: int = 5,
+    ) -> List[TopFeatureContribution]:
+        """
+        Computes top contributing features using model coefficients or importances.
+        """
+        contributions: List[Tuple[str, float, float]] = []
+
         classifier = getattr(self.model, "named_steps", {}).get("classifier", self.model)
         scaler = getattr(self.model, "named_steps", {}).get("scaler", None)
 
         if hasattr(classifier, "coef_"):
             coefs = classifier.coef_[0]
             if scaler is not None and hasattr(scaler, "mean_") and hasattr(scaler, "scale_"):
-=======
-                # Scaled linear model
->>>>>>> 9b735eb99fcfab11611f7f8da03c77f43357eb91
                 norm_x = (X_vec - scaler.mean_) / np.where(scaler.scale_ == 0, 1.0, scaler.scale_)
                 raw_contributions = coefs * norm_x
             else:
                 raw_contributions = coefs * X_vec
 
             for i, name in enumerate(self.feature_names):
-<<<<<<< HEAD
                 if i < len(raw_contributions):
                     val = feature_dict.get(name, 0.0)
                     contrib = float(raw_contributions[i])
@@ -144,11 +200,6 @@ class URLClassifier:
                 val = feature_dict.get(name, 0.0)
                 contributions.append((name, val, 0.0))
 
-=======
-        # Sort:
-        # If predicted phishing, prioritize highest positive contributions (+ pushing toward phishing).
-        # If predicted benign, prioritize highest negative contributions (- pushing toward benign).
->>>>>>> 9b735eb99fcfab11611f7f8da03c77f43357eb91
         if is_phishing:
             contributions.sort(key=lambda item: item[2], reverse=True)
         else:
@@ -171,7 +222,6 @@ class URLClassifier:
     def predict(
         self,
         url: str,
-<<<<<<< HEAD
         metadata: Optional[Dict[str, Any]] = None,
         top_k_features: int = 5,
         use_cache: bool = True,

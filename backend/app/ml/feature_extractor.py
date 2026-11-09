@@ -83,6 +83,28 @@ SUSPICIOUS_KEYWORDS = [
     "recovery",
 ]
 
+TARGETED_BRANDS = [
+    "paypal",
+    "google",
+    "apple",
+    "microsoft",
+    "amazon",
+    "facebook",
+    "netflix",
+    "wellsfargo",
+    "chase",
+    "bankofamerica",
+    "binance",
+    "coinbase",
+    "metamask",
+    "instagram",
+    "twitter",
+    "yahoo",
+    "outlook",
+    "steam",
+    "dropbox",
+]
+
 SUSPICIOUS_TLDS = {
     ".xyz",
     ".top",
@@ -194,6 +216,25 @@ class FeatureSchemaV1:
                 f.write(json_str)
         return json_str
 
+
+def calculate_shannon_entropy(text: str) -> float:
+    """Calculates the Shannon entropy (bits per symbol) of a string."""
+    if not text:
+        return 0.0
+    length = len(text)
+    counts = Counter(text)
+    entropy = -sum((count / length) * math.log2(count / length) for count in counts.values())
+    return round(entropy, 4)
+
+
+def extract_max_char_repetition(text: str) -> int:
+    """Finds the maximum consecutive identical character run length in text."""
+    if not text:
+        return 0
+    runs = [len(match.group(0)) for match in REPEATING_CHAR_REGEX.finditer(text)]
+    return max(runs) if runs else 1
+
+
 def is_ip_host(host: str) -> bool:
     """Checks whether the hostname is an IPv4 or IPv6 address literal."""
     if not host:
@@ -211,9 +252,6 @@ def is_ip_host(host: str) -> bool:
 def parse_subdomain_parts(hostname: str) -> Tuple[List[str], str, str]:
     """
     Parses hostname into (subdomains, second_level_domain, top_level_domain).
-=======
-    Fallback heuristic when public suffix list is not loaded.
->>>>>>> 9b735eb99fcfab11611f7f8da03c77f43357eb91
     """
     if not hostname or is_ip_host(hostname):
         return [], hostname, ""
@@ -224,7 +262,6 @@ def parse_subdomain_parts(hostname: str) -> Tuple[List[str], str, str]:
     if len(parts) == 2:
         return [], parts[0], "." + parts[1]
 
-<<<<<<< HEAD
     if len(parts) >= 3 and len(parts[-1]) == 2 and parts[-2] in {"co", "com", "gov", "org", "net", "edu", "ac"}:
         tld = f".{parts[-2]}.{parts[-1]}"
         sld = parts[-3]
