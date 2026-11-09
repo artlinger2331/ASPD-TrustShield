@@ -29,19 +29,29 @@ export default function Profile() {
             <div className="w-20 h-20 rounded-2xl bg-blue-600/20 flex items-center justify-center text-blue-400 text-2xl font-bold border border-blue-500/30">
               <User className="w-10 h-10" />
             </div>
-            <div className="flex-1">
-              <h2 className="text-lg font-bold text-slate-100">{user?.full_name || user?.name || "Security Analyst"}</h2>
-              <p className="text-sm text-slate-400">{user?.email || "No email"}</p>
-              <div className="flex items-center gap-2 mt-2">
-                <span className="px-2 py-0.5 rounded-full text-[10px] font-mono font-semibold bg-cyan-500/10 text-cyan-400 border border-cyan-500/20 uppercase">
-                  {user?.role || "user"}
-                </span>
-                {user?.is_active && (
-                  <span className="px-2 py-0.5 rounded-full text-[10px] font-mono font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
-                    ACTIVE
-                  </span>
-                )}
-              </div>
+            <div className="flex-1 space-y-2">
+              {!user ? (
+                <>
+                  <Skeleton className="h-6 w-48 rounded-lg bg-white/5" />
+                  <Skeleton className="h-4 w-64 rounded bg-white/5" />
+                  <Skeleton className="h-4 w-24 rounded-full bg-cyan-500/10" />
+                </>
+              ) : (
+                <>
+                  <h2 className="text-lg font-bold text-slate-100">{user?.full_name || user?.name || "Security Analyst"}</h2>
+                  <p className="text-sm text-slate-400">{user?.email || "No email"}</p>
+                  <div className="flex items-center gap-2 mt-2">
+                    <span className="px-2 py-0.5 rounded-full text-[10px] font-mono font-semibold bg-cyan-500/10 text-cyan-400 border border-cyan-500/20 uppercase">
+                      {user?.role || "user"}
+                    </span>
+                    {user?.is_active && (
+                      <span className="px-2 py-0.5 rounded-full text-[10px] font-mono font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                        ACTIVE
+                      </span>
+                    )}
+                  </div>
+                </>
+              )}
             </div>
           </CardContent>
         </Card>
