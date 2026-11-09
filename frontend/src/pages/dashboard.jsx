@@ -498,6 +498,23 @@ export default function Dashboard() {
                   </div>
                 ))}
               </div>
+            ) : recentScans.length === 0 ? (
+              <div className="p-12 text-center flex flex-col items-center justify-center">
+                <div className="w-12 h-12 rounded-2xl bg-cyan-500/10 border border-cyan-500/30 flex items-center justify-center text-cyan-400 mb-3">
+                  <ShieldCheck className="w-6 h-6" />
+                </div>
+                <h3 className="text-sm font-bold text-white mb-1">No Target Scans Recorded Yet</h3>
+                <p className="text-xs text-slate-400 max-w-sm mb-4">
+                  Run an inspection in the URL scanner to generate live telemetry, risk verdicts, and forensic evidence dossiers.
+                </p>
+                <Button
+                  size="sm"
+                  onClick={() => navigate("/scan")}
+                  className="bg-cyan-500 hover:bg-cyan-400 text-black font-semibold text-xs px-4 py-2 rounded-xl cursor-pointer"
+                >
+                  Launch New Scan
+                </Button>
+              </div>
             ) : (
               <Table
                 columns={[
@@ -505,7 +522,7 @@ export default function Dashboard() {
                     key: "url",
                     label: "Target Hostname",
                     render: (r) => (
-                      <span className="font-mono text-xs text-cyan-300 font-semibold hover:underline cursor-pointer" onClick={() => navigate(`/report/${r.id || "1"}`)}>
+                      <span className="font-mono text-xs text-cyan-300 font-semibold hover:underline cursor-pointer" onClick={() => navigate(`/report/${r.id}`)}>
                         {r.url}
                       </span>
                     ),
@@ -541,7 +558,7 @@ export default function Dashboard() {
                   },
                   {
                     key: "date",
-                    label: "Time Elapsed",
+                    label: "Time Recorded",
                     render: (r) => <span className="font-mono text-[11px] text-slate-500">{r.date}</span>,
                   },
                   {
@@ -551,7 +568,7 @@ export default function Dashboard() {
                       <Button
                         size="sm"
                         variant="ghost"
-                        onClick={() => navigate(`/report/${r.id || "1"}`)}
+                        onClick={() => navigate(`/report/${r.id}`)}
                         className="text-xs text-cyan-400 hover:text-cyan-300 hover:bg-cyan-500/10 px-2.5 py-1 rounded-lg font-mono flex items-center gap-1 cursor-pointer"
                       >
                         <span>Report</span>
