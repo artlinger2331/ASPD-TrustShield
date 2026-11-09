@@ -51,6 +51,7 @@ from app.analyzers.ml_classifier import (
     save_ml_classification_to_db_sync,
 )
 from app.services.risk_engine import evaluate_risk
+from app.core.config import settings
 from app.db.session import local_session_factory
 from app.models.scan import Scan
 from app.models.scan_finding import ScanFinding
@@ -137,29 +138,30 @@ def execute_scan_pipeline_sync(
         # ML URL Classification (After URL & Domain Analysis)
         # =====================================================================
         ml_result = None
-        try:
-            domain_context = {}
-            if "domain_result" in locals() and domain_result:
-                if getattr(domain_result, "domain_age_days", None) is not None:
-                    domain_context["domain_age_days"] = domain_result.domain_age_days
-                if getattr(domain_result, "dns_records", None):
-                    domain_context["num_dns_records"] = len(domain_result.dns_records)
-                if getattr(domain_result, "has_mx", False):
-                    domain_context["has_mx_records"] = 1
-                if getattr(domain_result, "has_txt", False):
-                    domain_context["has_txt_records"] = 1
-                if getattr(domain_result, "min_ttl", None) is not None:
-                    domain_context["ttl_value"] = domain_result.min_ttl
+        if getattr(settings, "ENABLE_ML_CLASSIFICATION", True):
+            try:
+                domain_context = {}
+                if "domain_result" in locals() and domain_result:
+                    if getattr(domain_result, "domain_age_days", None) is not None:
+                        domain_context["domain_age_days"] = domain_result.domain_age_days
+                    if getattr(domain_result, "dns_records", None):
+                        domain_context["num_dns_records"] = len(domain_result.dns_records)
+                    if getattr(domain_result, "has_mx", False):
+                        domain_context["has_mx_records"] = 1
+                    if getattr(domain_result, "has_txt", False):
+                        domain_context["has_txt_records"] = 1
+                    if getattr(domain_result, "min_ttl", None) is not None:
+                        domain_context["ttl_value"] = domain_result.min_ttl
 
-            ml_result = classify_url(norm.normalized_url, metadata=domain_context)
-            if ml_result:
-                save_ml_classification_to_db_sync(
-                    scan_id=scan.id,
-                    result=ml_result,
-                    db=session,
-                )
-        except Exception as e:
-            logger.warning(f"ML classification failed for {norm.normalized_url}: {e} (continuing scan)")
+                ml_result = classify_url(norm.normalized_url, metadata=domain_context)
+                if ml_result:
+                    save_ml_classification_to_db_sync(
+                        scan_id=scan.id,
+                        result=ml_result,
+                        db=session,
+                    )
+            except Exception as e:
+                logger.warning(f"ML classification failed for {norm.normalized_url}: {e} (continuing scan)")
 
         # Transition to Step 2: SSL/TLS
         scan.current_step = 2
