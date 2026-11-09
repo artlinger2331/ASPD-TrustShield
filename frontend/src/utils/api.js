@@ -4,7 +4,20 @@
  * and seamless 401 token refreshing.
  */
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || "";
+export const API_BASE_URL = (import.meta.env.VITE_API_URL || "").replace(/\/+$/, "");
+
+export function getApiBaseUrl() {
+  if (import.meta.env.VITE_API_URL) {
+    return import.meta.env.VITE_API_URL.replace(/\/+$/, "");
+  }
+  if (typeof window !== "undefined") {
+    // Only default to port 8000 when genuinely running locally on a PC
+    if (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1") {
+      return "http://127.0.0.1:8000";
+    }
+  }
+  return "";
+}
 
 let isRefreshing = false;
 let failedQueue = [];
@@ -21,7 +34,12 @@ const processQueue = (error, token = null) => {
 };
 
 export async function apiFetch(endpoint, options = {}) {
-  const url = endpoint.startsWith("http") ? endpoint : `${API_BASE_URL}${endpoint}`;
+  const baseUrl = getApiBaseUrl();
+  const url = endpoint.startsWith("http")
+    ? endpoint
+    : baseUrl
+    ? `${baseUrl}${endpoint.startsWith("/") ? endpoint : `/${endpoint}`}`
+    : endpoint;
 
   const headers = {
     "Content-Type": "application/json",
@@ -43,8 +61,9 @@ export async function apiFetch(endpoint, options = {}) {
   try {
     response = await fetch(url, config);
   } catch (netErr) {
-    // If proxy failed, attempt direct connection to backend port 8000
-    if (!url.startsWith("http://127.0.0.1:8000") && !url.startsWith("http://localhost:8000")) {
+    // Only attempt direct fallback to port 8000 if running locally on localhost
+    const isLocal = typeof window !== "undefined" && (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1");
+    if (isLocal && !url.startsWith("http://127.0.0.1:8000") && !url.startsWith("http://localhost:8000")) {
       try {
         const directUrl = `http://127.0.0.1:8000${endpoint.startsWith("/") ? endpoint : `/${endpoint}`}`;
         response = await fetch(directUrl, config);
