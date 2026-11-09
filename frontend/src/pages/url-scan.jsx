@@ -200,6 +200,19 @@ export default function UrlScan() {
       setUrl(targetUrl);
     }
 
+    if (!isAuthenticated) {
+      const redirectPath = `/scan?url=${encodeURIComponent(targetUrl)}`;
+      sessionStorage.setItem("ts_pending_scan_url", targetUrl);
+      sessionStorage.setItem("ts_redirect_after_auth", redirectPath);
+      toast({
+        title: "Authentication Required",
+        description: "Please sign in or register to inspect this target.",
+        type: "info",
+      });
+      navigate(`/login?redirect=${encodeURIComponent(redirectPath)}&targetUrl=${encodeURIComponent(targetUrl)}`);
+      return;
+    }
+
     setScanning(true);
     setCompleted(false);
     setResult(null);
