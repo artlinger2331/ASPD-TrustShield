@@ -151,14 +151,24 @@ def evaluate_risk(
         ),
     }
 
-    # Weighted blend calculation
+    # Weighted blend calculation with configurable ML weight
+    if getattr(settings, "ENABLE_ML_CLASSIFICATION", True):
+        ml_weight = float(getattr(settings, "ML_RISK_WEIGHT", 0.10))
+    else:
+        ml_weight = 0.0
+
+    ml_weight = max(0.0, min(0.35, ml_weight))
+    remaining_weight = 1.0 - ml_weight
+
     raw_composite = (
-        0.35 * threat_score +
-        0.30 * content_score +
-        0.15 * domain_score +
-        0.10 * cert_score +
-        0.05 * header_score +
-        0.05 * ml_score
+        (
+            0.35 * threat_score +
+            0.25 * content_score +
+            0.15 * domain_score +
+            0.15 * cert_score +
+            0.10 * header_score
+        ) * remaining_weight +
+        (ml_weight * ml_score)
     )
 
     # Apply Defense Overrides
