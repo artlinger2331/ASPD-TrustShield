@@ -356,6 +356,24 @@ async def get_scan_report(
         for t in (scan.threat_intel_results or [])
     ]
 
+    # Format ML Classification response if present in findings
+    ml_response: Optional[MLClassificationResponse] = None
+    ml_finding = next((f for f in (scan.findings or []) if f.category == "ml_classifier"), None)
+    if ml_finding and ml_finding.evidence:
+        ev = ml_finding.evidence
+        ml_response = MLClassificationResponse(
+            url=scan.normalized_url or scan.input_url,
+            predicted_label=ev.get("predicted_label", "phishing" if ev.get("phishing_probability", 0) >= 0.5 else "benign"),
+            is_phishing=bool(ev.get("predicted_label") == "phishing" or ev.get("phishing_probability", 0) >= 0.5),
+            phishing_probability=float(ev.get("phishing_probability", 0.0)),
+            risk_score=int(ev.get("risk_score", ml_finding.risk_points or 0)),
+            confidence=float(ev.get("confidence", ml_finding.confidence or 0.8)),
+            verdict=ev.get("verdict", "safe"),
+            model_version=ev.get("model_version", "v1.0.0"),
+            top_contributing_features=ev.get("top_indicators", []),
+            summary=ml_finding.description or "",
+        )
+
     _, verdict_label = calculate_verdict(scan.risk_score or 0)
     confidence = float(scan.confidence) if scan.confidence is not None else None
 
@@ -376,6 +394,7 @@ async def get_scan_report(
         findings=findings_response,
         certificate=cert_response,
         threat_intel=threat_intel_response,
+        ml_result=ml_response,
         started_at=scan.started_at,
         completed_at=scan.completed_at,
         created_at=scan.created_at,
