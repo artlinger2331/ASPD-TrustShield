@@ -126,6 +126,9 @@ export default function Landing() {
   const [url, setUrl] = useState("https://secure-chase-update.bank-verify.xyz/login");
   const [activeConsoleTab, setActiveConsoleTab] = useState("homograph");
   const [scrolled, setScrolled] = useState(false);
+  const [scanError, setScanError] = useState(null);
+
+  const createScanMutation = useCreateScan();
 
   // Framer Motion scroll progress indicator
   const { scrollYProgress } = useScroll();
@@ -143,10 +146,21 @@ export default function Landing() {
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
-  const handleScanSubmit = (e) => {
+  const handleScanSubmit = async (e) => {
     e.preventDefault();
     if (!url.trim()) return;
-    navigate(`/scan?url=${encodeURIComponent(url.trim())}`);
+    setScanError(null);
+
+    try {
+      const scanData = await createScanMutation.mutateAsync(url.trim());
+      if (scanData && scanData.id) {
+        navigate(`/scan?id=${scanData.id}&url=${encodeURIComponent(url.trim())}`);
+      } else {
+        navigate(`/scan?url=${encodeURIComponent(url.trim())}`);
+      }
+    } catch (err) {
+      setScanError(err.message || "Failed to initiate scan. Please verify URL syntax.");
+    }
   };
 
   const scrollToSection = (id) => {
@@ -551,12 +565,28 @@ export default function Landing() {
               <Button
                 type="submit"
                 size="lg"
-                className="bg-gradient-to-r from-cyan-500 via-blue-600 to-indigo-600 hover:from-cyan-400 hover:via-blue-500 hover:to-indigo-500 text-white font-extrabold text-sm px-7 py-3.5 rounded-xl shadow-[0_0_25px_rgba(6,182,212,0.45)] hover:shadow-[0_0_35px_rgba(6,182,212,0.7)] transition-all flex items-center justify-center gap-2 group cursor-pointer"
+                disabled={createScanMutation.isPending}
+                className="bg-gradient-to-r from-cyan-500 via-blue-600 to-indigo-600 hover:from-cyan-400 hover:via-blue-500 hover:to-indigo-500 text-white font-extrabold text-sm px-7 py-3.5 rounded-xl shadow-[0_0_25px_rgba(6,182,212,0.45)] hover:shadow-[0_0_35px_rgba(6,182,212,0.7)] transition-all flex items-center justify-center gap-2 group cursor-pointer disabled:opacity-70 disabled:cursor-not-allowed"
               >
-                <span>Inspect Target</span>
-                <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                {createScanMutation.isPending ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin text-cyan-200" />
+                    <span>Dispatching Probe...</span>
+                  </>
+                ) : (
+                  <>
+                    <span>Inspect Target</span>
+                    <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                  </>
+                )}
               </Button>
             </form>
+            {scanError && (
+              <div className="mt-3 px-3 py-2 rounded-xl bg-red-500/10 border border-red-500/30 text-red-300 text-xs font-mono flex items-center gap-2">
+                <AlertTriangle className="w-4 h-4 text-red-400 shrink-0" />
+                <span>{scanError}</span>
+              </div>
+            )}
           </motion.div>
         </section>
 
