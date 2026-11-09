@@ -1,5 +1,6 @@
 """
 Unit tests for the TrustShield Model Registry.
+Tests saving, loading, listing, deleting, and production model management.
 """
 
 from pathlib import Path
@@ -53,23 +54,39 @@ def test_model_registry_save_and_load(tmp_path: Path):
     assert hasattr(loaded_model, "classes_")
 
 
-def test_model_registry_load_latest(tmp_path: Path):
-    """Verify loading the latest version when version=None."""
+def test_model_registry_production_management(tmp_path: Path):
+    """Verify explicit production promotion and retrieval."""
     registry = ModelRegistry(storage_dir=tmp_path)
     dummy_model = LogisticRegression()
 
-    meta_v1 = ModelMetadata(
-        model_name="url_classifier",
-        version="v1.0.0",
-        model_type="LogisticRegression",
-    )
+    meta_v1 = ModelMetadata("prod_test", "v1.0.0", "LogisticRegression")
     registry.save_model(dummy_model, meta_v1)
 
-    meta_v2 = ModelMetadata(
-        model_name="url_classifier",
-        version="v1.2.0",
-        model_type="LogisticRegression",
-    )
+    meta_v2 = ModelMetadata("prod_test", "v2.0.0", "LogisticRegression")
+    registry.save_model(dummy_model, meta_v2)
+
+    # Set v1.0.0 as explicit production
+    registry.set_production_model("v1.0.0", model_name="prod_test")
+    assert registry.get_production_version("prod_test") == "v1.0.0"
+
+    _, prod_meta = registry.load_production_model("prod_test")
+    assert prod_meta.version == "v1.0.0"
+    assert prod_meta.is_production is True
+
+    # Switch production to v2.0.0
+    registry.set_production_model("v2.0.0", model_name="prod_test")
+    assert registry.get_production_version("prod_test") == "v2.0.0"
+
+
+def test_model_registry_load_latest_fallback(tmp_path: Path):
+    """Verify loading the latest version when version=None and no production pointer."""
+    registry = ModelRegistry(storage_dir=tmp_path)
+    dummy_model = LogisticRegression()
+
+    meta_v1 = ModelMetadata("url_classifier", "v1.0.0", "LogisticRegression")
+    registry.save_model(dummy_model, meta_v1)
+
+    meta_v2 = ModelMetadata("url_classifier", "v1.2.0", "LogisticRegression")
     registry.save_model(dummy_model, meta_v2)
 
 <<<<<<< .merge_file_ooDkHn
