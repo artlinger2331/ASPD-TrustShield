@@ -27,6 +27,7 @@ from app.schemas.scan import (
     ScanFindingResponse,
     CertificateReportResponse,
     ThreatIntelReportResponse,
+    MLClassificationResponse,
     ScanReportResponse,
     ScanListItem,
     ScanListResponse,
