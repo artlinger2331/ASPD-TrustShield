@@ -81,7 +81,7 @@ def test_successful_scan_end_to_end(mock_background_dispatch):
     session = local_session_factory()
     db = AsyncSessionFallback(session)
     bg = BackgroundTasks()
-    target_url = "https://safe-enterprise-platform.com/portal"
+    target_url = f"https://safe-enterprise-{uuid.uuid4().hex[:8]}.com/portal"
 
     try:
         # 1. Submit scan request
@@ -293,7 +293,8 @@ def test_concurrent_duplicate_scan_prevention(mock_background_dispatch):
     session = local_session_factory()
     db = AsyncSessionFallback(session)
     bg = BackgroundTasks()
-    target_url = "https://duplicate-check-portal.org/login"
+    uid_slug = uuid.uuid4().hex[:8]
+    target_url = f"https://duplicate-check-{uid_slug}.org/login"
 
     try:
         # Reset mock call count
@@ -310,7 +311,7 @@ def test_concurrent_duplicate_scan_prevention(mock_background_dispatch):
         assert scan_id_1 == scan_id_2, "Concurrent duplicate scan should reuse the existing in-flight scan ID"
 
         # Immediate third submission with slight formatting differences (trailing slash / whitespace)
-        res3 = run_coro(create_scan(ScanCreate(url="  https://duplicate-check-portal.org/login/  "), bg, None, db))
+        res3 = run_coro(create_scan(ScanCreate(url=f"  https://duplicate-check-{uid_slug}.org/login/  "), bg, None, db))
         assert res3.id == scan_id_1, "Normalized URL match should deduplicate formatting variants"
 
         # mock_background_dispatch should have been called only once for the first submission, not for the duplicates!

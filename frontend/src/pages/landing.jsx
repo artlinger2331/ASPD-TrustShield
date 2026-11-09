@@ -25,8 +25,10 @@ import {
   Search,
   Check,
   Copy,
+  Loader2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useCreateScan } from "@/hooks/useScans";
 
 const LIVE_THREAT_FEED = [
   { domain: "chase-update-verify.xyz", threat: "Homograph Phishing", risk: 96, time: "Just now", status: "Quarantined" },

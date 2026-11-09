@@ -72,7 +72,7 @@ class ScanFindingResponse(BaseModel):
     Individual evidence-backed security or phishing finding.
     """
     id: uuid.UUID
-    scan_id: uuid.UUID
+    scan_id: Optional[uuid.UUID] = None
     category: str = Field(..., description="credential_harvesting, brand_impersonation, tls_certificate, etc.")
     title: str
     severity: str = Field(..., description="info, low, medium, high, critical")
@@ -81,7 +81,7 @@ class ScanFindingResponse(BaseModel):
     evidence: Optional[Dict[str, Any]] = None
     recommendation: Optional[str] = None
     risk_points: int = 0
-    created_at: datetime
+    created_at: Optional[datetime] = None
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -136,9 +136,12 @@ class ScanReportResponse(BaseModel):
     completed_at: Optional[datetime] = None
     duration_seconds: Optional[float] = None
     error_message: Optional[str] = None
+    dns_records: Optional[Dict[str, Any]] = None
+    security_headers: Optional[Dict[str, Any]] = None
     findings: List[ScanFindingResponse] = []
     certificate: Optional[CertificateReportResponse] = None
     threat_intel: List[ThreatIntelReportResponse] = []
+    created_at: Optional[datetime] = None
 
     model_config = ConfigDict(from_attributes=True)
 

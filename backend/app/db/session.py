@@ -6,6 +6,7 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, Session
 from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker, AsyncSession
 from app.core.config import settings
+from app.db.base import Base
 
 # Determine if PostgreSQL host is reachable
 _use_sqlite_fallback = False
