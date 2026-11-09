@@ -1,11 +1,13 @@
 """
 Training pipeline for TrustShield URL classification.
-Supports Logistic Regression and Random Forest models with stratified
-train/val/test splits, full evaluation metrics, and ModelRegistry persistence.
+Supports Logistic Regression and Random Forest models with data cleaning,
+deduplication, conflict resolution, stratified train/val/test splits,
+full evaluation metrics, and ModelRegistry persistence.
 """
 
 import argparse
 import csv
+from dataclasses import asdict, dataclass
 import logging
 from pathlib import Path
 import sys
@@ -33,21 +35,38 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(me
 logger = logging.getLogger(__name__)
 
 
-def load_dataset_from_csv(csv_path: Union[str, Path]) -> Tuple[List[str], np.ndarray]:
+@dataclass
+class DataHygieneReport:
+    raw_records: int
+    clean_records: int
+    duplicates_removed: int
+    conflicts_dropped: int
+    invalid_dropped: int
+    class_distribution: Dict[str, int]
+
+    def to_dict(self) -> Dict[str, Any]:
+        return asdict(self)
+
+
+def load_dataset_from_csv(
+    csv_path: Union[str, Path],
+) -> Tuple[List[str], np.ndarray, DataHygieneReport]:
     """
-    Loads URLs and binary labels from CSV file.
-    Accepted label formats:
-      - 0, 1
-      - "0", "1"
-      - "benign", "legitimate" -> 0
-      - "phishing", "malicious", "suspicious" -> 1
+    Loads, cleans, and deduplicates URLs and binary labels from CSV file.
+    Resolves duplicate URLs and discards conflicting labels.
     """
     path = Path(csv_path)
     if not path.exists():
         raise FileNotFoundError(f"Dataset not found at {path}")
 
-    urls: List[str] = []
-    labels: List[int] = []
+    raw_records = 0
+    invalid_dropped = 0
+    duplicates_removed = 0
+    conflicts_dropped = 0
+
+    # Store mapping: normalized_url -> (raw_url, label, row_idx)
+    url_map: Dict[str, Tuple[str, int]] = {}
+    conflict_keys: set = set()
 
     with open(path, "r", encoding="utf-8") as f:
         reader = csv.DictReader(f)
@@ -55,12 +74,15 @@ def load_dataset_from_csv(csv_path: Union[str, Path]) -> Tuple[List[str], np.nda
             raise ValueError(f"CSV must contain 'url' and 'label' columns, got {reader.fieldnames}")
 
         for row_idx, row in enumerate(reader):
+            raw_records += 1
             url_str = (row.get("url") or "").strip()
             raw_label = (row.get("label") or "").strip().lower()
 
             if not url_str:
+                invalid_dropped += 1
                 continue
 
+            # Standardize label
             if raw_label in ("0", "benign", "legitimate", "safe"):
                 label_val = 0
             elif raw_label in ("1", "phishing", "malicious", "suspicious", "threat"):
@@ -69,20 +91,69 @@ def load_dataset_from_csv(csv_path: Union[str, Path]) -> Tuple[List[str], np.nda
                 try:
                     label_val = 1 if int(raw_label) > 0 else 0
                 except ValueError:
-                    raise ValueError(f"Invalid label '{raw_label}' at row {row_idx + 2}")
+                    invalid_dropped += 1
+                    continue
 
-            urls.append(url_str)
-            labels.append(label_val)
+            # Normalization key for deduplication
+            norm_key = url_str.rstrip("/")
+            if norm_key in conflict_keys:
+                conflicts_dropped += 1
+                continue
 
-    if not urls:
-        raise ValueError(f"No valid records found in {csv_path}")
+            if norm_key in url_map:
+                existing_url, existing_label = url_map[norm_key]
+                if existing_label == label_val:
+                    # Identical duplicate: drop duplicate entry
+                    duplicates_removed += 1
+                else:
+                    # Conflicting label for same URL: remove existing and mark conflict
+                    logger.warning(
+                        "Conflicting labels detected for URL '%s' (row %d: %d vs existing: %d). Dropping URL.",
+                        url_str,
+                        row_idx + 2,
+                        label_val,
+                        existing_label,
+                    )
+                    del url_map[norm_key]
+                    conflict_keys.add(norm_key)
+                    conflicts_dropped += 2  # Both the previous and current record
+            else:
+                url_map[norm_key] = (url_str, label_val)
 
-    return urls, np.array(labels, dtype=int)
+    clean_urls: List[str] = [item[0] for item in url_map.values()]
+    clean_labels: List[int] = [item[1] for item in url_map.values()]
+
+    if not clean_urls:
+        raise ValueError(f"No valid records remained in {csv_path} after data cleaning")
+
+    y = np.array(clean_labels, dtype=int)
+    class_0_count = int(np.sum(y == 0))
+    class_1_count = int(np.sum(y == 1))
+
+    hygiene_report = DataHygieneReport(
+        raw_records=raw_records,
+        clean_records=len(clean_urls),
+        duplicates_removed=duplicates_removed,
+        conflicts_dropped=conflicts_dropped,
+        invalid_dropped=invalid_dropped,
+        class_distribution={"benign (0)": class_0_count, "phishing (1)": class_1_count},
+    )
+
+    logger.info(
+        "Data hygiene complete: %d raw -> %d clean (dropped: %d duplicates, %d conflicts, %d invalid)",
+        raw_records,
+        len(clean_urls),
+        duplicates_removed,
+        conflicts_dropped,
+        invalid_dropped,
+    )
+
+    return clean_urls, y, hygiene_report
 
 
 def extract_dataset_features(urls: List[str]) -> np.ndarray:
-    """Extracts 42 features for each URL in urls list into a numpy array."""
-    vectors: List[List[Union[int, float]]] = []
+    """Extracts 20 features for each URL in urls list into a numpy array."""
+    vectors: List[List[float]] = []
     for url in urls:
         vec = extract_features_vector(url)
         vectors.append(vec)
@@ -142,15 +213,16 @@ def train_url_classifier(
     random_state: int = 42,
     output_dir: Optional[Union[str, Path]] = None,
     hyperparameters: Optional[Dict[str, Any]] = None,
+    set_as_production: bool = False,
 ) -> Tuple[Any, ModelMetadata]:
     """
-    Trains a URL classifier from CSV dataset and saves it to the model registry.
+    Trains a URL classifier from CSV dataset, calculates full metrics,
+    and registers it in the ModelRegistry.
     """
-    urls, y = load_dataset_from_csv(csv_path)
-    logger.info("Loaded %d samples (Benign: %d, Phishing: %d)", len(y), int(np.sum(y == 0)), int(np.sum(y == 1)))
+    urls, y, hygiene_report = load_dataset_from_csv(csv_path)
 
     X = extract_dataset_features(urls)
-    logger.info("Extracted %d features for %d samples", X.shape[1], X.shape[0])
+    logger.info("Extracted %d features for %d clean samples", X.shape[1], X.shape[0])
 
     # 1. Stratified Train / Val / Test Split
     combined_eval_size = test_size + val_size
@@ -250,9 +322,13 @@ def train_url_classifier(
         decision_threshold=0.5,
         notes=f"Trained on {csv_path} with {resolved_model_type}",
     )
+    metadata.metrics["data_hygiene"] = hygiene_report.to_dict()
 
     registry = ModelRegistry(storage_dir=output_dir)
     registry.save_model(pipeline, metadata)
+
+    if set_as_production:
+        registry.set_production_model(version=version, model_name=model_name)
 
     return pipeline, metadata
 
@@ -290,6 +366,11 @@ def main():
         default=None,
         help="Directory to save model artifacts",
     )
+    parser.add_argument(
+        "--production",
+        action="store_true",
+        help="Set this trained model as the active production model",
+    )
 
     args = parser.parse_args()
 
@@ -300,6 +381,7 @@ def main():
             version=args.version,
             model_name=args.model_name,
             output_dir=args.output_dir,
+            set_as_production=args.production,
         )
         print(f"Successfully trained {metadata.model_name} ({metadata.version})")
         print(f"Test Accuracy: {metadata.metrics['test']['accuracy']}")
