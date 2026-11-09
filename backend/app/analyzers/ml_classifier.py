@@ -333,15 +333,15 @@ def classify_url_heuristic(url: str) -> MLClassificationResult:
 def classify_url(
     url: str,
     metadata: Optional[Dict[str, Any]] = None,
-) -> MLClassificationResult:
+) -> Optional[MLClassificationResult]:
     """
     Evaluates extracted URL features against trained production ML model weights.
     Falls back gracefully to heuristic rules if ML is disabled or unavailable.
     """
     # 1. Feature Flag Check
     if not getattr(settings, "ENABLE_ML_CLASSIFICATION", True):
-        logger.debug("ML classification disabled via feature flag; using heuristic rules.")
-        return classify_url_heuristic(url)
+        logger.debug("ML classification disabled via feature flag.")
+        return None
 
     # 2. Production Model Inference with Heuristic Enrichment
     try:
@@ -424,13 +424,16 @@ def classify_url(
 
 def save_ml_classification_to_db_sync(
     scan_id: uuid.UUID,
-    result: MLClassificationResult,
+    result: Optional[MLClassificationResult],
     db: Any,
 ) -> Optional[ScanFinding]:
     """
     Persists ML classification findings into `scan_findings`.
     Always stores structured findings with corresponding severity and evidence.
     """
+    if not result:
+        return None
+
     if result.risk_score >= 70:
         severity = "critical"
     elif result.risk_score >= 50:
