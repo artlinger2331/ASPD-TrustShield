@@ -1,6 +1,6 @@
 """
 Model Registry for TrustShield ML.
-Manages versioned model artifacts, metadata tracking, and validation.
+Manages versioned model artifacts, metadata tracking, production pointers, and validation.
 """
 
 from dataclasses import asdict, dataclass, field
@@ -33,6 +33,7 @@ class ModelMetadata:
     decision_threshold: float = 0.5
     created_at: str = field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
     notes: Optional[str] = None
+    is_production: bool = False
 
     def to_dict(self) -> Dict[str, Any]:
         return asdict(self)
@@ -51,11 +52,12 @@ class ModelMetadata:
             decision_threshold=data.get("decision_threshold", 0.5),
             created_at=data.get("created_at", datetime.now(timezone.utc).isoformat()),
             notes=data.get("notes"),
+            is_production=data.get("is_production", False),
         )
 
 
 class ModelRegistry:
-    """Handles persistence, retrieval, and listing of versioned ML models."""
+    """Handles persistence, retrieval, production promotion, and listing of ML models."""
 
     def __init__(self, storage_dir: Optional[Union[str, Path]] = None):
         self.storage_dir = Path(storage_dir) if storage_dir else DEFAULT_MODELS_DIR
@@ -66,6 +68,9 @@ class ModelRegistry:
         model_path = self.storage_dir / f"{base_name}.joblib"
         meta_path = self.storage_dir / f"{base_name}.meta.json"
         return model_path, meta_path
+
+    def _get_production_pointer_path(self, model_name: str) -> Path:
+        return self.storage_dir / f"production_{model_name}.json"
 
     def save_model(
         self,
@@ -94,6 +99,55 @@ class ModelRegistry:
             model_path,
         )
         return model_path, meta_path
+
+    def set_production_model(self, version: str, model_name: str = "url_classifier") -> Path:
+        """
+        Sets a specific model version as the active production model.
+        """
+        model_path, meta_path = self._get_paths(model_name, version)
+        if not model_path.exists() or not meta_path.exists():
+            raise FileNotFoundError(f"Cannot promote non-existent model {model_name} ({version}) to production")
+
+        pointer_path = self._get_production_pointer_path(model_name)
+        pointer_data = {
+            "model_name": model_name,
+            "version": version,
+            "promoted_at": datetime.now(timezone.utc).isoformat(),
+        }
+        with open(pointer_path, "w", encoding="utf-8") as f:
+            json.dump(pointer_data, f, indent=2)
+
+        # Update metadata flag
+        with open(meta_path, "r", encoding="utf-8") as f:
+            meta_dict = json.load(f)
+        meta_dict["is_production"] = True
+        with open(meta_path, "w", encoding="utf-8") as f:
+            json.dump(meta_dict, f, indent=2)
+
+        logger.info("Model %s (%s) promoted to active production", model_name, version)
+        return pointer_path
+
+    def get_production_version(self, model_name: str = "url_classifier") -> Optional[str]:
+        """Returns the version string of the active production model, or None."""
+        pointer_path = self._get_production_pointer_path(model_name)
+        if pointer_path.exists():
+            try:
+                with open(pointer_path, "r", encoding="utf-8") as f:
+                    data = json.load(f)
+                    return data.get("version")
+            except Exception as e:
+                logger.warning("Failed to read production pointer %s: %s", pointer_path, e)
+        return self._find_latest_version(model_name)
+
+    def load_production_model(self, model_name: str = "url_classifier") -> Tuple[Any, ModelMetadata]:
+        """
+        Loads the currently designated production model.
+        Falls back to the latest registered model version if no explicit production pointer exists.
+        """
+        prod_version = self.get_production_version(model_name)
+        if not prod_version:
+            raise FileNotFoundError(f"No production model found for '{model_name}' in {self.storage_dir}")
+        return self.load_model(version=prod_version, model_name=model_name)
 
     def list_models(self, model_name: Optional[str] = None) -> List[ModelMetadata]:
         """Lists all registered models in storage directory."""
