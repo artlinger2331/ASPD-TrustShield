@@ -417,69 +417,83 @@ export default function Dashboard() {
           </CardHeader>
 
           <CardContent className="p-0">
-            <Table
-              columns={[
-                {
-                  key: "url",
-                  label: "Target Hostname",
-                  render: (r) => (
-                    <span className="font-mono text-xs text-cyan-300 font-semibold hover:underline cursor-pointer" onClick={() => navigate(`/report/${r.id || "1"}`)}>
-                      {r.url}
-                    </span>
-                  ),
-                },
-                {
-                  key: "verdict",
-                  label: "Verdict",
-                  render: (r) => <VerdictBadge verdict={r.verdict} />,
-                },
-                {
-                  key: "score",
-                  label: "Risk Score",
-                  render: (r) => (
-                    <span
-                      className={`font-mono text-xs font-bold px-2 py-0.5 rounded border ${
-                        r.score > 70
-                          ? "bg-red-500/15 text-red-300 border-red-500/30"
-                          : r.score > 40
-                          ? "bg-amber-500/15 text-amber-300 border-amber-500/30"
-                          : "bg-emerald-500/15 text-emerald-300 border-emerald-500/30"
-                      }`}
-                    >
-                      {r.score} / 100
-                    </span>
-                  ),
-                },
-                {
-                  key: "threat",
-                  label: "Detected Vector",
-                  render: (r) => (
-                    <span className="font-mono text-xs text-slate-300">{r.threat}</span>
-                  ),
-                },
-                {
-                  key: "date",
-                  label: "Time Elapsed",
-                  render: (r) => <span className="font-mono text-[11px] text-slate-500">{r.date}</span>,
-                },
-                {
-                  key: "action",
-                  label: "Inspect",
-                  render: (r) => (
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      onClick={() => navigate(`/report/${r.id || "1"}`)}
-                      className="text-xs text-cyan-400 hover:text-cyan-300 hover:bg-cyan-500/10 px-2.5 py-1 rounded-lg font-mono flex items-center gap-1 cursor-pointer"
-                    >
-                      <span>Report</span>
-                      <ExternalLink className="w-3 h-3" />
-                    </Button>
-                  ),
-                },
-              ]}
-              data={recentScans}
-            />
+            {scansLoading ? (
+              <div className="p-6 space-y-3">
+                {[1, 2, 3, 4, 5].map((idx) => (
+                  <div key={idx} className="flex items-center gap-4 py-2 border-b border-white/5">
+                    <Skeleton className="h-4 w-1/3 rounded bg-white/5" />
+                    <Skeleton className="h-5 w-20 rounded bg-white/5" />
+                    <Skeleton className="h-5 w-16 rounded bg-white/5" />
+                    <Skeleton className="h-4 flex-1 rounded bg-white/5" />
+                    <Skeleton className="h-4 w-20 rounded bg-white/5" />
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <Table
+                columns={[
+                  {
+                    key: "url",
+                    label: "Target Hostname",
+                    render: (r) => (
+                      <span className="font-mono text-xs text-cyan-300 font-semibold hover:underline cursor-pointer" onClick={() => navigate(`/report/${r.id || "1"}`)}>
+                        {r.url}
+                      </span>
+                    ),
+                  },
+                  {
+                    key: "verdict",
+                    label: "Verdict",
+                    render: (r) => <VerdictBadge verdict={r.verdict} />,
+                  },
+                  {
+                    key: "score",
+                    label: "Risk Score",
+                    render: (r) => (
+                      <span
+                        className={`font-mono text-xs font-bold px-2 py-0.5 rounded border ${
+                          r.score > 70
+                            ? "bg-red-500/15 text-red-300 border-red-500/30"
+                            : r.score > 40
+                            ? "bg-amber-500/15 text-amber-300 border-amber-500/30"
+                            : "bg-emerald-500/15 text-emerald-300 border-emerald-500/30"
+                        }`}
+                      >
+                        {r.score} / 100
+                      </span>
+                    ),
+                  },
+                  {
+                    key: "threat",
+                    label: "Detected Vector",
+                    render: (r) => (
+                      <span className="font-mono text-xs text-slate-300">{r.threat}</span>
+                    ),
+                  },
+                  {
+                    key: "date",
+                    label: "Time Elapsed",
+                    render: (r) => <span className="font-mono text-[11px] text-slate-500">{r.date}</span>,
+                  },
+                  {
+                    key: "action",
+                    label: "Inspect",
+                    render: (r) => (
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => navigate(`/report/${r.id || "1"}`)}
+                        className="text-xs text-cyan-400 hover:text-cyan-300 hover:bg-cyan-500/10 px-2.5 py-1 rounded-lg font-mono flex items-center gap-1 cursor-pointer"
+                      >
+                        <span>Report</span>
+                        <ExternalLink className="w-3 h-3" />
+                      </Button>
+                    ),
+                  },
+                ]}
+                data={recentScans}
+              />
+            )}
           </CardContent>
         </Card>
 
