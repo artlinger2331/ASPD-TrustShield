@@ -55,17 +55,35 @@ export default function UrlScan() {
   const { toast } = useToast();
 
   const [url, setUrl] = useState(searchParams.get("url") || "");
-  const [scanning, setScanning] = useState(false);
+  const [scanId, setScanId] = useState(searchParams.get("id") || null);
+  const [scanning, setScanning] = useState(Boolean(searchParams.get("id")));
   const [activeStep, setActiveStep] = useState(0);
   const [logs, setLogs] = useState([]);
   const [result, setResult] = useState(null);
   const [completed, setCompleted] = useState(false);
   const terminalBottomRef = useRef(null);
+  const lastLoggedActionRef = useRef(null);
+  const lastLoggedStepRef = useRef(0);
+  const autoStartedRef = useRef(false);
+
+  // TanStack Query hooks for scan creation and polling status
+  const createScanMutation = useCreateScan();
+  const {
+    data: statusData,
+    isLoading: isStatusLoading,
+    isError: isStatusError,
+    error: statusQueryError,
+  } = useScanStatus(scanId);
 
   useEffect(() => {
     const paramUrl = searchParams.get("url");
-    if (paramUrl) {
+    const paramId = searchParams.get("id");
+    if (paramUrl && !url) {
       setUrl(paramUrl);
+    }
+    if (paramId && paramId !== scanId) {
+      setScanId(paramId);
+      setScanning(true);
     }
   }, [searchParams]);
 
@@ -89,76 +107,106 @@ export default function UrlScan() {
     6: { tag: "THREAT_INTEL", text: "Cross-referencing Google Safe Browsing, URLhaus, and VirusTotal IOCs..." },
   };
 
-  const handleScan = async () => {
-    if (!url.trim()) return;
+  // Reactively handle status updates from TanStack Query polling
+  useEffect(() => {
+    if (!statusData) return;
+
+    const currentStep = Math.max(1, statusData.step || 1);
+    setActiveStep(currentStep);
+
+    // Incrementally log stage transitions
+    if (currentStep > lastLoggedStepRef.current) {
+      for (let s = Math.max(1, lastLoggedStepRef.current + 1); s <= currentStep; s++) {
+        if (STEP_LOG_MSGS[s]) {
+          addLog(STEP_LOG_MSGS[s].tag, STEP_LOG_MSGS[s].text);
+        }
+      }
+      lastLoggedStepRef.current = currentStep;
+    }
+
+    // Log live server telemetry action
+    if (
+      statusData.current_action &&
+      statusData.current_action !== lastLoggedActionRef.current
+    ) {
+      lastLoggedActionRef.current = statusData.current_action;
+      addLog(
+        STEP_LOG_MSGS[currentStep]?.tag || "TELEMETRY",
+        statusData.current_action,
+        "info"
+      );
+    }
+
+    // Handle completed scan
+    if (statusData.status === "completed" && !completed) {
+      setScanning(false);
+      setCompleted(true);
+      setResult({
+        id: statusData.id || scanId,
+        score: statusData.risk_score ?? 0,
+        verdict: statusData.verdict || "safe",
+        verdictLabel: statusData.summary || "Scan complete",
+        confidence: statusData.confidence
+          ? `${Math.round(statusData.confidence * 100)}%`
+          : "High",
+        mainReason: statusData.summary || "Consolidated security checks verified.",
+        recommendedAction:
+          statusData.recommendation || "View full report for detailed telemetry.",
+      });
+      addLog(
+        "SCORE_SYNTHESIS",
+        `Analysis finalized. Score: ${statusData.risk_score ?? 0}/100 [Verdict: ${(statusData.verdict || "SAFE").toUpperCase()}]`,
+        (statusData.risk_score ?? 0) >= 50 ? "warn" : "info"
+      );
+      toast({
+        title: "Scan complete",
+        description: `Verdict: ${statusData.verdict?.toUpperCase() || "SAFE"} (Score: ${statusData.risk_score ?? 0}/100)`,
+        type:
+          (statusData.risk_score ?? 0) >= 70
+            ? "error"
+            : (statusData.risk_score ?? 0) >= 50
+            ? "warning"
+            : "success",
+      });
+    } else if (statusData.status === "failed") {
+      setScanning(false);
+      addLog(
+        "ERROR",
+        statusData.error_message || "The scanner encountered an unrecoverable error.",
+        "error"
+      );
+      toast({
+        title: "Scan Failed",
+        description: statusData.error_message || "The scanner was unable to analyze this URL.",
+        type: "error",
+      });
+    }
+  }, [statusData, completed, scanId]);
+
+  // Handle manual or automated scan submission
+  const handleScan = async (overrideUrl) => {
+    const targetUrl = (overrideUrl || url).trim();
+    if (!targetUrl) return;
+
     setScanning(true);
     setCompleted(false);
     setResult(null);
     setActiveStep(1);
     setLogs([]);
+    lastLoggedActionRef.current = null;
+    lastLoggedStepRef.current = 1;
 
-    addLog("DISPATCH", `Dispatching forensic probe for ${url.trim()}`);
+    addLog("DISPATCH", `Dispatching forensic probe for ${targetUrl}`);
     addLog("DNS_PROBE", "Resolving authoritative name servers and DNS records...");
 
-    let lastStep = 1;
-
     try {
-      const initRes = await scanApi.createScan(url.trim());
-      const scanId = initRes.id;
-      addLog("QUEUE", `Job accepted by pipeline: ID #${scanId}`);
-
-      const pollInterval = setInterval(async () => {
-        try {
-          const statusRes = await scanApi.getScanStatus(scanId);
-          const currentStep = Math.max(1, statusRes.step || 1);
-          setActiveStep(currentStep);
-
-          if (currentStep > lastStep) {
-            for (let s = lastStep + 1; s <= currentStep; s++) {
-              if (STEP_LOG_MSGS[s]) {
-                addLog(STEP_LOG_MSGS[s].tag, STEP_LOG_MSGS[s].text);
-              }
-            }
-            lastStep = currentStep;
-          }
-
-          if (statusRes.status === "completed") {
-            clearInterval(pollInterval);
-            setScanning(false);
-            setCompleted(true);
-            setResult({
-              id: scanId,
-              score: statusRes.risk_score || 0,
-              verdict: statusRes.verdict || "safe",
-              verdictLabel: statusRes.summary || "Scan complete",
-              confidence: statusRes.confidence ? `${Math.round(statusRes.confidence * 100)}%` : "High",
-              mainReason: statusRes.summary,
-              recommendedAction: statusRes.recommendation || "View full report for detailed telemetry.",
-            });
-            addLog(
-              "SCORE_SYNTHESIS",
-              `Analysis finalized. Score: ${statusRes.risk_score || 0}/100 [Verdict: ${(statusRes.verdict || "SAFE").toUpperCase()}]`,
-              (statusRes.risk_score || 0) >= 50 ? "warn" : "info"
-            );
-            toast({
-              title: "Scan complete",
-              description: `Verdict: ${statusRes.verdict?.toUpperCase() || "SAFE"} (Score: ${statusRes.risk_score || 0}/100)`,
-              type: statusRes.risk_score >= 70 ? "error" : statusRes.risk_score >= 50 ? "warning" : "success",
-            });
-          } else if (statusRes.status === "failed") {
-            clearInterval(pollInterval);
-            setScanning(false);
-            addLog("ERROR", statusRes.error_message || "The scanner encountered an unrecoverable error.", "error");
-            toast({
-              title: "Scan Failed",
-              description: statusRes.error_message || "The scanner was unable to analyze this URL.",
-              type: "error",
-            });
-          }
-        } catch (pollErr) {
-          // Keep polling through transient errors
-        }
-      }, 1500);
+      const initRes = await createScanMutation.mutateAsync(targetUrl);
+      const newScanId = initRes.id;
+      setScanId(newScanId);
+      navigate(`/scan?id=${newScanId}&url=${encodeURIComponent(targetUrl)}`, {
+        replace: true,
+      });
+      addLog("QUEUE", `Job accepted by pipeline: ID #${newScanId}`);
     } catch (err) {
       setScanning(false);
       addLog("ERROR", err.message || "Failed to initiate scan", "error");
@@ -169,6 +217,16 @@ export default function UrlScan() {
       });
     }
   };
+
+  // Auto-initiate if user navigated to /scan?url=... directly without an id
+  useEffect(() => {
+    const paramUrl = searchParams.get("url");
+    const paramId = searchParams.get("id");
+    if (paramUrl && !paramId && !autoStartedRef.current && !scanning) {
+      autoStartedRef.current = true;
+      handleScan(paramUrl);
+    }
+  }, [searchParams]);
 
   const handleClipboard = async () => {
     try {
