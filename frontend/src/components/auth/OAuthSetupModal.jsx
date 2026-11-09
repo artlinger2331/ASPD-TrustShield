@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Key, ExternalLink, X, Shield, ArrowRight, CheckCircle2 } from "lucide-react";
-import { authApi } from "@/utils/api";
+import { authApi, getApiBaseUrl } from "@/utils/api";
 import { useToast } from "@/hooks/useAuth";
 
 export default function OAuthSetupModal({ provider = "google", isOpen, onClose, onSuccess }) {
@@ -11,14 +11,15 @@ export default function OAuthSetupModal({ provider = "google", isOpen, onClose, 
 
   if (!isOpen) return null;
 
+  const apiBase = getApiBaseUrl();
   const isGoogle = provider === "google";
   const title = isGoogle ? "Google Cloud OAuth Setup" : "GitHub OAuth App Setup";
   const docsUrl = isGoogle
     ? "https://console.cloud.google.com/apis/credentials"
     : "https://github.com/settings/developers";
   const redirectUri = isGoogle
-    ? "http://localhost:8000/api/v1/auth/oauth/google/callback"
-    : "http://localhost:8000/api/v1/auth/oauth/github/callback";
+    ? `${apiBase}/api/v1/auth/oauth/google/callback`
+    : `${apiBase}/api/v1/auth/oauth/github/callback`;
 
   const handleSave = async (e) => {
     e.preventDefault();
@@ -47,7 +48,7 @@ export default function OAuthSetupModal({ provider = "google", isOpen, onClose, 
 
       if (onSuccess) onSuccess();
       // Redirect to live provider authorization page
-      window.location.href = res.auth_url || `http://localhost:8000/api/v1/auth/oauth/${provider}`;
+      window.location.href = res.auth_url || `${apiBase}/api/v1/auth/oauth/${provider}`;
     } catch (err) {
       toast({
         title: "Configuration Failed",

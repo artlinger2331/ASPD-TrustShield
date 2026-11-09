@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import { Shield, ArrowRight, CheckCircle2, User, Key, ExternalLink } from "lucide-react";
+import { getApiBaseUrl } from "@/utils/api";
 
 export default function ProviderConsent() {
   const [searchParams] = useSearchParams();
@@ -19,9 +20,10 @@ export default function ProviderConsent() {
   const [customMode, setCustomMode] = useState(false);
 
   const handleAuthorize = () => {
+    const apiBase = getApiBaseUrl();
     const callbackBase = isGoogle
-      ? "http://localhost:8000/api/v1/auth/oauth/google/callback"
-      : "http://localhost:8000/api/v1/auth/oauth/github/callback";
+      ? `${apiBase}/api/v1/auth/oauth/google/callback`
+      : `${apiBase}/api/v1/auth/oauth/github/callback`;
 
     const params = new URLSearchParams({
       code: isGoogle ? "dev_google_mock_code" : "dev_github_mock_code",
