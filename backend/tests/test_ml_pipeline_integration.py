@@ -26,7 +26,12 @@ from app.models.threat_intel import ThreatIntelResult
 from app.services.scan_orchestrator import execute_scan_pipeline_sync
 from app.services.risk_engine import evaluate_risk
 from app.api.v1.scans import get_scan_report
-from app.ml.predict import PredictionResult, FeatureContribution, PredictionCache, URLClassifier
+from app.ml.predict import (
+    URLPredictionResult,
+    TopFeatureContribution,
+    PredictionCache,
+    URLClassifier,
+)
 from app.schemas.ml_classification import MLClassificationResult, MLFeatureContribution
 
 
@@ -43,19 +48,22 @@ def run_coro(coro):
 
 @pytest.fixture
 def mock_phishing_prediction():
-    return PredictionResult(
-        label=1,
+    return URLPredictionResult(
+        url="http://192.168.1.1/paypal/login-verification",
+        label="phishing",
+        is_phishing=True,
         probability=0.94,
         confidence=0.91,
         model_version="v1.0.0-mock",
+        feature_schema_version="v1.0.0",
         top_contributing_features=[
-            FeatureContribution(
+            TopFeatureContribution(
                 feature_name="domain_entropy",
                 feature_value=4.85,
                 contribution=0.35,
                 description="High Shannon entropy in domain structure",
             ),
-            FeatureContribution(
+            TopFeatureContribution(
                 feature_name="has_ip_address",
                 feature_value=1.0,
                 contribution=0.28,
@@ -73,13 +81,16 @@ def mock_phishing_prediction():
 
 @pytest.fixture
 def mock_benign_prediction():
-    return PredictionResult(
-        label=0,
+    return URLPredictionResult(
+        url="https://legitimate-corp.com/about",
+        label="benign",
+        is_phishing=False,
         probability=0.03,
         confidence=0.96,
         model_version="v1.0.0-mock",
+        feature_schema_version="v1.0.0",
         top_contributing_features=[
-            FeatureContribution(
+            TopFeatureContribution(
                 feature_name="domain_age_days",
                 feature_value=4500,
                 contribution=-0.42,
@@ -212,30 +223,33 @@ def test_prediction_caching_and_ttl():
     """
     Test 4: Verify thread-safe PredictionCache saves, hits, and expires entries.
     """
-    cache = PredictionCache(default_ttl_seconds=1, max_size=10)
-    res = PredictionResult(
-        label=1,
+    cache = PredictionCache(default_ttl_seconds=1)
+    res = URLPredictionResult(
+        url="https://cache-test.org/phish",
+        label="phishing",
+        is_phishing=True,
         probability=0.88,
         confidence=0.85,
         model_version="v1.0.0-cache",
+        feature_schema_version="v1.0.0",
         top_contributing_features=[],
         raw_features={"test": 1},
     )
 
-    cache.set("https://cache-test.org/phish", res)
+    cache.set("https://cache-test.org/phish", "v1.0.0-cache", res)
 
     # Cache hit
-    cached = cache.get("https://cache-test.org/phish")
+    cached = cache.get("https://cache-test.org/phish", "v1.0.0-cache")
     assert cached is not None
     assert cached.probability == 0.88
     assert cached.cached is True
 
     # Cache miss on unknown URL
-    assert cache.get("https://unknown.org") is None
+    assert cache.get("https://unknown.org", "v1.0.0-cache") is None
 
     # TTL Expiration test
     time.sleep(1.2)
-    expired = cache.get("https://cache-test.org/phish")
+    expired = cache.get("https://cache-test.org/phish", "v1.0.0-cache")
     assert expired is None
 
 
