@@ -99,3 +99,4 @@ class VirusTotalProvider(ThreatIntelProvider):
             raw_response=stats,
             status="ok",
         )
+

@@ -70,3 +70,4 @@ class OpenPhishProvider(ThreatIntelProvider):
             raw_response=data,
             status="ok",
         )
+

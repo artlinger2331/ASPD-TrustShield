@@ -35,3 +35,4 @@ __all__ = [
     "GLOBAL_THREAT_INTEL_MANAGER",
     "get_threat_intel_manager",
 ]
+

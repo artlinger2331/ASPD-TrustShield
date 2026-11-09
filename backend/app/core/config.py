@@ -33,6 +33,22 @@ class Settings(BaseSettings):
     GOOGLE_SAFE_BROWSING_API_KEY: Optional[str] = ""
     URLHAUS_AUTH_KEY: Optional[str] = ""
     VIRUSTOTAL_API_KEY: Optional[str] = ""
+    PHISHTANK_API_KEY: Optional[str] = ""
+    OPENPHISH_API_KEY: Optional[str] = ""
+
+    # Threat Intelligence Reliability & Caching
+    THREAT_INTEL_REQUEST_TIMEOUT: float = 3.5
+    THREAT_INTEL_MAX_RETRIES: int = 2
+    THREAT_INTEL_CACHE_TTL: int = 3600
+    THREAT_INTEL_CIRCUIT_FAILURE_THRESHOLD: int = 3
+    THREAT_INTEL_CIRCUIT_COOLDOWN_SECONDS: float = 60.0
+    ENABLED_THREAT_INTEL_PROVIDERS: List[str] = [
+        "google_safe_browsing",
+        "urlhaus",
+        "phishtank",
+        "openphish",
+        "virustotal",
+    ]
 
     # Machine Learning URL Classification Subsystem
     ENABLE_ML_CLASSIFICATION: bool = True
