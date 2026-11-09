@@ -56,7 +56,16 @@ export default function OAuthCallback() {
           type: "success",
         });
 
-        navigate("/dashboard", { replace: true });
+        const storedRedirect = sessionStorage.getItem("ts_redirect_after_auth");
+        const pendingUrl = sessionStorage.getItem("ts_pending_scan_url");
+        sessionStorage.removeItem("ts_redirect_after_auth");
+        sessionStorage.removeItem("ts_pending_scan_url");
+
+        const targetDest =
+          storedRedirect ||
+          (pendingUrl ? `/scan?url=${encodeURIComponent(pendingUrl)}` : "/dashboard");
+
+        navigate(targetDest, { replace: true });
       } catch (err) {
         toast({
           title: "Session Initialization Failed",
