@@ -4,5 +4,7 @@
   "tests/test_ml_pipeline_integration.py::test_prediction_caching_and_ttl",
   "tests/test_ml_pipeline_integration.py::test_risk_engine_configurable_ml_weight",
   "tests/test_ml_pipeline_integration.py::test_scan_pipeline_executes_with_mocked_ml_prediction",
-  "tests/test_ml_pipeline_integration.py::test_scan_pipeline_resilience_on_ml_failure"
+  "tests/test_ml_pipeline_integration.py::test_scan_pipeline_resilience_on_ml_failure",
+  "tests/test_scans_api.py::test_pipeline_execution_mocked",
+  "tests/test_scans_api.py::test_scans_api_endpoints_sync"
 ]

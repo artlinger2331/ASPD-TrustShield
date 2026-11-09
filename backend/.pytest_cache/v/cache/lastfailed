@@ -5,7 +5,5 @@
   "tests/test_async_scan_pipeline.py::test_concurrent_duplicate_scan_prevention": true,
   "tests/test_async_scan_pipeline.py::test_real_time_step_and_action_progress": true,
   "tests/test_threat_intel_analyzer.py::test_threat_intel_database_persistence": true,
-  "tests/test_threat_intel_providers.py::test_database_persistence_all_providers": true,
-  "tests/test_scans_api.py::test_pipeline_execution_mocked": true,
-  "tests/test_scans_api.py::test_scans_api_endpoints_sync": true
+  "tests/test_threat_intel_providers.py::test_database_persistence_all_providers": true
 }
