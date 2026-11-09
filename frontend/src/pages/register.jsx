@@ -278,7 +278,10 @@ export default function Register() {
 
           <p className="text-center text-xs text-slate-400 mt-5">
             Already have an account?{" "}
-            <Link to="/login" className="text-cyan-400 font-semibold hover:text-cyan-300 hover:underline transition-colors">
+            <Link
+              to={{ pathname: "/login", search: location.search }}
+              className="text-cyan-400 font-semibold hover:text-cyan-300 hover:underline transition-colors"
+            >
               Sign in
             </Link>
           </p>
