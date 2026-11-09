@@ -134,7 +134,6 @@ def execute_scan_pipeline_sync(
                 )
         except Exception as e:
             logger.warning(f"Domain analysis failed for {norm.host}: {e}")
-<<<<<<< HEAD
 
         # =====================================================================
         # ML URL Classification (After URL & Domain Analysis)
@@ -171,15 +170,6 @@ def execute_scan_pipeline_sync(
         session.commit()
 
         # =====================================================================
-=======
-
-        # Transition to Step 2: SSL/TLS
-        scan.current_step = 2
-        scan.current_action = "Inspecting X.509 certificate chain, SAN domains & TLS cipher suites..."
-        session.commit()
-
-        # =====================================================================
->>>>>>> 9b735eb99fcfab11611f7f8da03c77f43357eb91
         # STAGE 2: SSL/TLS Certificate & CA Trust Validation
         # =====================================================================
         try:

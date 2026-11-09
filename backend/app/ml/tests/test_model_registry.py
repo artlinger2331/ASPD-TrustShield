@@ -1,27 +1,6 @@
 """
 Unit tests for the TrustShield Model Registry.
-<<<<<<< HEAD
 Tests saving, loading, listing, deleting, and production model management.
-=======
->>>>>>> 9b735eb99fcfab11611f7f8da03c77f43357eb91
-"""
-
-from pathlib import Path
-import pytest
-from sklearn.linear_model import LogisticRegression
-
-from app.ml.feature_extractor import FeatureSchemaV1
-from app.ml.model_registry import ModelMetadata, ModelRegistry
-
-
-def test_model_registry_save_and_load(tmp_path: Path):
-    """Verify saving and loading model pipeline with metadata."""
-    registry = ModelRegistry(storage_dir=tmp_path)
-
-<<<<<<< HEAD
-=======
-    # Simple mock model
->>>>>>> 9b735eb99fcfab11611f7f8da03c77f43357eb91
     dummy_model = LogisticRegression()
     dummy_model.classes_ = [0, 1]
 
@@ -41,23 +20,14 @@ def test_model_registry_save_and_load(tmp_path: Path):
     assert model_path.exists()
     assert meta_path.exists()
 
-<<<<<<< HEAD
     loaded_model, loaded_meta = registry.load_model(version="v1.0.0", model_name="test_classifier")
     assert loaded_meta.version == "v1.0.0"
     assert loaded_meta.model_name == "test_classifier"
     assert loaded_meta.feature_count == 20
-=======
-    # Load by version
-    loaded_model, loaded_meta = registry.load_model(version="v1.0.0", model_name="test_classifier")
-    assert loaded_meta.version == "v1.0.0"
-    assert loaded_meta.model_name == "test_classifier"
-    assert loaded_meta.feature_count == 42
->>>>>>> 9b735eb99fcfab11611f7f8da03c77f43357eb91
     assert loaded_meta.metrics["test"]["accuracy"] == 0.95
     assert hasattr(loaded_model, "classes_")
 
 
-<<<<<<< HEAD
 def test_model_registry_production_management(tmp_path: Path):
     """Verify explicit production promotion and retrieval."""
     registry = ModelRegistry(storage_dir=tmp_path)
@@ -91,28 +61,6 @@ def test_model_registry_load_latest_fallback(tmp_path: Path):
     meta_v2 = ModelMetadata("url_classifier", "v1.2.0", "LogisticRegression")
     registry.save_model(dummy_model, meta_v2)
 
-=======
-def test_model_registry_load_latest(tmp_path: Path):
-    """Verify loading the latest version when version=None."""
-    registry = ModelRegistry(storage_dir=tmp_path)
-    dummy_model = LogisticRegression()
-
-    meta_v1 = ModelMetadata(
-        model_name="url_classifier",
-        version="v1.0.0",
-        model_type="LogisticRegression",
-    )
-    registry.save_model(dummy_model, meta_v1)
-
-    meta_v2 = ModelMetadata(
-        model_name="url_classifier",
-        version="v1.2.0",
-        model_type="LogisticRegression",
-    )
-    registry.save_model(dummy_model, meta_v2)
-
-    # Load without specifying version -> should load v1.2.0
->>>>>>> 9b735eb99fcfab11611f7f8da03c77f43357eb91
     _, loaded_meta = registry.load_model(version=None, model_name="url_classifier")
     assert loaded_meta.version == "v1.2.0"
 

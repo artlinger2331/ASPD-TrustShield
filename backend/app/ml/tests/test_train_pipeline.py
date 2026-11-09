@@ -1,24 +1,7 @@
 """
 Unit tests for the TrustShield URL model training pipeline.
-<<<<<<< HEAD
 Verifies data loading, cleaning, deduplication, conflict resolution,
 model training, metrics computation, and production model saving.
-=======
->>>>>>> 9b735eb99fcfab11611f7f8da03c77f43357eb91
-"""
-
-from pathlib import Path
-import pytest
-
-<<<<<<< HEAD
-from app.ml.feature_extractor import FeatureSchemaV1
-from app.ml.model_registry import ModelRegistry
-from app.ml.train_model import (
-    DataHygieneReport,
-=======
-from app.ml.model_registry import ModelRegistry
-from app.ml.train_model import (
->>>>>>> 9b735eb99fcfab11611f7f8da03c77f43357eb91
     load_dataset_from_csv,
     train_url_classifier,
 )
@@ -27,19 +10,13 @@ SAMPLE_CSV = Path(__file__).resolve().parent.parent / "datasets" / "sample_urls.
 
 
 def test_load_dataset_from_csv():
-<<<<<<< HEAD
     """Verify loading, parsing, and hygiene report for clean sample CSV."""
     urls, labels, hygiene = load_dataset_from_csv(SAMPLE_CSV)
-=======
-    """Verify loading and parsing of the sample benchmark CSV."""
-    urls, labels = load_dataset_from_csv(SAMPLE_CSV)
->>>>>>> 9b735eb99fcfab11611f7f8da03c77f43357eb91
 
     assert len(urls) == 60
     assert len(labels) == 60
     assert sum(labels == 0) == 30
     assert sum(labels == 1) == 30
-<<<<<<< HEAD
     assert isinstance(hygiene, DataHygieneReport)
     assert hygiene.clean_records == 60
     assert hygiene.duplicates_removed == 0
@@ -74,12 +51,6 @@ http://conflicted-site.com,1
 
 def test_train_logistic_regression(tmp_path: Path):
     """Verify full training pipeline with Logistic Regression and production promotion."""
-=======
-
-
-def test_train_logistic_regression(tmp_path: Path):
-    """Verify full training pipeline with Logistic Regression."""
->>>>>>> 9b735eb99fcfab11611f7f8da03c77f43357eb91
     pipeline, metadata = train_url_classifier(
         csv_path=SAMPLE_CSV,
         model_type="logistic_regression",
@@ -88,23 +59,7 @@ def test_train_logistic_regression(tmp_path: Path):
         test_size=0.15,
         val_size=0.15,
         output_dir=tmp_path,
-<<<<<<< HEAD
         set_as_production=True,
-=======
->>>>>>> 9b735eb99fcfab11611f7f8da03c77f43357eb91
-    )
-
-    assert metadata.model_type == "LogisticRegression"
-    assert metadata.version == "v1.0.0-test-lr"
-<<<<<<< HEAD
-    assert metadata.feature_count == FeatureSchemaV1.feature_count()
-    assert "data_hygiene" in metadata.metrics
-
-=======
-    assert metadata.feature_count == 42
-
-    # Check metrics existence
->>>>>>> 9b735eb99fcfab11611f7f8da03c77f43357eb91
     for split in ("train", "val", "test"):
         assert split in metadata.metrics
         split_metrics = metadata.metrics[split]
@@ -114,21 +69,12 @@ def test_train_logistic_regression(tmp_path: Path):
         assert "f1_score" in split_metrics
         assert "roc_auc" in split_metrics
         assert "confusion_matrix" in split_metrics
-<<<<<<< HEAD
         assert split_metrics["accuracy"] >= 0.7
 
     registry = ModelRegistry(storage_dir=tmp_path)
     loaded_pipe, loaded_meta = registry.load_production_model(model_name="test_url_classifier")
     assert loaded_meta.version == "v1.0.0-test-lr"
     assert loaded_meta.is_production is True
-=======
-        assert split_metrics["accuracy"] >= 0.7  # Clean benchmark performance
-
-    # Verify model is reloadable from registry
-    registry = ModelRegistry(storage_dir=tmp_path)
-    loaded_pipe, loaded_meta = registry.load_model(version="v1.0.0-test-lr", model_name="test_url_classifier")
-    assert loaded_meta.version == "v1.0.0-test-lr"
->>>>>>> 9b735eb99fcfab11611f7f8da03c77f43357eb91
     assert loaded_pipe is not None
 
 
