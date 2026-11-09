@@ -135,6 +135,34 @@ class MLClassificationResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
 
+class ScanReportResponse(BaseModel):
+    """
+    Consolidated report schema consuming all telemetry layers for UI rendering.
+    """
+    id: uuid.UUID
+    input_url: str
+    normalized_url: str
+    final_url: Optional[str] = None
+    status: str
+    verdict: Optional[str] = None
+    verdict_label: Optional[str] = None
+    risk_score: Optional[int] = None
+    confidence: Optional[float] = None
+    summary: Optional[str] = None
+    recommendation: Optional[str] = None
+    top_reasons: List[str] = Field(default_factory=list, description="Ranked human-readable key risk reasons or reassuring factors")
+    category_scores: Dict[str, int] = Field(default_factory=dict, description="Category points breakdown: url_domain, phishing_content, etc.")
+    evidence: List[Dict[str, Any]] = Field(default_factory=list, description="Structured security evidence items")
+    findings: List[ScanFindingResponse] = []
+    certificate: Optional[CertificateReportResponse] = None
+    threat_intel: List[ThreatIntelReportResponse] = []
+    ml_result: Optional[MLClassificationResponse] = None
+    dns_records: Optional[Dict[str, Any]] = None
+    security_headers: Optional[Dict[str, Any]] = None
+    started_at: Optional[datetime] = None
+    completed_at: Optional[datetime] = None
+    duration_seconds: Optional[float] = None
+    error_message: Optional[str] = None
     created_at: Optional[datetime] = None
 
     model_config = ConfigDict(from_attributes=True)
