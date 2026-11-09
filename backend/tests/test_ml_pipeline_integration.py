@@ -204,8 +204,7 @@ def test_feature_flag_disables_ml_classification():
         scan_id = scan.id
 
         with patch.object(settings, "ENABLE_ML_CLASSIFICATION", False):
-            with patch("app.analyzers.ml_classifier.classify_url") as mock_classify:
-                completed_scan = execute_scan_pipeline_sync(scan_id=scan_id, resolve_network=False)
+            completed_scan = execute_scan_pipeline_sync(scan_id=scan_id, resolve_network=False)
 
         assert completed_scan.status == "completed"
         # Since ENABLE_ML_CLASSIFICATION is false, classify_url returns None and is not executed
