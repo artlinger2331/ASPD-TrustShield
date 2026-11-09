@@ -4,6 +4,7 @@ import { cn } from "@/utils/cn";
 
 export function ThreatIntelGraph({ scanData, className }) {
   const [selectedNode, setSelectedNode] = useState(null);
+  const [hoveredNode, setHoveredNode] = useState(null);
   const [filter, setFilter] = useState("all");
 
   const domain = scanData?.url || "secure-sbi-login.verify-account.top";
