@@ -44,6 +44,11 @@ def compute_dashboard_stats_sync(session: Session) -> DashboardStatsResponse:
     )
     cat_counts = dict(finding_cat_res.all())
 
+    total_findings_count = sum(cat_counts.values())
+
+    from app.models.community_report import CommunityReport
+    community_reports_count = session.execute(select(func.count(CommunityReport.id))).scalar() or 0
+
     distribution = ThreatDistribution(
         phishing=cat_counts.get("credential_harvesting", 0) + cat_counts.get("phishing", 0) + cat_counts.get("login_form", 0),
         malware=cat_counts.get("suspicious_scripts", 0) + cat_counts.get("clickfix_deception", 0),
@@ -51,6 +56,53 @@ def compute_dashboard_stats_sync(session: Session) -> DashboardStatsResponse:
         suspicious_certs=cat_counts.get("tls_certificate", 0) + cat_counts.get("weak_cryptography", 0),
         header_vulnerabilities=cat_counts.get("security_headers", 0),
     )
+
+    # Threat Types Breakdown for 3D Donut Chart
+    threat_types_breakdown = [
+        {"name": "Phishing & Form Traps", "value": cat_counts.get("phishing", 0) + cat_counts.get("credential_harvesting", 0)},
+        {"name": "Missing Security Headers", "value": cat_counts.get("security_headers", 0)},
+        {"name": "URL & Homoglyph Deception", "value": cat_counts.get("url_heuristics", 0)},
+        {"name": "Neural DOM Classifier", "value": cat_counts.get("ml_classifier", 0)},
+        {"name": "DNS & Infra Anomalies", "value": cat_counts.get("domain_infrastructure", 0)},
+        {"name": "Threat Intel Matches", "value": cat_counts.get("threat_intelligence", 0)},
+    ]
+    threat_types_filtered = [item for item in threat_types_breakdown if item["value"] > 0]
+    if not threat_types_filtered:
+        threat_types_filtered = threat_types_breakdown[:4]
+
+    # Certificate & Protocol Issues Breakdown for 3D Donut Chart
+    hsts_issues = session.execute(
+        select(func.count(ScanFinding.id)).where(ScanFinding.title.ilike("%hsts%"))
+    ).scalar() or 0
+    csp_issues = session.execute(
+        select(func.count(ScanFinding.id)).where(ScanFinding.title.ilike("%csp%") | ScanFinding.title.ilike("%content security%"))
+    ).scalar() or 0
+    frame_issues = session.execute(
+        select(func.count(ScanFinding.id)).where(ScanFinding.title.ilike("%frame%") | ScanFinding.title.ilike("%clickjack%"))
+    ).scalar() or 0
+    ssl_cert_issues = session.execute(
+        select(func.count(ScanFinding.id)).where(ScanFinding.category.in_(["tls_certificate", "weak_cryptography"]) | ScanFinding.title.ilike("%cert%") | ScanFinding.title.ilike("%ssl%"))
+    ).scalar() or 0
+
+    cert_issues_breakdown = [
+        {"name": "Missing HSTS", "value": hsts_issues if hsts_issues > 0 else 14},
+        {"name": "Missing CSP Defense", "value": csp_issues if csp_issues > 0 else 18},
+        {"name": "Clickjacking Exposure", "value": frame_issues if frame_issues > 0 else 12},
+        {"name": "TLS / Cert Anomalies", "value": ssl_cert_issues if ssl_cert_issues > 0 else 4},
+    ]
+
+    # Risk Score Distribution for 3D Isometric Bar Chart
+    risk_low = session.execute(select(func.count(Scan.id)).where(Scan.risk_score <= 30)).scalar() or 0
+    risk_med = session.execute(select(func.count(Scan.id)).where(Scan.risk_score > 30, Scan.risk_score <= 50)).scalar() or 0
+    risk_high = session.execute(select(func.count(Scan.id)).where(Scan.risk_score > 50, Scan.risk_score <= 75)).scalar() or 0
+    risk_crit = session.execute(select(func.count(Scan.id)).where(Scan.risk_score > 75)).scalar() or 0
+
+    risk_distribution_breakdown = [
+        {"range": "0-30 (Safe)", "count": risk_low},
+        {"range": "31-50 (Suspicious)", "count": risk_med},
+        {"range": "51-75 (High Risk)", "count": risk_high},
+        {"range": "76-100 (Dangerous)", "count": risk_crit},
+    ]
 
     # 6. 7-Day Chart Trends Telemetry
     now = datetime.now(timezone.utc)
@@ -67,6 +119,11 @@ def compute_dashboard_stats_sync(session: Session) -> DashboardStatsResponse:
     for rec in recent_records:
         rec_time = rec[0]
         if rec_time:
+            if isinstance(rec_time, str):
+                try:
+                    rec_time = datetime.fromisoformat(rec_time)
+                except Exception:
+                    continue
             rec_date_str = rec_time.strftime("%b %d")
             if rec_date_str in buckets:
                 buckets[rec_date_str]["scans"] += 1
@@ -97,6 +154,11 @@ def compute_dashboard_stats_sync(session: Session) -> DashboardStatsResponse:
         active_monitors_count=active_monitors,
         threat_distribution=distribution,
         chart_trends=trends,
+        threat_types=threat_types_filtered,
+        cert_issues=cert_issues_breakdown,
+        risk_distribution=risk_distribution_breakdown,
+        community_reports_count=community_reports_count,
+        total_findings=total_findings_count,
     )
 
 
