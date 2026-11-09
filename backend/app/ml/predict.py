@@ -83,11 +83,17 @@ class URLClassifier:
         version: Optional[str] = None,
         model_name: str = "url_classifier",
         registry: Optional[ModelRegistry] = None,
+        use_production: bool = True,
     ):
         self.registry = registry or ModelRegistry()
         if model is not None and metadata is not None:
             self.model = model
             self.metadata = metadata
+        elif use_production and version is None:
+            try:
+                self.model, self.metadata = self.registry.load_production_model(model_name=model_name)
+            except FileNotFoundError:
+                self.model, self.metadata = self.registry.load_model(version=None, model_name=model_name)
         else:
             self.model, self.metadata = self.registry.load_model(version=version, model_name=model_name)
 
