@@ -111,6 +111,11 @@ export default function UrlScan() {
   useEffect(() => {
     if (!statusData) return;
 
+    // Guard against processing status of a different scan
+    if (statusData.id && scanId && String(statusData.id) !== String(scanId)) {
+      return;
+    }
+
     const currentStep = Math.max(1, statusData.step || 1);
     setActiveStep(currentStep);
 
@@ -185,8 +190,14 @@ export default function UrlScan() {
 
   // Handle manual or automated scan submission
   const handleScan = async (overrideUrl) => {
-    const targetUrl = (overrideUrl || url).trim();
+    const rawTarget = typeof overrideUrl === "string" ? overrideUrl : url;
+    let targetUrl = (rawTarget || "").trim();
     if (!targetUrl) return;
+
+    if (!targetUrl.startsWith("http://") && !targetUrl.startsWith("https://")) {
+      targetUrl = `https://${targetUrl}`;
+      setUrl(targetUrl);
+    }
 
     setScanning(true);
     setCompleted(false);
@@ -300,21 +311,29 @@ export default function UrlScan() {
               </span>
             </div>
 
-            {/* Input Element with Responsive Wrapped Buttons */}
-            <div className="relative flex flex-col sm:flex-row items-stretch sm:items-center gap-2 p-1.5 sm:p-2 rounded-xl bg-slate-950/70 border border-white/10 focus-within:border-cyan-400 focus-within:shadow-[0_0_20px_rgba(34,211,238,0.2)] transition-all">
+            {/* Input Element with Form Wrapper and Responsive Wrapped Buttons */}
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                if (!scanning && url.trim()) {
+                  handleScan();
+                }
+              }}
+              className="relative flex flex-col sm:flex-row items-stretch sm:items-center gap-2 p-1.5 sm:p-2 rounded-xl bg-slate-950/70 border border-white/10 focus-within:border-cyan-400 focus-within:shadow-[0_0_20px_rgba(34,211,238,0.2)] transition-all"
+            >
               <div className="flex items-center flex-1 min-w-0 px-2 py-1">
                 <Search className="w-4 h-4 text-cyan-400 shrink-0 mr-2.5" />
                 <input
-                  type="url"
+                  type="text"
                   placeholder="https://domain-to-inspect.com/path"
                   value={url}
                   onChange={(e) => setUrl(e.target.value)}
-                  onKeyDown={(e) => e.key === "Enter" && !scanning && handleScan()}
                   disabled={scanning}
                   className="w-full bg-transparent text-sm text-slate-100 placeholder-slate-500 focus:outline-none font-mono py-1.5"
                 />
                 {url && !scanning && (
                   <button
+                    type="button"
                     onClick={handleClear}
                     className="p-1 text-slate-400 hover:text-slate-200 transition-colors ml-1"
                     title="Clear input"
@@ -338,9 +357,8 @@ export default function UrlScan() {
                 </button>
 
                 <button
-                  type="button"
-                  onClick={handleScan}
-                  disabled={scanning || !url}
+                  type="submit"
+                  disabled={scanning || !url || !url.trim()}
                   className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 py-2 rounded-lg bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white text-xs font-semibold shadow-lg shadow-cyan-500/25 transition-all disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
                 >
                   {scanning ? (
@@ -356,7 +374,7 @@ export default function UrlScan() {
                   )}
                 </button>
               </div>
-            </div>
+            </form>
 
             {/* Preset Target Quick-Pills */}
             <div className="mt-3.5 pt-3 border-t border-white/5">
