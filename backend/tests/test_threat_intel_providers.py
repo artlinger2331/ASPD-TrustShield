@@ -445,4 +445,3 @@ def test_database_persistence_all_providers():
         assert "phishtank" in finding.title.lower() or "urlhaus" in finding.title.lower()
     finally:
         session.close()
-

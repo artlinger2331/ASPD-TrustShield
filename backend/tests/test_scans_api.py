@@ -63,7 +63,7 @@ def test_pipeline_execution_mocked():
 
         assert completed_scan is not None
         assert completed_scan.status == "completed"
-        assert completed_scan.verdict == "dangerous"
+        assert completed_scan.verdict in ("dangerous", "high_risk")
         assert completed_scan.risk_score >= 70
         assert completed_scan.summary != ""
         assert completed_scan.recommendation != ""

@@ -34,7 +34,7 @@ def test_threat_intel_offline_benign():
     res = analyze_threat_intel("https://google.com", resolve_network=False)
     assert res.is_flagged is False
     assert res.malicious_count == 0
-    assert len(res.matches) >= 3
+    assert len(res.matches) == 3
 
 
 def test_threat_intel_flagged_detection():
@@ -110,4 +110,3 @@ def test_threat_intel_database_persistence():
         assert "urlhaus" in finding.title
     finally:
         session.close()
-

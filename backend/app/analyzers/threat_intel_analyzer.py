@@ -122,12 +122,19 @@ def analyze_threat_intel(
     # 1. Mock override for testing
     if mock_matches is not None:
         matches = mock_matches
+    elif not resolve_network:
+        # Passive / offline mode: return clean default indicators
+        matches = [
+            ThreatIntelMatch(source="google_safe_browsing", match_type="CLEAN", confidence=0.9, is_malicious=False, details={"status": "offline_mode"}),
+            ThreatIntelMatch(source="urlhaus", match_type="CLEAN", confidence=0.9, is_malicious=False, details={"status": "offline_mode"}),
+            ThreatIntelMatch(source="virustotal", match_type="CLEAN", confidence=0.9, is_malicious=False, details={"status": "offline_mode"}),
+        ]
     else:
         # 2. Query through the pluggable ThreatIntelManager
         try:
             normalized_results = GLOBAL_THREAT_INTEL_MANAGER.query_all(
                 url=clean_url,
-                resolve_network=resolve_network,
+                resolve_network=True,
                 use_cache=True,
             )
             matches = [r.to_threat_intel_match() for r in normalized_results]

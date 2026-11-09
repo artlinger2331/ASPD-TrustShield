@@ -156,6 +156,9 @@ class ScanReportResponse(BaseModel):
     error_message: Optional[str] = None
     dns_records: Optional[Dict[str, Any]] = None
     security_headers: Optional[Dict[str, Any]] = None
+    top_reasons: List[str] = Field(default_factory=list, description="Ranked human-readable key risk reasons or reassuring factors")
+    category_scores: Dict[str, int] = Field(default_factory=dict, description="Category points breakdown: url_domain, phishing_content, etc.")
+    evidence: List[Dict[str, Any]] = Field(default_factory=list, description="Structured security evidence items")
     findings: List[ScanFindingResponse] = []
     certificate: Optional[CertificateReportResponse] = None
     threat_intel: List[ThreatIntelReportResponse] = []

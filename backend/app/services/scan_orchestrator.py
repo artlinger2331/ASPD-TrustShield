@@ -57,6 +57,7 @@ from app.models.scan import Scan
 from app.models.scan_finding import ScanFinding
 from app.models.certificate import Certificate
 from app.models.threat_intel import ThreatIntelResult
+from app.models.community_report import CommunityReport
 
 
 logger = logging.getLogger("trustshield.orchestrator")
@@ -298,12 +299,26 @@ def execute_scan_pipeline_sync(
         cert = session.query(Certificate).filter(Certificate.scan_id == scan.id).first()
         threat_results = session.query(ThreatIntelResult).filter(ThreatIntelResult.scan_id == scan.id).all()
 
+        # Query crowdsourced community threat reports for this domain / URL
+        target_domain = getattr(norm, "base_domain", None) or getattr(norm, "host", None) or ""
+        community_reports = (
+            session.query(CommunityReport)
+            .filter(
+                (CommunityReport.domain == target_domain)
+                | (CommunityReport.url == norm.normalized_url)
+            )
+            .all()
+        )
+        redirect_hops = getattr(norm, "redirect_chain", []) or []
+
         evaluation = evaluate_risk(
             findings=findings,
             certificate=cert,
             threat_intel_results=threat_results,
             ml_result=ml_result,
             domain=norm.host,
+            redirect_hops=redirect_hops,
+            community_reports=community_reports,
         )
 
         scan.status = "completed"
@@ -312,6 +327,16 @@ def execute_scan_pipeline_sync(
         scan.confidence = evaluation.confidence
         scan.summary = evaluation.summary
         scan.recommendation = evaluation.recommendation
+        scan.explanation = {
+            "risk_score": evaluation.risk_score,
+            "verdict": evaluation.verdict,
+            "confidence": evaluation.confidence,
+            "summary": evaluation.summary,
+            "recommendation": evaluation.recommendation,
+            "top_reasons": evaluation.top_reasons,
+            "category_scores": evaluation.category_scores,
+            "evidence": evaluation.evidence,
+        }
         scan.completed_at = datetime.now(timezone.utc)
         scan.current_step = 6
         scan.current_action = "Scan completed successfully"
@@ -349,6 +374,16 @@ def execute_scan_pipeline_sync(
                         scan.confidence = evaluation.confidence
                         scan.summary = f"Partial scan completed with error: {str(exc)}"
                         scan.recommendation = evaluation.recommendation
+                        scan.explanation = {
+                            "risk_score": evaluation.risk_score,
+                            "verdict": evaluation.verdict,
+                            "confidence": evaluation.confidence,
+                            "summary": scan.summary,
+                            "recommendation": evaluation.recommendation,
+                            "top_reasons": evaluation.top_reasons,
+                            "category_scores": evaluation.category_scores,
+                            "evidence": evaluation.evidence,
+                        }
                     except Exception as eval_err:
                         logger.warning(f"Preliminary risk evaluation failed: {eval_err}")
 

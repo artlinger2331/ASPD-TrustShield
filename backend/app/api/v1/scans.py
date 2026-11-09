@@ -377,6 +377,11 @@ async def get_scan_report(
     _, verdict_label = calculate_verdict(scan.risk_score or 0)
     confidence = float(scan.confidence) if scan.confidence is not None else None
 
+    explanation_data = getattr(scan, "explanation", None) or {}
+    top_reasons = explanation_data.get("top_reasons", [])
+    category_scores = explanation_data.get("category_scores", {})
+    evidence_list = explanation_data.get("evidence", [])
+
     return ScanReportResponse(
         id=scan.id,
         input_url=scan.input_url,
@@ -389,6 +394,9 @@ async def get_scan_report(
         confidence=confidence,
         summary=scan.summary,
         recommendation=scan.recommendation,
+        top_reasons=top_reasons,
+        category_scores=category_scores,
+        evidence=evidence_list,
         dns_records=getattr(scan, "dns_records", None),
         security_headers=getattr(scan, "security_headers", None),
         findings=findings_response,

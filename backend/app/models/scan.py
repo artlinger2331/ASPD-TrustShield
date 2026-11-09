@@ -1,10 +1,10 @@
 import uuid
 from datetime import datetime
-from typing import TYPE_CHECKING, List, Optional
+from typing import TYPE_CHECKING, List, Optional, Dict, Any
 from sqlalchemy import String, Text, Integer, Float, DateTime, ForeignKey, Index
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from app.db.base import Base, UUIDField, TimestampMixin
+from app.db.base import Base, UUIDField, TimestampMixin, JSONField
 
 if TYPE_CHECKING:
     from app.models.user import User
@@ -89,6 +89,10 @@ class Scan(Base, TimestampMixin):
     )
     error_message: Mapped[Optional[str]] = mapped_column(
         Text,
+        nullable=True,
+    )
+    explanation: Mapped[Optional[Dict[str, Any]]] = mapped_column(
+        JSONField,
         nullable=True,
     )
 
