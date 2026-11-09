@@ -27,8 +27,8 @@ def _check_postgres_reachable() -> bool:
             else:
                 host = host_part
 
-        if host in ("db", "postgres"):
-            # In local dev outside Docker, avoid Windows DNS lookup hang on docker service name
+        if host in ("db", "postgres", "localhost"):
+            # Avoid Windows IPv6 DNS lookup hang on localhost/docker service name
             host = "127.0.0.1"
 
         with socket.create_connection((host, port), timeout=0.2):
