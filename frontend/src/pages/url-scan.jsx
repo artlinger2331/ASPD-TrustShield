@@ -21,7 +21,7 @@ import {
 import { ThreeDLayerStack } from "@/components/ui/three-d-layer-stack";
 import { RiskGauge } from "@/components/ui/gauge";
 import { VerdictBadge } from "@/components/ui/badge";
-import { useToast } from "@/hooks/useAuth";
+import { useAuth, useToast } from "@/hooks/useAuth";
 import { cn } from "@/utils/cn";
 import { verdictLabel, riskColor, shortenUrl } from "@/utils/formatters";
 import { scanApi } from "@/utils/api";
