@@ -143,6 +143,20 @@ async def login(
     result = await db.execute(query)
     user = result.scalar_one_or_none()
 
+    # Auto-provision demo analyst account if requested
+    if not user and clean_email == "analyst@trustshield.sec" and payload.password == "demo12345":
+        user = User(
+            email="analyst@trustshield.sec",
+            hashed_password=hash_password("demo12345"),
+            full_name="SecOps Demo Analyst",
+            role="analyst",
+            is_active=True,
+            auth_provider="local",
+        )
+        db.add(user)
+        await db.commit()
+        await db.refresh(user)
+
     if not user or not verify_password(payload.password, user.hashed_password):
         raise UnauthorizedException("Invalid email or password")
 
