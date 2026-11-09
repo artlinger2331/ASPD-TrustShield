@@ -29,6 +29,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useCreateScan } from "@/hooks/useScans";
+import { useAuth } from "@/hooks/useAuth";
 
 const LIVE_THREAT_FEED = [
   { domain: "chase-update-verify.xyz", threat: "Homograph Phishing", risk: 96, time: "Just now", status: "Quarantined" },
@@ -122,6 +123,7 @@ const WORKFLOW_STEPS = [
 
 export default function Landing() {
   const navigate = useNavigate();
+  const { isAuthenticated } = useAuth();
   const scannerInputRef = useRef(null);
   const [url, setUrl] = useState("https://secure-chase-update.bank-verify.xyz/login");
   const [activeConsoleTab, setActiveConsoleTab] = useState("homograph");
@@ -151,15 +153,30 @@ export default function Landing() {
     if (!url.trim()) return;
     setScanError(null);
 
+    let targetUrl = url.trim();
+    if (!targetUrl.startsWith("http://") && !targetUrl.startsWith("https://")) {
+      targetUrl = `https://${targetUrl}`;
+    }
+
+    // If unauthenticated, redirect to login / registration with the target URL preserved
+    if (!isAuthenticated) {
+      const redirectPath = `/scan?url=${encodeURIComponent(targetUrl)}`;
+      sessionStorage.setItem("ts_pending_scan_url", targetUrl);
+      sessionStorage.setItem("ts_redirect_after_auth", redirectPath);
+      navigate(`/login?redirect=${encodeURIComponent(redirectPath)}&targetUrl=${encodeURIComponent(targetUrl)}`);
+      return;
+    }
+
     try {
-      const scanData = await createScanMutation.mutateAsync(url.trim());
+      const scanData = await createScanMutation.mutateAsync(targetUrl);
       if (scanData && scanData.id) {
-        navigate(`/scan?id=${scanData.id}&url=${encodeURIComponent(url.trim())}`);
+        navigate(`/scan?id=${scanData.id}&url=${encodeURIComponent(targetUrl)}`);
       } else {
-        navigate(`/scan?url=${encodeURIComponent(url.trim())}`);
+        navigate(`/scan?url=${encodeURIComponent(targetUrl)}`);
       }
     } catch (err) {
-      setScanError(err.message || "Failed to initiate scan. Please verify URL syntax.");
+      // Fallback: navigate directly to scan inspector where retry / polling handles it
+      navigate(`/scan?url=${encodeURIComponent(targetUrl)}`);
     }
   };
 
@@ -274,7 +291,7 @@ export default function Landing() {
             </div>
 
             <Button
-              onClick={() => navigate("/dashboard")}
+              onClick={() => navigate(isAuthenticated ? "/dashboard" : "/login")}
               className="bg-gradient-to-r from-cyan-500 via-blue-600 to-indigo-600 hover:from-cyan-400 hover:to-blue-500 text-white font-bold text-xs px-4 py-2 rounded-xl shadow-[0_0_20px_rgba(6,182,212,0.4)] transition-all hover:shadow-[0_0_28px_rgba(6,182,212,0.7)] flex items-center gap-1.5 cursor-pointer"
             >
               <span>Console</span>
