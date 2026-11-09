@@ -451,7 +451,7 @@ def save_ml_classification_to_db_sync(
     finding = ScanFinding(
         scan_id=scan_id,
         category="ml_classifier",
-        title=f"ML URL Classifier: {result.verdict.upper()} ({result.risk_score}/100)",
+        title=f"ML Phishing Classifier: {result.verdict.upper()} ({result.risk_score}/100)",
         severity=severity,
         confidence=result.confidence,
         description=result.summary,
