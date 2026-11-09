@@ -230,4 +230,3 @@ GLOBAL_THREAT_INTEL_MANAGER = ThreatIntelManager()
 def get_threat_intel_manager() -> ThreatIntelManager:
     """Returns singleton ThreatIntelManager instance."""
     return GLOBAL_THREAT_INTEL_MANAGER
-

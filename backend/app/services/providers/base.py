@@ -215,8 +215,8 @@ class NormalizedThreatResult:
             match_type=match_type,
             confidence=round(self.confidence, 2),
             is_malicious=self.match_found,
-            details=self.details,
-            raw_response=self.raw_response,
+            details=self.details or {},
+            raw_response=self.raw_response or {},
         )
 
 
