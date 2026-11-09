@@ -135,18 +135,19 @@ export default function Register() {
     const dest = getRedirectTarget();
     sessionStorage.setItem("ts_redirect_after_auth", dest);
     const apiBase = getApiBaseUrl();
+    const originParam = encodeURIComponent(window.location.origin);
 
     try {
       const statusRes = await authApi.getOAuthStatus();
       if (statusRes[provider] && statusRes[provider].configured) {
         // Direct redirect to live provider!
-        window.location.href = `${apiBase}/api/v1/auth/oauth/${provider}`;
+        window.location.href = `${apiBase}/api/v1/auth/oauth/${provider}?origin=${originParam}`;
       } else {
         // Open setup modal
         setSetupProvider(provider);
       }
     } catch (_) {
-      window.location.href = `${apiBase}/api/v1/auth/oauth/${provider}`;
+      window.location.href = `${apiBase}/api/v1/auth/oauth/${provider}?origin=${originParam}`;
     }
   };
 
