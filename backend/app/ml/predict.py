@@ -1,11 +1,13 @@
 """
 Prediction interface with feature attribution for TrustShield ML.
 Computes classification label, probability, confidence, and top contributing
-features for URL threat detection.
+features for URL threat detection with thread-safe prediction caching.
 """
 
 from dataclasses import asdict, dataclass
 import logging
+import threading
+import time
 from typing import Any, Dict, List, Optional, Tuple, Union
 
 import numpy as np
@@ -42,6 +44,7 @@ class URLPredictionResult:
     feature_schema_version: str
     top_contributing_features: List[TopFeatureContribution]
     raw_features: Dict[str, Union[int, float]]
+    cached: bool = False
 
     def to_dict(self) -> Dict[str, Any]:
         res = asdict(self)
@@ -73,6 +76,59 @@ FEATURE_HUMAN_DESCRIPTIONS = {
 }
 
 
+class PredictionCache:
+    """Thread-safe TTL in-memory cache for URL predictions."""
+
+    def __init__(self, default_ttl_seconds: int = 3600):
+        self._cache: Dict[str, Tuple[float, URLPredictionResult]] = {}
+        self._lock = threading.Lock()
+        self.default_ttl = default_ttl_seconds
+
+    def _make_key(self, url: str, model_version: str) -> str:
+        return f"{model_version}::{url.strip().lower()}"
+
+    def get(self, url: str, model_version: str) -> Optional[URLPredictionResult]:
+        key = self._make_key(url, model_version)
+        with self._lock:
+            entry = self._cache.get(key)
+            if not entry:
+                return None
+            timestamp, result = entry
+            if time.time() - timestamp > self.default_ttl:
+                del self._cache[key]
+                return None
+            # Return fresh dataclass copy marked cached=True
+            cached_res = URLPredictionResult(
+                url=result.url,
+                label=result.label,
+                is_phishing=result.is_phishing,
+                probability=result.probability,
+                confidence=result.confidence,
+                model_version=result.model_version,
+                feature_schema_version=result.feature_schema_version,
+                top_contributing_features=result.top_contributing_features,
+                raw_features=result.raw_features,
+                cached=True,
+            )
+            return cached_res
+
+    def set(self, url: str, model_version: str, result: URLPredictionResult) -> None:
+        key = self._make_key(url, model_version)
+        with self._lock:
+            self._cache[key] = (time.time(), result)
+
+    def clear(self) -> None:
+        with self._lock:
+            self._cache.clear()
+
+    def size(self) -> int:
+        with self._lock:
+            return len(self._cache)
+
+
+GLOBAL_PREDICTION_CACHE = PredictionCache()
+
+
 class URLClassifier:
     """Production prediction service with model versioning and explainable attribution."""
 
@@ -84,6 +140,7 @@ class URLClassifier:
         model_name: str = "url_classifier",
         registry: Optional[ModelRegistry] = None,
         use_production: bool = True,
+        cache: Optional[PredictionCache] = None,
     ):
         self.registry = registry or ModelRegistry()
         if model is not None and metadata is not None:
@@ -99,6 +156,7 @@ class URLClassifier:
 
         self.feature_names = self.metadata.feature_names or FeatureSchemaV1.feature_names()
         self.decision_threshold = float(self.metadata.decision_threshold or 0.5)
+        self.cache = cache or GLOBAL_PREDICTION_CACHE
 
     def _compute_attributions(
         self,
@@ -166,13 +224,23 @@ class URLClassifier:
         url: str,
         metadata: Optional[Dict[str, Any]] = None,
         top_k_features: int = 5,
+        use_cache: bool = True,
     ) -> URLPredictionResult:
         """
         Runs model inference on a URL string with optional pre-fetched scan metadata.
+        Returns cached prediction if available and use_cache is True.
         """
+        # 1. Check cache (cache key based on URL and model version)
+        if use_cache and not metadata:
+            cached_result = self.cache.get(url, self.metadata.version)
+            if cached_result:
+                return cached_result
+
+        # 2. Extract features
         feature_dict = extract_features(url, metadata=metadata)
         feature_vector = np.array([[feature_dict[name] for name in self.feature_names]], dtype=float)
 
+        # 3. Probability computation
         if hasattr(self.model, "predict_proba"):
             probs = self.model.predict_proba(feature_vector)[0]
             phishing_prob = float(probs[1])
@@ -186,6 +254,7 @@ class URLClassifier:
         confidence = round(abs(phishing_prob - self.decision_threshold) * 2.0, 4)
         phishing_prob_rounded = round(phishing_prob, 4)
 
+        # 4. Attributions
         top_features = self._compute_attributions(
             X_vec=feature_vector[0],
             feature_dict=feature_dict,
@@ -193,7 +262,7 @@ class URLClassifier:
             top_k=top_k_features,
         )
 
-        return URLPredictionResult(
+        result = URLPredictionResult(
             url=url,
             label=label,
             is_phishing=is_phishing,
@@ -203,4 +272,11 @@ class URLClassifier:
             feature_schema_version=self.metadata.feature_schema_version,
             top_contributing_features=top_features,
             raw_features=feature_dict,
+            cached=False,
         )
+
+        # 5. Store in cache
+        if use_cache:
+            self.cache.set(url, self.metadata.version, result)
+
+        return result
