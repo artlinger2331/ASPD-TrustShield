@@ -111,14 +111,11 @@ export default function UrlScan() {
   useEffect(() => {
     if (!statusData) return;
 
-<<<<<<< HEAD
     // Guard against processing status of a different scan
     if (statusData.id && scanId && String(statusData.id) !== String(scanId)) {
       return;
     }
 
-=======
->>>>>>> 9b735eb99fcfab11611f7f8da03c77f43357eb91
     const currentStep = Math.max(1, statusData.step || 1);
     setActiveStep(currentStep);
 
@@ -193,7 +190,6 @@ export default function UrlScan() {
 
   // Handle manual or automated scan submission
   const handleScan = async (overrideUrl) => {
-<<<<<<< HEAD
     const rawTarget = typeof overrideUrl === "string" ? overrideUrl : url;
     let targetUrl = (rawTarget || "").trim();
     if (!targetUrl) return;
@@ -203,11 +199,6 @@ export default function UrlScan() {
       setUrl(targetUrl);
     }
 
-=======
-    const targetUrl = (overrideUrl || url).trim();
-    if (!targetUrl) return;
-
->>>>>>> 9b735eb99fcfab11611f7f8da03c77f43357eb91
     setScanning(true);
     setCompleted(false);
     setResult(null);

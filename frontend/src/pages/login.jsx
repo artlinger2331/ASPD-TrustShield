@@ -43,12 +43,35 @@ export default function Login() {
   const { login } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
+  const location = useLocation();
   const [searchParams] = useSearchParams();
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [setupProvider, setSetupProvider] = useState(null);
+
+  const targetUrl =
+    searchParams.get("targetUrl") ||
+    (typeof window !== "undefined" ? sessionStorage.getItem("ts_pending_scan_url") : null);
+
+  const getRedirectTarget = () => {
+    const redirectParam = searchParams.get("redirect");
+    if (redirectParam) return redirectParam;
+
+    const storedRedirect = sessionStorage.getItem("ts_redirect_after_auth");
+    if (storedRedirect) return storedRedirect;
+
+    if (location.state?.from?.pathname) {
+      return `${location.state.from.pathname}${location.state.from.search || ""}`;
+    }
+
+    if (targetUrl) {
+      return `/scan?url=${encodeURIComponent(targetUrl)}`;
+    }
+
+    return "/dashboard";
+  };
 
   useEffect(() => {
     const errorMsg = searchParams.get("error");
@@ -84,7 +107,10 @@ export default function Login() {
         description: "Successfully authenticated with TrustShield SecOps.",
         type: "success",
       });
-      navigate("/dashboard");
+      const dest = getRedirectTarget();
+      sessionStorage.removeItem("ts_pending_scan_url");
+      sessionStorage.removeItem("ts_redirect_after_auth");
+      navigate(dest);
     } catch (err) {
       toast({
         title: "Authentication Failed",
@@ -97,6 +123,9 @@ export default function Login() {
   };
 
   const handleOAuthLogin = async (provider) => {
+    const dest = getRedirectTarget();
+    sessionStorage.setItem("ts_redirect_after_auth", dest);
+
     try {
       const statusRes = await authApi.getOAuthStatus();
       if (statusRes[provider] && statusRes[provider].configured) {
@@ -124,6 +153,32 @@ export default function Login() {
         </CardHeader>
 
         <CardContent className="space-y-5 pt-4">
+          {/* Target Scan Notice Banner */}
+          {targetUrl && (
+            <div className="p-3.5 rounded-xl bg-cyan-950/60 border border-cyan-500/35 text-xs flex items-start gap-3 backdrop-blur-md shadow-lg shadow-cyan-500/10">
+              <div className="p-1.5 rounded-lg bg-cyan-500/20 text-cyan-400 shrink-0 mt-0.5">
+                <ShieldAlert className="w-4 h-4" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="font-semibold text-cyan-300 flex items-center justify-between">
+                  <span>Authentication Required</span>
+                  <span className="text-[10px] font-mono uppercase bg-cyan-500/20 px-1.5 py-0.5 rounded text-cyan-300">
+                    Target Locked
+                  </span>
+                </div>
+                <p className="text-[11px] text-slate-300 mt-1">
+                  Sign in to inspect target with heuristic telemetry:
+                </p>
+                <div className="mt-1.5 px-2.5 py-1 rounded bg-[#040812]/95 border border-cyan-500/30 text-cyan-300 font-mono text-[11px] truncate select-all">
+                  {targetUrl}
+                </div>
+                <p className="text-[10px] text-cyan-400/80 mt-1 font-mono">
+                  ✓ Automatically redirects to live scanner upon signing in.
+                </p>
+              </div>
+            </div>
+          )}
+
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="relative">
               <Label className="text-xs font-semibold text-slate-300">Email address</Label>
@@ -184,7 +239,10 @@ export default function Login() {
                   description: "Signed in as Security Analyst.",
                   type: "success",
                 });
-                navigate("/dashboard");
+                const dest = getRedirectTarget();
+                sessionStorage.removeItem("ts_pending_scan_url");
+                sessionStorage.removeItem("ts_redirect_after_auth");
+                navigate(dest);
               }}
               className="w-full mt-2 py-2 px-3 rounded-xl border border-cyan-500/30 bg-cyan-500/10 hover:bg-cyan-500/20 text-cyan-300 text-xs font-mono font-semibold transition-all flex items-center justify-center gap-2 cursor-pointer"
             >
@@ -223,7 +281,10 @@ export default function Login() {
 
           <p className="text-center text-xs text-slate-400 mt-5">
             Don't have an account?{" "}
-            <Link to="/register" className="text-cyan-400 font-semibold hover:text-cyan-300 hover:underline transition-colors">
+            <Link
+              to={{ pathname: "/register", search: location.search }}
+              className="text-cyan-400 font-semibold hover:text-cyan-300 hover:underline transition-colors"
+            >
               Create one
             </Link>
           </p>
