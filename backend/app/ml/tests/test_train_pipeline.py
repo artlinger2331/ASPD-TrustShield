@@ -5,6 +5,7 @@ Unit tests for the TrustShield URL model training pipeline.
 from pathlib import Path
 import pytest
 
+from app.ml.feature_extractor import FeatureSchemaV1
 from app.ml.model_registry import ModelRegistry
 from app.ml.train_model import (
     load_dataset_from_csv,
@@ -38,7 +39,7 @@ def test_train_logistic_regression(tmp_path: Path):
 
     assert metadata.model_type == "LogisticRegression"
     assert metadata.version == "v1.0.0-test-lr"
-    assert metadata.feature_count == 42
+    assert metadata.feature_count == FeatureSchemaV1.feature_count()
 
     for split in ("train", "val", "test"):
         assert split in metadata.metrics
