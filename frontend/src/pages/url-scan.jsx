@@ -25,6 +25,8 @@ import { useToast } from "@/hooks/useAuth";
 import { cn } from "@/utils/cn";
 import { verdictLabel, riskColor, shortenUrl } from "@/utils/formatters";
 import { scanApi } from "@/utils/api";
+import { useCreateScan, useScanStatus } from "@/hooks/useScans";
+import { Skeleton } from "@/components/ui/skeleton";
 
 const QUICK_PRESETS = [
   {
