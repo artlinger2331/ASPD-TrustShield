@@ -440,6 +440,7 @@ def extract_feature_report(
         "uses_https": bool(feature_dict["uses_https"]),
         "is_url_shortener": bool(feature_dict["is_url_shortener"]),
         "has_embedded_credentials": bool(feature_dict["has_embedded_credentials"]),
+        "has_credentials": bool(feature_dict["has_embedded_credentials"]),
         "has_suspicious_tld": bool(feature_dict["suspicious_tld"]),
         "has_suspicious_keywords": bool(feature_dict["suspicious_keyword_count"] > 0),
         "has_brand_in_domain": bool(feature_dict["brand_keyword_count"] > 0),
