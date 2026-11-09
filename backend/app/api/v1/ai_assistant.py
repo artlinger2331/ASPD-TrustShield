@@ -5,7 +5,7 @@ and educational insights for scanned websites.
 """
 
 import uuid
-from typing import Optional, List, Dict, Any
+from typing import Optional, List, Dict, Any, Tuple
 from fastapi import APIRouter, Depends, status
 from sqlalchemy import select
 from sqlalchemy.orm import selectinload
@@ -26,7 +26,7 @@ router = APIRouter(prefix="/assistant", tags=["AI Security Assistant"])
 def generate_contextual_response(
     query: str,
     scan: Optional[Scan] = None,
-) -> Tuple_Response:
+) -> Tuple[str, bool, Optional[str], Optional[str], List[str], List[str]]:
     """
     Synthesizes an intelligent, actionable response based on user inquiry and scan telemetry.
     """
