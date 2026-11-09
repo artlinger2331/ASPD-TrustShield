@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import {
@@ -44,57 +44,43 @@ export default function Dashboard() {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [isRefreshing, setIsRefreshing] = useState(false);
-  const [recentScans, setRecentScans] = useState(RECENT_SCANS);
 
-  useEffect(() => {
-    async function loadScans() {
-      try {
-        const data = await scanApi.getRecentScans(10);
-        if (data && data.items && data.items.length > 0) {
-          const mapped = data.items.map((s) => ({
-            id: s.id,
-            url: s.normalized_url || s.input_url,
-            verdict: s.verdict || "safe",
-            score: s.risk_score ?? 0,
-            threat:
-              s.verdict === "dangerous"
-                ? "Credential Stealer / Phishing"
-                : s.verdict === "suspicious"
-                ? "Suspicious Configuration"
-                : "Clean Telemetry",
-            date: new Date(s.created_at).toLocaleDateString(),
-          }));
-          setRecentScans([...mapped, ...RECENT_SCANS.slice(mapped.length)]);
-        }
-      } catch (err) {
-        console.warn("Could not fetch recent scans from backend:", err);
-      }
+  // TanStack Query for scan history
+  const {
+    data: scanData,
+    isLoading: scansLoading,
+    isError: scansError,
+    error: scansErrorObj,
+    refetch: refetchScans,
+    isFetching,
+  } = useRecentScans({ limit: 10 });
+
+  // Map real backend scans or fallback to mock data only if backend returned 0 items
+  const recentScans = useMemo(() => {
+    if (scanData && scanData.items && scanData.items.length > 0) {
+      return scanData.items.map((s) => ({
+        id: s.id,
+        url: s.normalized_url || s.input_url,
+        verdict: s.verdict || "safe",
+        score: s.risk_score ?? 0,
+        threat:
+          s.verdict === "dangerous"
+            ? "Credential Stealer / Phishing"
+            : s.verdict === "suspicious"
+            ? "Suspicious Configuration"
+            : "Clean Telemetry",
+        date: new Date(s.created_at).toLocaleDateString(),
+      }));
     }
-    loadScans();
-  }, []);
+    return RECENT_SCANS;
+  }, [scanData]);
 
   const handleRefresh = async () => {
     setIsRefreshing(true);
     try {
-      const data = await scanApi.getRecentScans(10);
-      if (data && data.items && data.items.length > 0) {
-        const mapped = data.items.map((s) => ({
-          id: s.id,
-          url: s.normalized_url || s.input_url,
-          verdict: s.verdict || "safe",
-          score: s.risk_score ?? 0,
-          threat:
-            s.verdict === "dangerous"
-              ? "Credential Stealer / Phishing"
-              : s.verdict === "suspicious"
-              ? "Suspicious Configuration"
-              : "Clean Telemetry",
-          date: new Date(s.created_at).toLocaleDateString(),
-        }));
-        setRecentScans([...mapped, ...RECENT_SCANS.slice(mapped.length)]);
-      }
+      await refetchScans();
     } catch (_) {}
-    setTimeout(() => setIsRefreshing(false), 600);
+    setTimeout(() => setIsRefreshing(false), 500);
   };
 
   const statCards = [
