@@ -37,3 +37,4 @@ services:
           type: web
           name: trustshield-api
           property: host
+
