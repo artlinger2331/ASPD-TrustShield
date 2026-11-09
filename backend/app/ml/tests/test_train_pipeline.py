@@ -7,10 +7,7 @@ model training, metrics computation, and production model saving.
 from pathlib import Path
 import pytest
 
-<<<<<<< .merge_file_4c6dhP
 from app.ml.feature_extractor import FeatureSchemaV1
-=======
->>>>>>> .merge_file_mGt7Zr
 from app.ml.model_registry import ModelRegistry
 from app.ml.train_model import (
     DataHygieneReport,
@@ -53,12 +50,11 @@ http://conflicted-site.com,1
 
     urls, labels, hygiene = load_dataset_from_csv(test_csv)
 
-    # Clean records should be: google.com (0), github.com (0), paypal-fake.xyz/login (1)
     assert len(urls) == 3
     assert len(labels) == 3
-    assert hygiene.duplicates_removed == 2  # 1 google duplicate, 1 paypal duplicate
-    assert hygiene.conflicts_dropped == 2  # conflicted-site.com records dropped
-    assert hygiene.invalid_dropped == 2  # empty/whitespace rows dropped
+    assert hygiene.duplicates_removed == 2
+    assert hygiene.conflicts_dropped == 2
+    assert hygiene.invalid_dropped == 2
     assert hygiene.clean_records == 3
 
 
@@ -77,19 +73,9 @@ def test_train_logistic_regression(tmp_path: Path):
 
     assert metadata.model_type == "LogisticRegression"
     assert metadata.version == "v1.0.0-test-lr"
-<<<<<<< .merge_file_4c6dhP
     assert metadata.feature_count == FeatureSchemaV1.feature_count()
     assert "data_hygiene" in metadata.metrics
 
-<<<<<<< Updated upstream
-=======
-    assert metadata.feature_count == 42
-
-    # Check metrics existence
->>>>>>> .merge_file_mGt7Zr
-=======
-    # Check metrics existence
->>>>>>> Stashed changes
     for split in ("train", "val", "test"):
         assert split in metadata.metrics
         split_metrics = metadata.metrics[split]
@@ -99,18 +85,8 @@ def test_train_logistic_regression(tmp_path: Path):
         assert "f1_score" in split_metrics
         assert "roc_auc" in split_metrics
         assert "confusion_matrix" in split_metrics
-<<<<<<< .merge_file_4c6dhP
         assert split_metrics["accuracy"] >= 0.7
 
-<<<<<<< Updated upstream
-=======
-        assert split_metrics["accuracy"] >= 0.7  # Clean benchmark performance
-
-    # Verify model is reloadable from registry
->>>>>>> .merge_file_mGt7Zr
-=======
-    # Verify model is reloadable as production from registry
->>>>>>> Stashed changes
     registry = ModelRegistry(storage_dir=tmp_path)
     loaded_pipe, loaded_meta = registry.load_production_model(model_name="test_url_classifier")
     assert loaded_meta.version == "v1.0.0-test-lr"
