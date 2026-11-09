@@ -14,6 +14,7 @@ executive summaries, and actionable remediation advice.
 """
 
 from typing import List, Dict, Any, Optional, Tuple
+from app.core.config import settings
 from app.models.scan_finding import ScanFinding
 from app.models.certificate import Certificate
 from app.models.threat_intel import ThreatIntelResult
