@@ -117,6 +117,24 @@ class ThreatIntelReportResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
 
+class MLClassificationResponse(BaseModel):
+    """
+    ML URL Classifier telemetry and feature attribution report.
+    """
+    url: str
+    predicted_label: str
+    is_phishing: bool
+    phishing_probability: float
+    risk_score: int
+    confidence: float
+    verdict: str
+    model_version: str
+    top_contributing_features: List[Dict[str, Any]] = []
+    summary: str
+
+    model_config = ConfigDict(from_attributes=True)
+
+
 class ScanReportResponse(BaseModel):
     """
     Consolidated report schema consuming all telemetry layers for UI rendering.
@@ -141,6 +159,7 @@ class ScanReportResponse(BaseModel):
     findings: List[ScanFindingResponse] = []
     certificate: Optional[CertificateReportResponse] = None
     threat_intel: List[ThreatIntelReportResponse] = []
+    ml_result: Optional[MLClassificationResponse] = None
     created_at: Optional[datetime] = None
 
     model_config = ConfigDict(from_attributes=True)
