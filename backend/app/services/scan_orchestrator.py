@@ -300,7 +300,7 @@ def execute_scan_pipeline_sync(
             findings=findings,
             certificate=cert,
             threat_intel_results=threat_results,
-            ml_result=None,
+            ml_result=ml_result,
             domain=norm.host,
         )
 
