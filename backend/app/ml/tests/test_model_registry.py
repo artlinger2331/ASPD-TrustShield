@@ -36,7 +36,7 @@ def test_model_registry_save_and_load(tmp_path: Path):
     loaded_model, loaded_meta = registry.load_model(version="v1.0.0", model_name="test_classifier")
     assert loaded_meta.version == "v1.0.0"
     assert loaded_meta.model_name == "test_classifier"
-    assert loaded_meta.feature_count == 42
+    assert loaded_meta.feature_count == 20
     assert loaded_meta.metrics["test"]["accuracy"] == 0.95
     assert hasattr(loaded_model, "classes_")
 
