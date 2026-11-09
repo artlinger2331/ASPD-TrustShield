@@ -1,0 +1,94 @@
+{
+  "model_name": "url_classifier",
+  "version": "v1.0.0",
+  "model_type": "LogisticRegression",
+  "feature_schema_version": "v1.0.0",
+  "feature_names": [
+    "url_length",
+    "domain_length",
+    "num_dots",
+    "num_hyphens",
+    "num_digits",
+    "num_special_chars",
+    "num_subdomains",
+    "domain_age_days",
+    "has_ip_address",
+    "uses_https",
+    "suspicious_keyword_count",
+    "brand_keyword_count",
+    "suspicious_tld",
+    "is_url_shortener",
+    "redirect_count",
+    "domain_entropy",
+    "char_repetition_max",
+    "path_depth",
+    "query_param_count",
+    "has_embedded_credentials"
+  ],
+  "feature_count": 20,
+  "hyperparameters": {
+    "C": 1.0,
+    "solver": "lbfgs",
+    "max_iter": 1000,
+    "random_state": 42
+  },
+  "metrics": {
+    "train": {
+      "accuracy": 1.0,
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1_score": 1.0,
+      "roc_auc": 1.0,
+      "confusion_matrix": {
+        "true_negative": 21,
+        "false_positive": 0,
+        "false_negative": 0,
+        "true_positive": 21
+      },
+      "sample_count": 42
+    },
+    "val": {
+      "accuracy": 1.0,
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1_score": 1.0,
+      "roc_auc": 1.0,
+      "confusion_matrix": {
+        "true_negative": 4,
+        "false_positive": 0,
+        "false_negative": 0,
+        "true_positive": 5
+      },
+      "sample_count": 9
+    },
+    "test": {
+      "accuracy": 1.0,
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1_score": 1.0,
+      "roc_auc": 1.0,
+      "confusion_matrix": {
+        "true_negative": 5,
+        "false_positive": 0,
+        "false_negative": 0,
+        "true_positive": 4
+      },
+      "sample_count": 9
+    },
+    "data_hygiene": {
+      "raw_records": 60,
+      "clean_records": 60,
+      "duplicates_removed": 0,
+      "conflicts_dropped": 0,
+      "invalid_dropped": 0,
+      "class_distribution": {
+        "benign (0)": 30,
+        "phishing (1)": 30
+      }
+    }
+  },
+  "decision_threshold": 0.5,
+  "created_at": "2026-11-09T04:23:36.522874+00:00",
+  "notes": "Trained on backend/app/ml/datasets/sample_urls.csv with LogisticRegression",
+  "is_production": true
+}
