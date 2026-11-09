@@ -6,12 +6,15 @@ from target URLs and applies a calibrated decision model with feature attributio
 Zero external network calls; executes in < 5 milliseconds.
 """
 
+import logging
 import math
 import re
 import uuid
 from collections import Counter
 from typing import Dict, Any, List, Tuple, Optional
 from urllib.parse import urlparse
+
+logger = logging.getLogger(__name__)
 
 from app.models.scan_finding import ScanFinding
 from app.schemas.ml_classification import MLClassificationResult, MLFeatureContribution
@@ -305,6 +308,27 @@ def classify_url(url: str) -> MLClassificationResult:
     k = 0.08
     prob = 1.0 / (1.0 + math.exp(-k * (raw_score - 40.0)))
     prob = round(prob, 4)
+
+    # Incorporate production ML model classification if available
+    ml_version = None
+    try:
+        from app.ml.predict import URLClassifier
+        classifier = URLClassifier(use_production=True)
+        pred = classifier.predict(url)
+        ml_version = pred.model_version
+        # Calibrated blend: ML statistical probability with heuristic score
+        prob = round(float(pred.probability * 0.65 + prob * 0.35), 4)
+        for f in pred.top_contributing_features:
+            weights.append(
+                MLFeatureContribution(
+                    feature_name=f.feature_name,
+                    feature_value=str(f.feature_value),
+                    weight=round(abs(f.contribution) * 10.0, 1),
+                    description=f.description,
+                )
+            )
+    except Exception as e:
+        logger.debug(f"Production ML model not active; using baseline heuristic: {e}")
 
     risk_score = min(100, max(0, int(round(prob * 100))))
 
