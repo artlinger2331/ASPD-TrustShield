@@ -31,6 +31,11 @@ class DashboardStatsResponse(BaseModel):
     active_monitors_count: int
     threat_distribution: ThreatDistribution
     chart_trends: List[DailyTrendPoint]
+    threat_types: List[Dict[str, Any]] = []
+    cert_issues: List[Dict[str, Any]] = []
+    risk_distribution: List[Dict[str, Any]] = []
+    community_reports_count: int = 0
+    total_findings: int = 0
 
     model_config = ConfigDict(from_attributes=True)
 
