@@ -19,11 +19,17 @@ class URLhausProvider(ThreatIntelProvider):
         auth_key: Optional[str] = None,
         timeout: float = 3.5,
         max_retries: int = 2,
+        backoff_factor: float = 0.5,
+        failure_threshold: int = 3,
+        cooldown_seconds: float = 60.0,
     ):
         super().__init__(
             name="urlhaus",
             timeout=timeout,
             max_retries=max_retries,
+            backoff_factor=backoff_factor,
+            failure_threshold=failure_threshold,
+            cooldown_seconds=cooldown_seconds,
         )
         self.auth_key = auth_key or getattr(settings, "URLHAUS_AUTH_KEY", "")
 
@@ -80,3 +86,4 @@ class URLhausProvider(ThreatIntelProvider):
             raw_response=data,
             status="ok",
         )
+
