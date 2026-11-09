@@ -151,11 +151,53 @@ export default function ScanReport() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="flex flex-col items-center gap-3">
-          <Loader2 className="w-8 h-8 text-blue-400 animate-spin" />
-          <p className="text-sm font-medium text-slate-300">Loading security telemetry report…</p>
+      <div className="min-h-screen py-8 px-4 sm:px-6 lg:px-8 max-w-6xl mx-auto space-y-6">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4 border-b border-white/5">
+          <div className="space-y-2">
+            <Skeleton className="h-4 w-32 rounded bg-cyan-500/10" />
+            <Skeleton className="h-8 w-72 rounded-lg bg-white/5" />
+            <Skeleton className="h-3 w-48 rounded bg-white/5" />
+          </div>
+          <div className="flex gap-2">
+            <Skeleton className="h-8 w-24 rounded-xl bg-white/5" />
+            <Skeleton className="h-8 w-20 rounded-xl bg-white/5" />
+          </div>
         </div>
+
+        {/* Summary skeleton */}
+        <div className="p-6 rounded-2xl border border-white/5 bg-navy-800/40 space-y-4">
+          <Skeleton className="h-4 w-40 rounded bg-cyan-500/10" />
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <Skeleton className="h-16 w-full rounded-xl bg-white/5" />
+            <Skeleton className="h-16 w-full rounded-xl bg-white/5" />
+            <Skeleton className="h-16 w-full rounded-xl bg-white/5" />
+          </div>
+        </div>
+
+        {/* Findings skeleton */}
+        <div className="p-6 rounded-2xl border border-white/5 bg-navy-800/40 space-y-4">
+          <Skeleton className="h-4 w-52 rounded bg-cyan-500/10" />
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <Skeleton className="h-28 w-full rounded-xl bg-white/5" />
+            <Skeleton className="h-28 w-full rounded-xl bg-white/5" />
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (isError || (!report && id && id !== "scan" && id !== "1")) {
+    return (
+      <div className="min-h-screen flex items-center justify-center p-4 max-w-xl mx-auto">
+        <EmptyState
+          title="Security Report Not Found"
+          description={
+            error?.message ||
+            `Scan report #${id} was not found on the backend server or has expired.`
+          }
+          action={() => navigate("/scan")}
+          actionLabel="Run New Security Scan"
+        />
       </div>
     );
   }
