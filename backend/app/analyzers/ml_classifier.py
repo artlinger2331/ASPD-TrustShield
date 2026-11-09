@@ -6,18 +6,19 @@ from target URLs and applies a calibrated decision model with feature attributio
 Zero external network calls; executes in < 5 milliseconds.
 """
 
+from collections import Counter
 import logging
 import math
 import re
-import uuid
-from collections import Counter
-from typing import Dict, Any, List, Tuple, Optional
+from typing import Any, Dict, List, Optional, Tuple
 from urllib.parse import urlparse
+import uuid
 
-logger = logging.getLogger(__name__)
-
+from app.core.config import settings
 from app.models.scan_finding import ScanFinding
 from app.schemas.ml_classification import MLClassificationResult, MLFeatureContribution
+
+logger = logging.getLogger(__name__)
 
 # ---------------------------------------------------------------------------
 # PHISHING KEYWORDS & BRAND DICTIONARIES
@@ -46,7 +47,7 @@ IP_HOST_REGEX = re.compile(r"^(\d{1,3}\.){3}\d{1,3}$")
 
 
 # ---------------------------------------------------------------------------
-# FEATURE EXTRACTION
+# FEATURE EXTRACTION (Baseline Heuristic)
 # ---------------------------------------------------------------------------
 
 def calculate_shannon_entropy(text: str) -> float:
@@ -72,18 +73,15 @@ def extract_url_features(url: str) -> Dict[str, Any]:
     query = parsed.query.lower()
     full_url = url.lower()
 
-    # Host parts
     host_parts = host.split(".")
     tld = host_parts[-1] if len(host_parts) > 1 else ""
     subdomains = host_parts[:-2] if len(host_parts) > 2 else []
 
-    # Length features
     url_length = len(full_url)
     host_length = len(host)
     path_length = len(path)
     query_length = len(query)
 
-    # Character counts
     dot_count = full_url.count(".")
     hyphen_count = full_url.count("-")
     underscore_count = full_url.count("_")
@@ -93,38 +91,31 @@ def extract_url_features(url: str) -> Dict[str, Any]:
     percent_count = full_url.count("%")
     equal_count = full_url.count("=")
 
-    # Digit counts & ratios
     total_digits = sum(c.isdigit() for c in full_url)
     host_digits = sum(c.isdigit() for c in host)
     digit_ratio_url = round(total_digits / max(1, url_length), 4)
     digit_ratio_host = round(host_digits / max(1, host_length), 4)
 
-    # Entropy
     host_entropy = calculate_shannon_entropy(host)
     path_entropy = calculate_shannon_entropy(path)
 
-    # Host specific checks
     is_ip_address = bool(IP_HOST_REGEX.match(host))
     has_port = ":" in parsed.netloc
     subdomain_count = len(subdomains)
     is_suspicious_tld = tld in SUSPICIOUS_TLDS
 
-    # Keyword checks
     found_security_keywords: List[str] = []
     for kw in SECURITY_KEYWORDS:
         if kw in host or kw in path:
             found_security_keywords.append(kw)
 
-    # Brand mimicry co-occurrence
     found_brands: List[str] = []
     for brand in TARGETED_BRANDS:
         if brand in host:
             found_brands.append(brand)
 
-    # Vowel to consonant ratio in domain
     letters_in_host = [c for c in host if c.isalpha()]
     vowels = sum(1 for c in letters_in_host if c in "aeiou")
-    consonants = len(letters_in_host) - vowels
     vowel_ratio = round(vowels / max(1, len(letters_in_host)), 4) if letters_in_host else 0.5
 
     return {
@@ -161,17 +152,14 @@ def extract_url_features(url: str) -> Dict[str, Any]:
 # MODEL SCORING & DECISION ENGINE
 # ---------------------------------------------------------------------------
 
-def classify_url(url: str) -> MLClassificationResult:
+def classify_url_heuristic(url: str) -> MLClassificationResult:
     """
-    Evaluates extracted URL features against trained weights, computes phishing
-    probability and returns feature explanations.
+    Evaluates extracted URL features against heuristic rules.
     """
     feats = extract_url_features(url)
     weights: List[MLFeatureContribution] = []
-
     raw_score = 0.0
 
-    # 1. IP address used as hostname (+35 risk points)
     if feats["is_ip_address"]:
         weight = 35.0
         raw_score += weight
@@ -184,7 +172,6 @@ def classify_url(url: str) -> MLClassificationResult:
             )
         )
 
-    # 2. Suspicious / Abused TLD (+25 points)
     if feats["is_suspicious_tld"]:
         weight = 25.0
         raw_score += weight
@@ -197,7 +184,6 @@ def classify_url(url: str) -> MLClassificationResult:
             )
         )
 
-    # 3. High Hostname Shannon Entropy (+20 points)
     if feats["host_entropy"] >= 4.0:
         weight = min(25.0, (feats["host_entropy"] - 3.8) * 35.0)
         raw_score += weight
@@ -210,9 +196,7 @@ def classify_url(url: str) -> MLClassificationResult:
             )
         )
 
-    # 4. Brand mimicry combined with security keywords (+35 points)
     if feats["targeted_brands"] and feats["security_keyword_count"] > 0:
-        # Check if the brand is actually the official domain
         brand_name = feats["targeted_brands"][0]
         is_official = feats["host"] == f"{brand_name}.com" or feats["host"].endswith(f".{brand_name}.com")
         if not is_official:
@@ -238,7 +222,6 @@ def classify_url(url: str) -> MLClassificationResult:
             )
         )
 
-    # 5. Excessive subdomains (+15 points)
     if feats["subdomain_count"] >= 3:
         weight = min(20.0, (feats["subdomain_count"] - 2) * 8.0)
         raw_score += weight
@@ -251,7 +234,6 @@ def classify_url(url: str) -> MLClassificationResult:
             )
         )
 
-    # 6. Excessive hyphenation in host (+15 points)
     if feats["hyphen_count"] >= 3:
         weight = min(18.0, feats["hyphen_count"] * 4.0)
         raw_score += weight
@@ -264,7 +246,6 @@ def classify_url(url: str) -> MLClassificationResult:
             )
         )
 
-    # 7. High digit ratio in host (+15 points)
     if feats["digit_ratio_host"] >= 0.25:
         weight = 15.0
         raw_score += weight
@@ -277,7 +258,6 @@ def classify_url(url: str) -> MLClassificationResult:
             )
         )
 
-    # 8. Excessive URL length (+10 points)
     if feats["url_length"] > 100:
         weight = min(15.0, (feats["url_length"] - 100) * 0.15)
         raw_score += weight
@@ -290,7 +270,6 @@ def classify_url(url: str) -> MLClassificationResult:
             )
         )
 
-    # 9. At sign (@) in URL (+30 points - obsolete credential delimiter used in phishing)
     if feats["at_count"] > 0:
         weight = 30.0
         raw_score += weight
@@ -303,33 +282,9 @@ def classify_url(url: str) -> MLClassificationResult:
             )
         )
 
-    # Normalize probability via calibrated sigmoid
-    # Midpoint at raw_score = 40.0
     k = 0.08
     prob = 1.0 / (1.0 + math.exp(-k * (raw_score - 40.0)))
     prob = round(prob, 4)
-
-    # Incorporate production ML model classification if available
-    ml_version = None
-    try:
-        from app.ml.predict import URLClassifier
-        classifier = URLClassifier(use_production=True)
-        pred = classifier.predict(url)
-        ml_version = pred.model_version
-        # Calibrated blend: ML statistical probability with heuristic score
-        prob = round(float(pred.probability * 0.65 + prob * 0.35), 4)
-        for f in pred.top_contributing_features:
-            weights.append(
-                MLFeatureContribution(
-                    feature_name=f.feature_name,
-                    feature_value=str(f.feature_value),
-                    weight=round(abs(f.contribution) * 10.0, 1),
-                    description=f.description,
-                )
-            )
-    except Exception as e:
-        logger.debug(f"Production ML model not active; using baseline heuristic: {e}")
-
     risk_score = min(100, max(0, int(round(prob * 100))))
 
     if risk_score >= 70:
@@ -345,10 +300,8 @@ def classify_url(url: str) -> MLClassificationResult:
         verdict = "safe"
         is_phishing = False
 
-    # Confidence calculation based on indicator strength
     confidence = round(min(0.98, max(0.65, 0.70 + (abs(prob - 0.5) * 0.5))), 2)
 
-    # Sort top indicators by weight
     weights.sort(key=lambda x: x.weight, reverse=True)
     top_indicators = weights[:4]
 
@@ -377,6 +330,94 @@ def classify_url(url: str) -> MLClassificationResult:
     )
 
 
+def classify_url(
+    url: str,
+    metadata: Optional[Dict[str, Any]] = None,
+) -> MLClassificationResult:
+    """
+    Evaluates extracted URL features against trained production ML model weights.
+    Falls back gracefully to heuristic rules if ML is disabled or unavailable.
+    """
+    # 1. Feature Flag Check
+    if not getattr(settings, "ENABLE_ML_CLASSIFICATION", True):
+        logger.debug("ML classification disabled via feature flag; using heuristic rules.")
+        return classify_url_heuristic(url)
+
+    # 2. Production Model Inference with Heuristic Enrichment
+    try:
+        from app.ml.predict import URLClassifier
+        classifier = URLClassifier(use_production=True)
+        pred = classifier.predict(url, metadata=metadata)
+
+        # Base heuristic features for backward compatibility
+        heuristic_res = classify_url_heuristic(url)
+
+        # Calibrate blended probability (65% ML model, 35% heuristic score)
+        prob = round(float(pred.probability * 0.65 + heuristic_res.phishing_probability * 0.35), 4)
+        risk_score = min(100, max(0, int(round(prob * 100))))
+        is_phishing = risk_score >= 45
+
+        if risk_score >= 70:
+            verdict = "dangerous"
+        elif risk_score >= 45:
+            verdict = "suspicious"
+        elif risk_score >= 20:
+            verdict = "low_risk"
+        else:
+            verdict = "safe"
+
+        confidence = round(max(pred.confidence, heuristic_res.confidence), 2)
+
+        # Combine heuristic indicators with top ML feature attributions
+        combined_indicators = list(heuristic_res.top_indicators)
+        for f in pred.top_contributing_features:
+            combined_indicators.append(
+                MLFeatureContribution(
+                    feature_name=f.feature_name,
+                    feature_value=str(f.feature_value),
+                    weight=round(abs(f.contribution) * 10.0, 1),
+                    description=f.description,
+                )
+            )
+
+        combined_indicators.sort(key=lambda x: x.weight, reverse=True)
+        top_indicators = combined_indicators[:5]
+
+        # Merge extracted features
+        features = dict(heuristic_res.features)
+        features.update(pred.raw_features)
+        features["ml_model_version"] = pred.model_version
+        features["ml_raw_probability"] = pred.probability
+
+        summary = (
+            f"ML model ({pred.model_version}) flagged URL with {int(prob * 100)}% phishing probability: "
+            + "; ".join(f"{ind.description}" for ind in top_indicators[:2])
+            + "."
+            if is_phishing and top_indicators
+            else (
+                f"ML model ({pred.model_version}) flagged URL with {int(prob * 100)}% phishing probability."
+                if is_phishing
+                else f"ML model ({pred.model_version}) indicates a benign URL pattern ({int(prob * 100)}% risk)."
+            )
+        )
+
+        return MLClassificationResult(
+            url=url,
+            is_phishing=is_phishing,
+            phishing_probability=prob,
+            risk_score=risk_score,
+            confidence=confidence,
+            verdict=verdict,
+            shannon_entropy=pred.raw_features.get("domain_entropy", heuristic_res.shannon_entropy),
+            features=features,
+            top_indicators=top_indicators,
+            summary=summary,
+        )
+    except Exception as e:
+        logger.warning("ML URL classifier encountered an error (%s); falling back to heuristic engine.", e)
+        return classify_url_heuristic(url)
+
+
 # ---------------------------------------------------------------------------
 # DATABASE PERSISTENCE
 # ---------------------------------------------------------------------------
@@ -387,35 +428,59 @@ def save_ml_classification_to_db_sync(
     db: Any,
 ) -> Optional[ScanFinding]:
     """
-    Persists ML classification findings into `scan_findings` if risk is elevated.
+    Persists ML classification findings into `scan_findings`.
+    Always stores structured findings with corresponding severity and evidence.
     """
-    if result.risk_score < 25:
-        return None
+    if result.risk_score >= 70:
+        severity = "critical"
+    elif result.risk_score >= 50:
+        severity = "high"
+    elif result.risk_score >= 25:
+        severity = "medium"
+    else:
+        severity = "info"
 
-    severity = "critical" if result.risk_score >= 70 else ("high" if result.risk_score >= 50 else "medium")
+    ml_weight = getattr(settings, "ML_RISK_WEIGHT", 0.10)
+    risk_points = int(result.risk_score * ml_weight * 5.0)
+
+    model_version = result.features.get("ml_model_version", "v1.0.0")
 
     finding = ScanFinding(
         scan_id=scan_id,
         category="ml_classifier",
-        title=f"ML Phishing Classifier: {result.verdict.upper()} ({result.risk_score}/100)",
+        title=f"ML URL Classifier: {result.verdict.upper()} ({result.risk_score}/100)",
         severity=severity,
         confidence=result.confidence,
         description=result.summary,
         evidence={
+            "predicted_label": "phishing" if result.is_phishing else "benign",
             "phishing_probability": result.phishing_probability,
+            "confidence": result.confidence,
+            "model_version": model_version,
+            "verdict": result.verdict,
+            "risk_score": result.risk_score,
             "shannon_entropy": result.shannon_entropy,
             "top_indicators": [i.model_dump() for i in result.top_indicators],
             "extracted_features": {
                 k: v for k, v in result.features.items()
-                if k in ("host_entropy", "is_ip_address", "is_suspicious_tld", "security_keywords", "targeted_brands", "subdomain_count")
+                if k in (
+                    "url_length", "domain_length", "num_dots", "num_hyphens", "num_digits",
+                    "num_special_chars", "num_subdomains", "domain_age_days", "has_ip_address",
+                    "uses_https", "suspicious_keyword_count", "brand_keyword_count", "suspicious_tld",
+                    "is_url_shortener", "redirect_count", "domain_entropy", "char_repetition_max",
+                    "path_depth", "query_param_count", "has_embedded_credentials", "ml_model_version"
+                )
             },
         },
-        recommendation="Verify the domain carefully. Structural characteristics match known phishing lure patterns.",
-        risk_points=int(result.risk_score * 0.6),
+        recommendation=(
+            "Exercise caution. Structural and lexical characteristics match known phishing lure patterns."
+            if result.is_phishing
+            else "Domain structure and lexical characteristics conform to verified legitimate patterns."
+        ),
+        risk_points=risk_points,
         raw_data={"summary": result.summary},
     )
     db.add(finding)
     db.commit()
     db.refresh(finding)
     return finding
-
