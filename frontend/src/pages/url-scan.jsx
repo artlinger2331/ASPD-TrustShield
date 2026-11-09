@@ -593,6 +593,27 @@ export default function UrlScan() {
                 </button>
               </div>
             </div>
+          ) : scanning ? (
+            /* Active Analysis Skeletons & Probe Progress Card */
+            <div className="rounded-2xl border border-cyan-500/30 bg-navy-800/80 backdrop-blur-xl p-5 sm:p-6 shadow-2xl space-y-4">
+              <div className="flex items-center justify-between pb-3 border-b border-white/10 text-xs">
+                <span className="font-mono text-cyan-300 font-semibold uppercase flex items-center gap-2">
+                  <RotateCw className="w-3.5 h-3.5 animate-spin text-cyan-400" />
+                  <span>Pipeline Active (Step {activeStep}/6)</span>
+                </span>
+                <span className="text-[11px] font-mono text-cyan-400 bg-cyan-500/10 border border-cyan-500/30 px-2 py-0.5 rounded">
+                  POLLING BACKEND
+                </span>
+              </div>
+              <div className="space-y-3">
+                <Skeleton className="h-6 w-3/4 rounded-lg bg-cyan-500/10" />
+                <Skeleton className="h-28 w-full rounded-xl bg-white/5" />
+                <div className="space-y-2 pt-2">
+                  <Skeleton className="h-4 w-5/6 rounded bg-white/5" />
+                  <Skeleton className="h-4 w-4/6 rounded bg-white/5" />
+                </div>
+              </div>
+            </div>
           ) : (
             /* Standby Sensors Card */
             <div className="rounded-2xl border border-white/10 bg-navy-800/60 backdrop-blur-xl p-5 shadow-xl space-y-3">
