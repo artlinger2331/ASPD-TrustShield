@@ -27,5 +27,13 @@
   "app/ml/tests/test_train_pipeline.py::test_load_dataset_from_csv",
   "app/ml/tests/test_train_pipeline.py::test_train_invalid_model_type",
   "app/ml/tests/test_train_pipeline.py::test_train_logistic_regression",
-  "app/ml/tests/test_train_pipeline.py::test_train_random_forest"
+  "app/ml/tests/test_train_pipeline.py::test_train_random_forest",
+  "tests/test_ml_classifier.py::test_at_symbol_obfuscation",
+  "tests/test_ml_classifier.py::test_benign_url_classification",
+  "tests/test_ml_classifier.py::test_ip_address_hostname",
+  "tests/test_ml_classifier.py::test_ml_classification_database_persistence",
+  "tests/test_ml_classifier.py::test_phishing_brand_lure_url",
+  "tests/test_ml_classifier.py::test_shannon_entropy",
+  "tests/test_scans_api.py::test_pipeline_execution_mocked",
+  "tests/test_scans_api.py::test_scans_api_endpoints_sync"
 ]
