@@ -126,18 +126,19 @@ export default function Login() {
     const dest = getRedirectTarget();
     sessionStorage.setItem("ts_redirect_after_auth", dest);
     const apiBase = getApiBaseUrl();
+    const originParam = encodeURIComponent(window.location.origin);
 
     try {
       const statusRes = await authApi.getOAuthStatus();
       if (statusRes[provider] && statusRes[provider].configured) {
         // Provider credentials exist -> redirect straight to official Google / GitHub accounts page!
-        window.location.href = `${apiBase}/api/v1/auth/oauth/${provider}`;
+        window.location.href = `${apiBase}/api/v1/auth/oauth/${provider}?origin=${originParam}`;
       } else {
         // Not configured yet -> prompt user for their Client ID so Google can fetch real accounts
         setSetupProvider(provider);
       }
     } catch (_) {
-      window.location.href = `${apiBase}/api/v1/auth/oauth/${provider}`;
+      window.location.href = `${apiBase}/api/v1/auth/oauth/${provider}?origin=${originParam}`;
     }
   };
 
