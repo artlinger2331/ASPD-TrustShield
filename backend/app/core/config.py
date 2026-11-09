@@ -33,7 +33,6 @@ class Settings(BaseSettings):
     GOOGLE_SAFE_BROWSING_API_KEY: Optional[str] = ""
     URLHAUS_AUTH_KEY: Optional[str] = ""
     VIRUSTOTAL_API_KEY: Optional[str] = ""
-<<<<<<< HEAD
     PHISHTANK_API_KEY: Optional[str] = ""
     OPENPHISH_API_KEY: Optional[str] = ""
 
@@ -55,8 +54,6 @@ class Settings(BaseSettings):
     ENABLE_ML_CLASSIFICATION: bool = True
     ML_RISK_WEIGHT: float = 0.10
     ML_CACHE_TTL_SECONDS: int = 3600
-=======
->>>>>>> 9b735eb99fcfab11611f7f8da03c77f43357eb91
 
     # OAuth2 Providers (Google & GitHub)
     GOOGLE_CLIENT_ID: Optional[str] = ""
