@@ -1,6 +1,20 @@
 """
 Unit tests for the TrustShield Model Registry.
 Tests saving, loading, listing, deleting, and production model management.
+"""
+
+from pathlib import Path
+import pytest
+from sklearn.linear_model import LogisticRegression
+
+from app.ml.feature_extractor import FeatureSchemaV1
+from app.ml.model_registry import ModelMetadata, ModelRegistry
+
+
+def test_model_registry_save_and_load(tmp_path: Path):
+    """Verify saving and loading model pipeline with metadata."""
+    registry = ModelRegistry(storage_dir=tmp_path)
+
     dummy_model = LogisticRegression()
     dummy_model.classes_ = [0, 1]
 

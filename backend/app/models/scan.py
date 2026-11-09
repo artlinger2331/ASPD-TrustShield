@@ -128,4 +128,3 @@ class Scan(Base, TimestampMixin):
 
     def __repr__(self) -> str:
         return f"<Scan id={self.id} status={self.status} verdict={self.verdict} score={self.risk_score}>"
-

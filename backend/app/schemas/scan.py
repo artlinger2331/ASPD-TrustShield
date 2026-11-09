@@ -191,5 +191,3 @@ class ScanListResponse(BaseModel):
     items: List[ScanListItem]
 
     model_config = ConfigDict(from_attributes=True)
-
-

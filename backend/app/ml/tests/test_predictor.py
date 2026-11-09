@@ -2,6 +2,12 @@
 Unit tests for the TrustShield URL prediction interface and attribution engine.
 Verifies production model inference, probability bounds, confidence scoring,
 and explainability feature attributions.
+"""
+
+from pathlib import Path
+import pytest
+
+from app.ml.feature_extractor import FeatureSchemaV1
 from app.ml.model_registry import ModelRegistry
 from app.ml.predict import URLClassifier, URLPredictionResult
 from app.ml.train_model import train_url_classifier
@@ -22,6 +28,36 @@ def trained_models(tmp_path_factory):
         model_name="url_classifier",
         output_dir=temp_dir,
         set_as_production=True,
+    )
+
+    pipe_rf, meta_rf = train_url_classifier(
+        csv_path=SAMPLE_CSV,
+        model_type="random_forest",
+        version="v1.0.0-rf",
+        model_name="url_classifier_rf",
+        output_dir=temp_dir,
+    )
+
+    return {
+        "registry": registry,
+        "lr_model": pipe_lr,
+        "lr_meta": meta_lr,
+        "rf_model": pipe_rf,
+        "rf_meta": meta_rf,
+        "storage_dir": temp_dir,
+    }
+
+
+def test_predictor_load_production(trained_models):
+    """Verify URLClassifier automatically loads active production model."""
+    classifier = URLClassifier(
+        registry=trained_models["registry"],
+        use_production=True,
+    )
+    assert classifier.metadata.version == "v1.0.0-lr"
+    assert classifier.metadata.is_production is True
+
+
 def test_predictor_logistic_regression_benign(trained_models):
     """Verify inference on a known benign URL using Logistic Regression."""
     classifier = URLClassifier(
