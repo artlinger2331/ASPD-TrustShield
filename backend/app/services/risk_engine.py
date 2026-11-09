@@ -180,8 +180,6 @@ def evaluate_risk(
         composite_score = max(55, content_score)
     elif cert_score >= 75:
         composite_score = max(65, int(round(raw_composite)))
-    elif ml_score >= 70:
-        composite_score = max(65, int(round(raw_composite)))
     else:
         composite_score = min(100, max(0, int(round(raw_composite))))
 
