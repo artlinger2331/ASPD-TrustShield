@@ -33,7 +33,10 @@ import { VerdictBadge } from "@/components/ui/badge";
 import { Table } from "@/components/ui/table";
 import { ThreeDDonut } from "@/components/ui/three-d-donut";
 import { ThreeDBarChart } from "@/components/ui/three-d-bar-chart";
+import { EmptyState } from "@/components/ui/empty-state";
+import { Skeleton } from "@/components/ui/skeleton";
 import { useAuth } from "@/hooks/useAuth";
+import { useRecentScans } from "@/hooks/useScans";
 import { scanApi } from "@/utils/api";
 import { DASHBOARD_STATS, RECENT_SCANS, CHART_DATA } from "@/data/mockData";
 
