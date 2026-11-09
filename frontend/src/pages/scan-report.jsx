@@ -32,7 +32,10 @@ import { CertificateChain } from "@/components/ui/certificate-chain";
 import { RedirectFlow } from "@/components/ui/redirect-flow";
 import { ThreatIntelGraph } from "@/components/ui/threat-intel-graph";
 import { Modal } from "@/components/ui/modal";
+import { EmptyState } from "@/components/ui/empty-state";
+import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/useAuth";
+import { useScanReport } from "@/hooks/useScans";
 import {
   formatDate,
   formatDateTime,
