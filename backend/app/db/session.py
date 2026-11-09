@@ -89,7 +89,6 @@ def init_sqlite_db():
         import app.models  # Load all models
         Base.metadata.create_all(local_sync_engine)
 
-<<<<<<< HEAD
         # Ensure all model columns exist in SQLite fallback schema
         with local_sync_engine.connect() as conn:
             raw_conn = conn.connection
@@ -104,14 +103,6 @@ def init_sqlite_db():
                         col_type = col.type.compile(local_sync_engine.dialect)
                         cur.execute(f"ALTER TABLE {table_name} ADD COLUMN {col.name} {col_type}")
             raw_conn.commit()
-=======
-        with local_sync_engine.connect() as conn:
-            res = conn.exec_driver_sql("PRAGMA table_info(scans)").fetchall()
-            cols = [r[1] for r in res]
-            if "explanation" not in cols and "id" in cols:
-                conn.exec_driver_sql("ALTER TABLE scans ADD COLUMN explanation JSON")
-                conn.commit()
->>>>>>> 1f158f59501110666cb1bf973b0047daca5ccaf7
     except Exception:
         pass
 
