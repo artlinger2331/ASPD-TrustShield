@@ -4,7 +4,13 @@ echo ====================================================
 echo Starting TrustShield Platform (Frontend + Backend)
 echo ====================================================
 
-start "TrustShield Backend (FastAPI)" cmd /k "cd /d %~dp0 && python -m uvicorn app.main:app --app-dir backend --host 127.0.0.1 --port 8000 --reload"
+if exist "%~dp0.venv\Scripts\python.exe" (
+    set "PY_BIN=%~dp0.venv\Scripts\python.exe"
+) else (
+    set "PY_BIN=python"
+)
+
+start "TrustShield Backend (FastAPI)" cmd /k "cd /d %~dp0 && "%PY_BIN%" -m uvicorn app.main:app --app-dir backend --host 127.0.0.1 --port 8000 --reload"
 ping 127.0.0.1 -n 3 >nul
 
 start "TrustShield Frontend (Vite)" cmd /k "cd /d %~dp0frontend && npm run dev"
