@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sign In - Enterprise Developer Portal</title>
+</head>
+<body>
+    <header>
+        <nav>
+            <a href="/">Enterprise Dev</a>
+            <a href="/docs">Documentation</a>
+        </nav>
+    </header>
+    <main>
+        <section class="login-container">
+            <h1>Sign in to your Developer Account</h1>
+            <form action="/auth/login" method="POST">
+                <input type="hidden" name="csrf_token" value="abc123xyz890">
+                <div class="form-group">
+                    <label for="username">Email or Username</label>
+                    <input type="email" id="username" name="email" placeholder="developer@company.com" required>
+                </div>
+                <div class="form-group">
+                    <label for="password">Password</label>
+                    <input type="password" id="password" name="password" placeholder="Enter your password" required>
+                </div>
+                <button type="submit">Sign In</button>
+            </form>
+        </section>
+    </main>
+    <footer>
+        <p>&copy; 2026 Enterprise Dev Inc. All rights reserved.</p>
+    </footer>
+</body>
+</html>
+

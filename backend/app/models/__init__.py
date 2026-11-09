@@ -8,6 +8,7 @@ from app.models.user import User
 from app.models.scan import Scan
 from app.models.scan_finding import ScanFinding
 from app.models.certificate import Certificate
+from app.models.ca_trust_incident import CATrustIncident
 from app.models.threat_intel import ThreatIntelResult
 from app.models.community_report import CommunityReport
 from app.models.watchlist import WatchlistItem
@@ -19,6 +20,7 @@ __all__ = [
     "Scan",
     "ScanFinding",
     "Certificate",
+    "CATrustIncident",
     "ThreatIntelResult",
     "CommunityReport",
     "WatchlistItem",

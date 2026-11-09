@@ -12,6 +12,7 @@
   "dependencies": {
     "@headlessui/react": "^2.2.10",
     "@tailwindcss/vite": "^4.3.5",
+    "@tanstack/react-query": "^5.107.1",
     "autoprefixer": "^10.6.2",
     "clsx": "^2.1.1",
     "framer-motion": "^14.10.1",

@@ -132,7 +132,13 @@ async function parseError(response) {
       return error;
     }
     if (data.detail) {
-      const error = new Error(typeof data.detail === "string" ? data.detail : JSON.stringify(data.detail));
+      let detailMsg = data.detail;
+      if (Array.isArray(data.detail)) {
+        detailMsg = data.detail.map((d) => d.msg || JSON.stringify(d)).join(". ");
+      } else if (typeof data.detail === "object") {
+        detailMsg = data.detail.msg || JSON.stringify(data.detail);
+      }
+      const error = new Error(detailMsg);
       error.status = response.status;
       return error;
     }

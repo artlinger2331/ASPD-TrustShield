@@ -174,21 +174,20 @@ export default function App() {
   };
 
   return (
-    <AuthProvider>
-      <ToastProvider>
-        <ErrorBoundary>
+    <ErrorBoundary>
+      <AuthProvider>
+        <ToastProvider>
           <Routes>
-          {/* Public standalone pages */}
-          <Route path="/" element={<Landing />} />
-          <Route path="/login" element={<Login />} />
-          <Route path="/register" element={<Register />} />
-          <Route path="/forgot-password" element={<ForgotPassword />} />
-          <Route path="/auth/callback" element={<OAuthCallback />} />
+            {/* Public standalone pages */}
+            <Route path="/" element={<Landing />} />
+            <Route path="/login" element={<Login />} />
+            <Route path="/register" element={<Register />} />
+            <Route path="/forgot-password" element={<ForgotPassword />} />
+            <Route path="/auth/callback" element={<OAuthCallback />} />
 
-          {/* Authenticated / App layout pages */}
-          <Route element={<AppLayout toggleTheme={toggleTheme} />}>
-            <Route element={<ProtectedRoute />}>
-              <Route path="/dashboard" element={<Dashboard />} />
+            {/* App layout shell */}
+            <Route element={<AppLayout toggleTheme={toggleTheme} />}>
+              {/* Public scanner & report features */}
               <Route path="/scan" element={<UrlScan />} />
               <Route path="/reports/:id" element={<ScanReport />} />
               <Route path="/report/:id" element={<ScanReport />} />
@@ -196,17 +195,21 @@ export default function App() {
               <Route path="/community" element={<CommunityReports />} />
               <Route path="/report" element={<ReportWebsite />} />
               <Route path="/report-website" element={<ReportWebsite />} />
-              <Route path="/watchlist" element={<Watchlist />} />
-              <Route path="/profile" element={<Profile />} />
-              <Route path="/settings" element={<Profile />} />
-            </Route>
-          </Route>
 
-          {/* Fallback */}
-          <Route path="*" element={<Navigate to="/" replace />} />
-        </Routes>
-      </ErrorBoundary>
-    </ToastProvider>
-    </AuthProvider>
+              {/* Protected user account features */}
+              <Route element={<ProtectedRoute />}>
+                <Route path="/dashboard" element={<Dashboard />} />
+                <Route path="/watchlist" element={<Watchlist />} />
+                <Route path="/profile" element={<Profile />} />
+                <Route path="/settings" element={<Profile />} />
+              </Route>
+            </Route>
+
+            {/* Fallback */}
+            <Route path="*" element={<Navigate to="/" replace />} />
+          </Routes>
+        </ToastProvider>
+      </AuthProvider>
+    </ErrorBoundary>
   );
 }

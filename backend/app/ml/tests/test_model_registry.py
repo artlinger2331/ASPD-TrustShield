@@ -14,6 +14,10 @@ def test_model_registry_save_and_load(tmp_path: Path):
     """Verify saving and loading model pipeline with metadata."""
     registry = ModelRegistry(storage_dir=tmp_path)
 
+<<<<<<< .merge_file_ooDkHn
+=======
+    # Simple mock model
+>>>>>>> .merge_file_GtUq8n
     dummy_model = LogisticRegression()
     dummy_model.classes_ = [0, 1]
 
@@ -33,10 +37,18 @@ def test_model_registry_save_and_load(tmp_path: Path):
     assert model_path.exists()
     assert meta_path.exists()
 
+<<<<<<< .merge_file_ooDkHn
     loaded_model, loaded_meta = registry.load_model(version="v1.0.0", model_name="test_classifier")
     assert loaded_meta.version == "v1.0.0"
     assert loaded_meta.model_name == "test_classifier"
     assert loaded_meta.feature_count == 20
+=======
+    # Load by version
+    loaded_model, loaded_meta = registry.load_model(version="v1.0.0", model_name="test_classifier")
+    assert loaded_meta.version == "v1.0.0"
+    assert loaded_meta.model_name == "test_classifier"
+    assert loaded_meta.feature_count == 42
+>>>>>>> .merge_file_GtUq8n
     assert loaded_meta.metrics["test"]["accuracy"] == 0.95
     assert hasattr(loaded_model, "classes_")
 
@@ -60,6 +72,10 @@ def test_model_registry_load_latest(tmp_path: Path):
     )
     registry.save_model(dummy_model, meta_v2)
 
+<<<<<<< .merge_file_ooDkHn
+=======
+    # Load without specifying version -> should load v1.2.0
+>>>>>>> .merge_file_GtUq8n
     _, loaded_meta = registry.load_model(version=None, model_name="url_classifier")
     assert loaded_meta.version == "v1.2.0"
 

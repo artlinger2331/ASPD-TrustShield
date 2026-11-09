@@ -1,6 +1,14 @@
 """
 Model Registry for TrustShield ML.
+<<<<<<< Updated upstream
 Manages versioned model artifacts, metadata tracking, production pointers, and validation.
+=======
+<<<<<<< .merge_file_iH5ORp
+Manages versioned model artifacts, metadata tracking, production pointers, and validation.
+=======
+Manages versioned model artifacts, metadata tracking, and validation.
+>>>>>>> .merge_file_ehnzUr
+>>>>>>> Stashed changes
 """
 
 from dataclasses import asdict, dataclass, field
@@ -33,7 +41,14 @@ class ModelMetadata:
     decision_threshold: float = 0.5
     created_at: str = field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
     notes: Optional[str] = None
+<<<<<<< Updated upstream
     is_production: bool = False
+=======
+<<<<<<< .merge_file_iH5ORp
+    is_production: bool = False
+=======
+>>>>>>> .merge_file_ehnzUr
+>>>>>>> Stashed changes
 
     def to_dict(self) -> Dict[str, Any]:
         return asdict(self)
@@ -52,12 +67,27 @@ class ModelMetadata:
             decision_threshold=data.get("decision_threshold", 0.5),
             created_at=data.get("created_at", datetime.now(timezone.utc).isoformat()),
             notes=data.get("notes"),
+<<<<<<< Updated upstream
             is_production=data.get("is_production", False),
+=======
+<<<<<<< .merge_file_iH5ORp
+            is_production=data.get("is_production", False),
+=======
+>>>>>>> .merge_file_ehnzUr
+>>>>>>> Stashed changes
         )
 
 
 class ModelRegistry:
+<<<<<<< Updated upstream
     """Handles persistence, retrieval, production promotion, and listing of ML models."""
+=======
+<<<<<<< .merge_file_iH5ORp
+    """Handles persistence, retrieval, production promotion, and listing of ML models."""
+=======
+    """Handles persistence, retrieval, and listing of versioned ML models."""
+>>>>>>> .merge_file_ehnzUr
+>>>>>>> Stashed changes
 
     def __init__(self, storage_dir: Optional[Union[str, Path]] = None):
         self.storage_dir = Path(storage_dir) if storage_dir else DEFAULT_MODELS_DIR
@@ -69,9 +99,18 @@ class ModelRegistry:
         meta_path = self.storage_dir / f"{base_name}.meta.json"
         return model_path, meta_path
 
+<<<<<<< Updated upstream
     def _get_production_pointer_path(self, model_name: str) -> Path:
         return self.storage_dir / f"production_{model_name}.json"
 
+=======
+<<<<<<< .merge_file_iH5ORp
+    def _get_production_pointer_path(self, model_name: str) -> Path:
+        return self.storage_dir / f"production_{model_name}.json"
+
+=======
+>>>>>>> .merge_file_ehnzUr
+>>>>>>> Stashed changes
     def save_model(
         self,
         model: Any,
@@ -87,8 +126,15 @@ class ModelRegistry:
 
         model_path, meta_path = self._get_paths(meta_obj.model_name, meta_obj.version)
 
+<<<<<<< .merge_file_iH5ORp
         joblib.dump(model, model_path)
 
+=======
+        # 1. Save model binary
+        joblib.dump(model, model_path)
+
+        # 2. Save metadata JSON
+>>>>>>> .merge_file_ehnzUr
         with open(meta_path, "w", encoding="utf-8") as f:
             json.dump(meta_obj.to_dict(), f, indent=2)
 
@@ -100,6 +146,10 @@ class ModelRegistry:
         )
         return model_path, meta_path
 
+<<<<<<< Updated upstream
+=======
+<<<<<<< .merge_file_iH5ORp
+>>>>>>> Stashed changes
     def set_production_model(self, version: str, model_name: str = "url_classifier") -> Path:
         """
         Sets a specific model version as the active production model.
@@ -149,6 +199,11 @@ class ModelRegistry:
             raise FileNotFoundError(f"No production model found for '{model_name}' in {self.storage_dir}")
         return self.load_model(version=prod_version, model_name=model_name)
 
+<<<<<<< Updated upstream
+=======
+=======
+>>>>>>> .merge_file_ehnzUr
+>>>>>>> Stashed changes
     def list_models(self, model_name: Optional[str] = None) -> List[ModelMetadata]:
         """Lists all registered models in storage directory."""
         results: List[ModelMetadata] = []
@@ -172,7 +227,13 @@ class ModelRegistry:
         if not models:
             return None
 
+<<<<<<< .merge_file_iH5ORp
         def sort_key(m: ModelMetadata):
+=======
+        # Sort by created_at or semver string
+        def sort_key(m: ModelMetadata):
+            # Try parsing semantic version e.g. v1.2.3 -> (1, 2, 3)
+>>>>>>> .merge_file_ehnzUr
             match = re.match(r"v?(\d+)\.(\d+)(?:\.(\d+))?", m.version)
             if match:
                 major = int(match.group(1))
