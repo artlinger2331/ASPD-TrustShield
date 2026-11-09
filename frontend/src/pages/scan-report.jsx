@@ -59,28 +59,15 @@ export default function ScanReport() {
   const { toast } = useToast();
   const [modalOpen, setModalOpen] = useState(false);
   const [expanded, setExpanded] = useState(new Set());
-  const [loading, setLoading] = useState(false);
-  const [report, setReport] = useState(null);
 
-  useEffect(() => {
-    async function loadReport() {
-      if (!id || id === "scan" || id === "1") {
-        return;
-      }
-      try {
-        setLoading(true);
-        const data = await scanApi.getScanReport(id);
-        if (data && data.id) {
-          setReport(data);
-        }
-      } catch (err) {
-        console.warn("Could not load backend scan report, using mock data fallback:", err);
-      } finally {
-        setLoading(false);
-      }
-    }
-    loadReport();
-  }, [id]);
+  // TanStack Query for detailed technical scan report
+  const {
+    data: report,
+    isLoading: loading,
+    isError,
+    error,
+    refetch,
+  } = useScanReport(id);
 
   // Consolidate real data or fallback to mockData
   const scan = report
