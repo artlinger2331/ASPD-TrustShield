@@ -2,6 +2,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { User, ShieldCheck, Settings, LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
 import { useAuth } from "@/hooks/useAuth";
 
 export default function Profile() {
